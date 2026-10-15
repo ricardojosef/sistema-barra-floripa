@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Barra Floripa Surf School — A escola de surf referência em Florianópolis</title>
+  <meta name="description" content="A escola de surf referência em Florianópolis. Agende sua aula e torne o sonho de surfar realidade!">
+  <meta name="theme-color" content="#FD711D">
+  <link rel="icon" href="logomenor-barrafloripa.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Poppins:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/pages.css">
+  <link rel="stylesheet" href="css/site.css">
+</head>
+<body data-page="landing">
+
+  <!-- Barra de progresso de leitura, com o surfista -->
+  <div id="barra-progresso" aria-hidden="true">
+    <div id="barra-progresso-preenchida">
+      <span id="surfista-progresso">🏄</span>
+    </div>
+  </div>
+
+  <header class="topo" id="topo"></header>
+
+  <main>
+
+    <!-- ===================== HERO ===================== -->
+    <section class="hero-site">
+      <!-- IMAGEM DE FUNDO: surfista em ação -->
+      <img class="hero-site-fundo" src="img/hero.jpg" alt="" aria-hidden="true"
+           onerror="this.classList.add('sem-imagem')">
+      <div class="hero-site-overlay"></div>
+
+      <div class="container hero-site-grade">
+        <!-- Coluna esquerda -->
+        <div class="hero-site-esq">
+          <span class="hero-site-rotulo">Barra Floripa Surf School</span>
+          <h1>A escola ideal para<br>quem está começando</h1>
+        </div>
+
+        <!-- Coluna direita -->
+        <div class="hero-site-dir">
+          <h2 class="hero-site-destaque">E quem quer evoluir</h2>
+          <div class="hero-site-botoes">
+            <a href="login.html?aba=cadastro" class="btn btn-primario btn-g">
+              Agendar Aula <span class="seta-btn" aria-hidden="true">→</span>
+            </a>
+            <a href="login.html" class="btn btn-contorno-claro btn-g">Entrar</a>
+          </div>
+        </div>
+      </div>
+
+      <a href="#sobre" class="hero-site-scroll">
+        <span>Conheça a escola</span>
+        <span class="seta" aria-hidden="true">⌄</span>
+      </a>
+    </section>
+
+    <!-- ===================== DE ZERO A 100% ===================== -->
+    <section class="secao" id="sobre">
+      <div class="container">
+        <div class="caixa-contorno">
+          <div class="bloco-site">
+            <!-- GALERIA: 3 fotos espalhadas -->
+            <div class="galeria-espalhada">
+              <figure class="foto-espalhada f1">
+                <img src="img/surf1.jpg" alt="Aluno surfando sua primeira onda"
+                     onerror="this.parentElement.classList.add('sem-imagem')">
+              </figure>
+              <figure class="foto-espalhada f2">
+                <img src="img/surf2.jpg" alt="Turma treinando na areia"
+                     onerror="this.parentElement.classList.add('sem-imagem')">
+              </figure>
+              <figure class="foto-espalhada f3">
+                <img src="img/surf3.jpg" alt="Aluna surfando na Barra da Lagoa"
+                     onerror="this.parentElement.classList.add('sem-imagem')">
+              </figure>
+            </div>
+
+            <div class="bloco-site-texto">
+              <h2>De zero a <span class="destaque-contador" id="contador-evolucao">0%</span></h2>
+              <p>
+                Vem aprender, evoluir e praticar o seu surf com a gente. Aqui tem
+                técnica, experiência e treinos específicos para cada tipo de mar,
+                aluno e prancha. Acompanhamos cada remada da sua evolução.
+              </p>
+              <ul class="lista-check-laranja">
+                <li><span class="check" aria-hidden="true">✓</span>Análise de Movimento</li>
+                <li><span class="check" aria-hidden="true">✓</span>Equipamento adequado</li>
+                <li><span class="check" aria-hidden="true">✓</span>Feedback em tempo real</li>
+              </ul>
+              <a href="login.html?aba=cadastro" class="btn btn-primario btn-g">
+                Agendar Aula <span class="seta-btn" aria-hidden="true">→</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== APRENDA COM QUEM TEM EXPERIÊNCIA ===================== -->
+    <section class="secao">
+      <div class="container">
+        <div class="bloco-site">
+          <div class="bloco-site-texto">
+            <h2>Aprenda com quem tem<br><span class="texto-laranja">experiência</span></h2>
+
+            <p class="citacao-lateral">
+              Com mais de 35 anos de experiência, somos uma das escolas
+              pioneiras em SC, localizados a 50m da praia da Barra da Lagoa, ao
+              lado do Canal. Aqui possuímos equipamentos de qualidade, guarda
+              volume e chuveiro.
+            </p>
+
+            <div class="flex-col gap-12 mt-24 mb-24">
+              <div class="cartao-selo">
+                <span class="icone" aria-hidden="true">🛡️</span>
+                <span class="titulo">Segurança Total</span>
+              </div>
+              <div class="cartao-selo">
+                <span class="icone" aria-hidden="true">🏆</span>
+                <span class="titulo">Pioneiros em SC</span>
+              </div>
+            </div>
+
+            <a href="login.html?aba=cadastro" class="btn btn-primario btn-g">
+              Agendar Aula <span class="seta-btn" aria-hidden="true">→</span>
+            </a>
+          </div>
+
+          <!-- IMAGEM: foto da turma -->
+          <figure class="foto-emoldurada">
+            <img src="img/galera.jpg" alt="Turma da Barra Floripa Surf School na praia"
+                 onerror="this.parentElement.classList.add('sem-imagem')">
+          </figure>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== LOCALIZAÇÃO ===================== -->
+    <section class="secao-local" id="local">
+      <!-- IMAGEM DE FUNDO: Praia da Barra ao entardecer -->
+      <img class="local-fundo" src="img/praia-da-barra.jpg" alt="" aria-hidden="true"
+           onerror="this.classList.add('sem-imagem')">
+      <div class="local-overlay"></div>
+
+      <div class="container local-conteudo">
+        <div class="local-selo">
+          <span class="rotulo">Localização privilegiada</span>
+          <h2>Praia da Barra</h2>
+        </div>
+
+        <div class="local-grade">
+          <!-- GALERIA: 4 fotos coladas, sem espaçamento -->
+          <div class="local-fotos">
+            <figure>
+              <img src="img/local1.jpg" alt="Aluno surfando na Praia da Barra"
+                   onerror="this.parentElement.classList.add('sem-imagem')">
+            </figure>
+            <figure>
+              <img src="img/local2.jpg" alt="Professora orientando na praia"
+                   onerror="this.parentElement.classList.add('sem-imagem')">
+            </figure>
+            <figure>
+              <img src="img/local3.jpg" alt="Pranchas coloridas na areia"
+                   onerror="this.parentElement.classList.add('sem-imagem')">
+            </figure>
+            <figure>
+              <img src="img/local4.jpg" alt="Aluno dropando uma onda"
+                   onerror="this.parentElement.classList.add('sem-imagem')">
+            </figure>
+          </div>
+
+          <div class="local-cartao">
+            <h3>O melhor lugar para<br>você aprender!</h3>
+            <p>
+              Se você é iniciante, encontrou o lugar certo! Aqui na praia da
+              Barra as ondas são perfeitas para você aprender com calma e
+              segurança.
+            </p>
+            <div class="local-tags">
+              <span class="tag-local">Ondas Longas</span>
+              <span class="tag-local">Segurança</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== DEPOIMENTOS ===================== -->
+    <section class="secao" id="depoimentos">
+      <div class="container">
+        <div class="secao-cabecalho">
+          <h2>Quem conhece <span class="texto-laranja">indica</span></h2>
+        </div>
+
+        <!--
+          No site oficial é um carrossel com os prints das avaliações do
+          Google. Coloque os 7 prints em /img como depoimento1.jpg …
+          depoimento7.jpg — enquanto não existirem, aparece o placeholder.
+        -->
+        <div class="depoimentos-faixa rolagem" id="depoimentos-faixa">
+          <figure class="print-depoimento">
+            <img src="img/depoimento1.jpg" alt="Avaliação de aluno no Google"
+                 onerror="this.parentElement.classList.add('sem-imagem')">
+          </figure>
+          <figure class="print-depoimento">
+            <img src="img/depoimento2.jpg" alt="Avaliação de aluno no Google"
+                 onerror="this.parentElement.classList.add('sem-imagem')">
+          </figure>
+          <figure class="print-depoimento">
+            <img src="img/depoimento3.jpg" alt="Avaliação de aluno no Google"
+                 onerror="this.parentElement.classList.add('sem-imagem')">
+          </figure>
+          <figure class="print-depoimento">
+            <img src="img/depoimento4.jpg" alt="Avaliação de aluno no Google"
+                 onerror="this.parentElement.classList.add('sem-imagem')">
+          </figure>
+          <figure class="print-depoimento">
+            <img src="img/depoimento5.jpg" alt="Avaliação de aluno no Google"
+                 onerror="this.parentElement.classList.add('sem-imagem')">
+          </figure>
+          <figure class="print-depoimento">
+            <img src="img/depoimento6.jpg" alt="Avaliação de aluno no Google"
+                 onerror="this.parentElement.classList.add('sem-imagem')">
+          </figure>
+          <figure class="print-depoimento">
+            <img src="img/depoimento7.jpg" alt="Avaliação de aluno no Google"
+                 onerror="this.parentElement.classList.add('sem-imagem')">
+          </figure>
+        </div>
+
+        <div class="texto-centro mt-24">
+          <a href="#" class="btn btn-claro" id="link-depoimentos" target="_blank" rel="noopener">
+            ⭐ Ver mais depoimentos
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== CHAMADA ===================== -->
+    <section class="faixa-chamada">
+      <div class="container texto-centro">
+        <h2>É a sua vez de embarcar nessa viagem</h2>
+        <p>Vai deixar a onda passar?</p>
+        <a href="login.html?aba=cadastro" class="btn btn-primario btn-g mt-16">
+          Agendar Aula <span class="seta-btn" aria-hidden="true">→</span>
+        </a>
+      </div>
+    </section>
+
+    <!-- ===================== SEGURANÇA + TURMAS ===================== -->
+    <section class="secao secao-clara" id="aulas">
+      <div class="container">
+        <div class="bloco-site alinhado-topo">
+          <div class="cartao-seguranca">
+            <div class="seguranca-icone" aria-hidden="true">🛟</div>
+            <h2>Segurança na<br><span class="texto-laranja">1ª aula</span></h2>
+            <p>
+              No seu primeiro contato com o surf, vamos te passar instruções
+              básicas de segurança e ensinar a técnica mais segura e eficaz de
+              subida para que você já possa surfar a sua primeira onda.
+            </p>
+            <p>
+              Nós conhecemos cada canto da praia para que o local seja adequado
+              ao seu nível.
+            </p>
+          </div>
+
+          <div>
+            <h2 class="mb-16">Nossas turmas</h2>
+            <div class="flex-col gap-16">
+              <div class="cartao-turma">
+                <h3>Turma Iniciante</h3>
+                <p>Aprenda em grupo, faça amigos e evolua com a energia da galera</p>
+              </div>
+              <div class="cartao-turma">
+                <h3>Turma Intermediária</h3>
+                <p>Para aqueles que já tem alguma experiência e querem avançar em grupo</p>
+              </div>
+              <div class="cartao-turma">
+                <h3>Aula Particular</h3>
+                <p>Foco total em você. Evolução acelerada com atenção 100% dedicada do instrutor</p>
+              </div>
+            </div>
+            <a href="login.html?aba=cadastro" class="btn btn-primario btn-bloco btn-g mt-24">
+              Agendar Aula <span class="seta-btn" aria-hidden="true">→</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ NÍVEIS AVANÇADOS + FUNDADOR (uma seção só) ============ -->
+    <section class="secao secao-avancado">
+      <div class="container">
+        <div class="secao-cabecalho">
+          <span class="pilula-rotulo">Alta performance</span>
+          <h2>Níveis avançados</h2>
+          <p>
+            Para os alunos avançados temos profissionais capacitados para
+            evolução em diversas praias da ilha com desafios e ondas maiores.
+            Aprenda com quem já surfou a maior onda já surfada no litoral
+            brasileiro.
+          </p>
+        </div>
+
+        <div class="caixa-contorno">
+          <div class="bloco-site">
+            <!-- GALERIA: 1 foto grande + 2 menores sobrepostas -->
+            <div class="galeria-fundador">
+              <figure class="fundador-principal">
+                <img src="img/avancado1.jpg" alt="Surfista em onda grande"
+                     onerror="this.parentElement.classList.add('sem-imagem')">
+              </figure>
+              <figure class="fundador-secundaria s1">
+                <img src="img/avancado2.jpg" alt="Surfista dentro do tubo"
+                     onerror="this.parentElement.classList.add('sem-imagem')">
+              </figure>
+              <figure class="fundador-secundaria s2">
+                <img src="img/avancado3.jpg" alt="Reportagem sobre a maior onda surfada"
+                     onerror="this.parentElement.classList.add('sem-imagem')">
+              </figure>
+            </div>
+
+            <div class="bloco-site-texto">
+              <h2>De da Barra</h2>
+              <span class="rotulo-espacado">Fundador e ícone</span>
+              <p class="mt-16">
+                Conhecido em toda a Barra da Lagoa e também fora dela, o professor
+                e mestre do surf De é um ícone no esporte, seja ensinando ou
+                tirando uma onda.
+              </p>
+              <p>
+                Dedicado sempre a manter o corpo e a mente ativa, ele se torna
+                todos os dias uma referência para quem quer viver do esporte.
+              </p>
+              <a href="login.html?aba=cadastro" class="btn btn-primario btn-g mt-16">
+                Agendar Aula <span class="seta-btn" aria-hidden="true">→</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== PRODUTOS ===================== -->
+    <section class="secao-produtos" id="produtos">
+      <div class="container">
+        <div class="secao-cabecalho">
+          <h2 class="texto-branco">Produtos</h2>
+          <p>
+            Que tal surfar com uma prancha que é a sua cara, uma roupa estilosa
+            e já sair com tudo o que precisa? Aqui na escola nós trabalhamos com
+            equipamentos de surf e também alguns cosméticos adequados para água.
+            O equipamento ideal está aqui!
+          </p>
+        </div>
+
+        <!-- Cada card tem foto de fundo, com nome e botão sobrepostos -->
+        <div class="produtos-grade">
+          <article class="cartao-produto-foto">
+            <img src="img/produto-pranchas.jpg" alt="Pranchas de surf"
+                 onerror="this.parentElement.classList.add('sem-imagem')">
+            <div class="produto-conteudo">
+              <h4>Pranchas</h4>
+              <a class="btn btn-claro btn-peq btn-bloco" data-produto="uma prancha"
+                 href="#" target="_blank" rel="noopener">💬 Obter</a>
+            </div>
+          </article>
+
+          <article class="cartao-produto-foto">
+            <img src="img/produto-equipamentos.jpg" alt="Equipamentos de surf"
+                 onerror="this.parentElement.classList.add('sem-imagem')">
+            <div class="produto-conteudo">
+              <h4>Equipamentos</h4>
+              <a class="btn btn-claro btn-peq btn-bloco" data-produto="um equipamento de surf"
+                 href="#" target="_blank" rel="noopener">💬 Obter</a>
+            </div>
+          </article>
+
+          <article class="cartao-produto-foto">
+            <img src="img/produto-acessorios.jpg" alt="Acessórios de surf"
+                 onerror="this.parentElement.classList.add('sem-imagem')">
+            <div class="produto-conteudo">
+              <h4>Acessórios</h4>
+              <a class="btn btn-claro btn-peq btn-bloco" data-produto="acessórios"
+                 href="#" target="_blank" rel="noopener">💬 Obter</a>
+            </div>
+          </article>
+
+          <article class="cartao-produto-foto">
+            <img src="img/produto-roupas.jpg" alt="Roupas da escola"
+                 onerror="this.parentElement.classList.add('sem-imagem')">
+            <div class="produto-conteudo">
+              <h4>Roupas</h4>
+              <a class="btn btn-claro btn-peq btn-bloco" data-produto="roupas"
+                 href="#" target="_blank" rel="noopener">💬 Obter</a>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer id="rodape"></footer>
+
+  <script type="module" src="js/pages/landing.js"></script>
+</body>
+</html>

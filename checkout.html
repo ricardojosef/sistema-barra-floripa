@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Checkout — Barra Floripa Surf School</title>
+  <link rel="icon" href="logomenor-barrafloripa.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/pages.css">
+</head>
+<body class="painel" data-page="checkout">
+
+  <header id="painel-topo"></header>
+
+  <div class="painel-shell">
+    <nav id="barra-lateral" aria-label="Menu"></nav>
+
+    <main class="painel-conteudo">
+
+      <!-- ETAPA 1: escolha do plano -->
+      <section id="etapa-planos">
+        <div class="painel-cabecalho">
+          <h1>Escolha seu plano</h1>
+          <p>Todos os créditos entram na sua conta assim que o pagamento é confirmado.</p>
+        </div>
+
+        <h3 class="mb-16">Aulas em grupo <span class="texto-peq texto-cinza">(até 5 alunos por professor)</span></h3>
+        <div class="grade grade-4 mb-32" id="planos-grupo">
+          <div class="vazio"><span class="spinner escuro"></span></div>
+        </div>
+
+        <h3 class="mb-16">Aula particular e planos mensais</h3>
+        <div class="grade grade-3" id="planos-outros"></div>
+      </section>
+
+      <!-- ETAPA 2: pagamento -->
+      <section id="etapa-pagamento" class="oculto">
+        <div class="painel-cabecalho">
+          <a href="checkout.html" class="texto-peq">← Escolher outro plano</a>
+          <h1 class="mt-8">Finalizar compra</h1>
+          <p>Escolha como prefere pagar.</p>
+        </div>
+
+        <div id="alerta-area"></div>
+
+        <div class="checkout-grade">
+          <!-- Métodos -->
+          <div>
+            <div class="card">
+              <div class="card-titulo"><h3>Forma de pagamento</h3></div>
+
+              <div class="metodos-pagamento" id="metodos"></div>
+
+              <!-- PIX -->
+              <div class="painel-metodo oculto" data-metodo="pix">
+                <div class="pix-area">
+                  <p class="texto-peq texto-cinza mb-16">
+                    Abra o app do seu banco, escolha PIX e aponte a câmera para o
+                    código — ou use o copia e cola.
+                  </p>
+                  <div class="pix-qr" id="pix-qr">
+                    <span class="spinner escuro g"></span>
+                  </div>
+                  <div class="campo texto-direita">
+                    <label for="pix-copia" class="so-leitor">Código PIX copia e cola</label>
+                    <div class="pix-codigo">
+                      <input type="text" id="pix-copia" readonly>
+                      <button class="btn btn-secundario btn-peq" id="btn-copiar-pix" type="button">Copiar</button>
+                    </div>
+                  </div>
+                  <button class="btn btn-primario btn-bloco mt-16" id="btn-pix-pago" type="button">
+                    Já fiz o PIX
+                  </button>
+                </div>
+              </div>
+
+              <!-- CARTÃO -->
+              <div class="painel-metodo oculto" data-metodo="cartao">
+                <div class="cartao-preview">
+                  <div class="chip"></div>
+                  <div class="numero" id="prev-numero">•••• •••• •••• ••••</div>
+                  <div class="rodape-cartao">
+                    <div>
+                      <span class="rotulo">Titular</span>
+                      <span id="prev-nome">NOME NO CARTÃO</span>
+                    </div>
+                    <div>
+                      <span class="rotulo">Validade</span>
+                      <span id="prev-validade">MM/AA</span>
+                    </div>
+                    <div>
+                      <span class="rotulo">Bandeira</span>
+                      <span id="prev-bandeira">—</span>
+                    </div>
+                  </div>
+                </div>
+
+                <form id="form-cartao" novalidate>
+                  <div class="campo">
+                    <label for="cc-numero">Número do cartão</label>
+                    <input type="text" id="cc-numero" inputmode="numeric" autocomplete="cc-number"
+                           placeholder="0000 0000 0000 0000" maxlength="23">
+                    <span class="msg-erro">Número de cartão inválido.</span>
+                  </div>
+                  <div class="campo">
+                    <label for="cc-nome">Nome impresso no cartão</label>
+                    <input type="text" id="cc-nome" autocomplete="cc-name" placeholder="Como está no cartão">
+                    <span class="msg-erro">Informe o nome do titular.</span>
+                  </div>
+                  <div class="linha-campos duas">
+                    <div class="campo">
+                      <label for="cc-validade">Validade</label>
+                      <input type="text" id="cc-validade" inputmode="numeric" autocomplete="cc-exp"
+                             placeholder="MM/AA" maxlength="5">
+                      <span class="msg-erro">Validade inválida ou vencida.</span>
+                    </div>
+                    <div class="campo">
+                      <label for="cc-cvv">CVV</label>
+                      <input type="text" id="cc-cvv" inputmode="numeric" autocomplete="cc-csc"
+                             placeholder="000" maxlength="4">
+                      <span class="msg-erro">CVV inválido.</span>
+                    </div>
+                  </div>
+                  <div class="campo">
+                    <label for="cc-parcelas">Parcelamento</label>
+                    <select id="cc-parcelas"></select>
+                  </div>
+                  <button type="submit" class="btn btn-primario btn-bloco" id="btn-pagar-cartao">
+                    Pagar com cartão
+                  </button>
+                </form>
+              </div>
+
+              <!-- MERCADO PAGO -->
+              <div class="painel-metodo oculto" data-metodo="mercadopago">
+                <div class="texto-centro">
+                  <div style="font-size:3rem">🛒</div>
+                  <h3 class="mt-8">Mercado Pago</h3>
+                  <p class="texto-cinza texto-peq mt-8 mb-24">
+                    Você será levado ao ambiente seguro do Mercado Pago, onde pode
+                    pagar com saldo, cartão ou boleto. Ao concluir, volta para cá
+                    e os créditos entram na sua conta.
+                  </p>
+                  <button class="btn btn-primario btn-bloco" id="btn-mercadopago" type="button">
+                    Ir para o Mercado Pago
+                  </button>
+                </div>
+              </div>
+
+              <!-- PAYPAL -->
+              <div class="painel-metodo oculto" data-metodo="paypal">
+                <div class="texto-centro">
+                  <div style="font-size:3rem">🌐</div>
+                  <h3 class="mt-8">PayPal</h3>
+                  <p class="texto-cinza texto-peq mt-8 mb-24">
+                    Pague com sua conta PayPal ou cartão internacional.
+                  </p>
+                  <div id="paypal-container"></div>
+                  <button class="btn btn-primario btn-bloco" id="btn-paypal" type="button">
+                    Pagar com PayPal
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Resumo -->
+          <aside class="checkout-resumo">
+            <div class="card">
+              <div class="card-titulo"><h3>Resumo do pedido</h3></div>
+              <div id="resumo-conteudo"></div>
+
+              <div class="alerta alerta-info mt-16 texto-min" id="aviso-modo"></div>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <!-- ETAPA 3: sucesso -->
+      <section id="etapa-sucesso" class="oculto">
+        <div class="card">
+          <div class="sucesso-pagamento">
+            <div class="icone-ok">✓</div>
+            <h1>Pagamento confirmado!</h1>
+            <p class="texto-cinza mt-8" id="sucesso-detalhe">—</p>
+            <div class="flex centro quebra gap-12 mt-24">
+              <a href="agendar.html" class="btn btn-primario btn-g">Agendar minha aula</a>
+              <a href="dashboard.html" class="btn btn-claro btn-g">Ir para minha área</a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <nav id="nav-inferior" aria-label="Menu rápido"></nav>
+
+  <script type="module" src="js/pages/checkout.js"></script>
+</body>
+</html>

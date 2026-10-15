@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agendar Aula — Barra Floripa Surf School</title>
+  <link rel="icon" href="logomenor-barrafloripa.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/pages.css">
+</head>
+<body class="painel" data-page="agendar">
+
+  <header id="painel-topo"></header>
+
+  <div class="painel-shell">
+    <nav id="barra-lateral" aria-label="Menu"></nav>
+
+    <main class="painel-conteudo">
+      <div class="painel-cabecalho">
+        <h1>Agendar Aula</h1>
+        <p>Escolha o dia e o horário. Cada aula dura 1h30 e consome 1 crédito.</p>
+      </div>
+
+      <div id="alerta-area"></div>
+
+      <div class="painel-colunas">
+        <!-- Calendário -->
+        <section class="card">
+          <div class="card-titulo">
+            <h3>1. Escolha o dia</h3>
+            <span class="badge badge-laranja" id="badge-creditos">— créditos</span>
+          </div>
+
+          <!-- Tipo de aula -->
+          <div class="campo">
+            <label for="tipo-aula">Tipo de aula</label>
+            <select id="tipo-aula">
+              <option value="grupo">Aula em grupo (até 5 alunos)</option>
+              <option value="individual">Aula individual (particular)</option>
+            </select>
+          </div>
+
+          <div class="calendario-topo">
+            <button class="btn-mes" id="mes-anterior" aria-label="Mês anterior">‹</button>
+            <span class="mes-atual" id="mes-atual">—</span>
+            <button class="btn-mes" id="mes-proximo" aria-label="Próximo mês">›</button>
+          </div>
+
+          <div class="calendario-grade" id="calendario" role="grid"></div>
+
+          <div class="legenda-cal">
+            <span><i class="bolinha" style="background:var(--verde)"></i> Com vagas</span>
+            <span><i class="bolinha" style="background:var(--vermelho)"></i> Lotado</span>
+            <span><i class="bolinha" style="background:var(--cinza-300)"></i> Indisponível</span>
+          </div>
+        </section>
+
+        <!-- Horários -->
+        <section class="card">
+          <div class="card-titulo">
+            <h3>2. Escolha o horário</h3>
+          </div>
+          <p class="texto-peq texto-cinza mb-16" id="dia-selecionado">
+            Selecione um dia no calendário ao lado.
+          </p>
+          <div id="lista-slots"></div>
+
+          <div id="area-confirmacao" class="oculto">
+            <div class="linha-resumo total mt-16">
+              <span>Total</span>
+              <span class="valor">1 crédito</span>
+            </div>
+            <button class="btn btn-primario btn-bloco mt-16" id="btn-confirmar">
+              Confirmar agendamento
+            </button>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <nav id="nav-inferior" aria-label="Menu rápido"></nav>
+
+  <script type="module" src="js/pages/agendar.js"></script>
+</body>
+</html>

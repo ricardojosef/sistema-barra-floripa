@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Meus Créditos — Barra Floripa Surf School</title>
+  <link rel="icon" href="logomenor-barrafloripa.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/pages.css">
+</head>
+<body class="painel" data-page="creditos">
+
+  <header id="painel-topo"></header>
+
+  <div class="painel-shell">
+    <nav id="barra-lateral" aria-label="Menu"></nav>
+
+    <main class="painel-conteudo">
+      <div class="painel-cabecalho">
+        <h1>Meus Créditos</h1>
+        <p>Cada crédito vale uma aula de 1h30. Créditos voltam para você quando uma aula é cancelada.</p>
+      </div>
+
+      <div class="grade grade-3 mb-24">
+        <div class="card-stat laranja">
+          <span class="stat-rotulo">Disponíveis</span>
+          <span class="stat-valor" id="stat-saldo">—</span>
+          <span class="stat-extra">aulas para agendar</span>
+        </div>
+        <div class="card-stat">
+          <span class="stat-rotulo">Já utilizados</span>
+          <span class="stat-valor" id="stat-usados">—</span>
+          <span class="stat-extra">aulas agendadas</span>
+        </div>
+        <div class="card-stat">
+          <span class="stat-rotulo">Total comprado</span>
+          <span class="stat-valor" id="stat-comprados">—</span>
+          <span class="stat-extra">desde o cadastro</span>
+        </div>
+      </div>
+
+      <div class="painel-colunas">
+        <section class="card">
+          <div class="card-titulo"><h3>📋 Extrato de créditos</h3></div>
+          <div id="extrato" class="rolagem" style="max-height:560px"></div>
+        </section>
+
+        <section class="card">
+          <div class="card-titulo">
+            <h3>🎟️ Créditos por pacote</h3>
+            <a href="checkout.html" class="texto-peq">Comprar mais →</a>
+          </div>
+          <div id="por-origem"></div>
+
+          <div class="card-titulo mt-24"><h3>🧾 Minhas compras</h3></div>
+          <div id="lista-compras"></div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <nav id="nav-inferior" aria-label="Menu rápido"></nav>
+
+  <script type="module" src="js/pages/creditos.js"></script>
+</body>
+</html>

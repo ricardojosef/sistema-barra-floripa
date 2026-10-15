@@ -1,0 +1,816 @@
+/* ==========================================================================
+   site.css — página inicial, espelhando barrafloripasurfschool.com.br
+
+   Tipografia: Anton (títulos) + Poppins (texto), como no kit do site.
+   Cores: #FD711D (laranja), #FB8D42 (acento), #111111 (primária).
+
+   PLACEHOLDERS DE IMAGEM
+   Toda <figure> cai num placeholder listrado quando o arquivo não existe,
+   mostrando o nome esperado. Veja img/README.md.
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   Placeholder
+   -------------------------------------------------------------------------- */
+
+figure.sem-imagem,
+.cartao-produto-foto.sem-imagem,
+img.sem-imagem {
+  position: relative;
+  background:
+    repeating-linear-gradient(
+      45deg,
+      var(--cinza-100),
+      var(--cinza-100) 12px,
+      var(--cinza-200) 12px,
+      var(--cinza-200) 24px
+    );
+}
+
+figure.sem-imagem img,
+.cartao-produto-foto.sem-imagem img { display: none; }
+
+figure.sem-imagem::after,
+.cartao-produto-foto.sem-imagem::after {
+  content: '🖼️ ' attr(data-rotulo);
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+  font-family: var(--fonte-rotulo);
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--cinza-500);
+  text-align: center;
+  z-index: 0;
+}
+
+img.hero-site-fundo.sem-imagem,
+img.local-fundo.sem-imagem { opacity: 0; }
+
+/* --------------------------------------------------------------------------
+   Barra de progresso de leitura
+   -------------------------------------------------------------------------- */
+
+#barra-progresso {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 16px;
+  background: #e0f7fa;
+  z-index: 2000;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.4s ease, visibility 0.4s;
+}
+
+#barra-progresso.visivel { opacity: 1; visibility: visible; }
+
+/* No celular ela fica sempre à vista, como no site. */
+@media (max-width: 767px) {
+  #barra-progresso { opacity: 1; visibility: visible; }
+}
+
+#barra-progresso-preenchida {
+  position: relative;
+  height: 100%;
+  width: 0;
+  border-radius: 0 4px 4px 0;
+  background: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%);
+  transition: width 0.1s ease-out;
+}
+
+#surfista-progresso {
+  position: absolute;
+  right: -14px;
+  top: -7px;
+  font-size: 24px;
+  line-height: 1;
+  transform: scaleX(-1);
+  filter: drop-shadow(2px 3px 4px rgba(0, 0, 0, 0.25));
+}
+
+/* --------------------------------------------------------------------------
+   HERO — duas colunas
+   -------------------------------------------------------------------------- */
+
+/*
+ * `display: grid` com uma única coluna centraliza o .container de forma
+ * previsível. Com flex, o container virava item flexível e o
+ * `margin-inline: auto` deixava de centralizar, empurrando o conteúdo.
+ */
+.hero-site {
+  position: relative;
+  display: grid;
+  align-items: center;
+  min-height: 88vh;
+  padding: 90px 0 110px;
+  overflow: hidden;
+  background: linear-gradient(165deg, #0b3f58 0%, #16708f 45%, #2a9ab5 100%);
+  color: var(--branco);
+}
+
+.hero-site-fundo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 0;
+}
+
+.hero-site-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(
+    100deg,
+    rgba(8, 18, 26, 0.72) 0%,
+    rgba(8, 18, 26, 0.34) 45%,
+    rgba(8, 18, 26, 0.5) 100%
+  );
+}
+
+.hero-site-grade {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 32px;
+  align-items: center;
+}
+
+.hero-site-grade > * { min-width: 0; }
+
+/*
+ * A partir de 1000px o texto se divide em duas colunas, como no site: o
+ * título à esquerda (colado na margem) e "E quem quer evoluir" + botões à
+ * direita, com o espaço do meio livre para o surfista da foto aparecer.
+ */
+@media (min-width: 1000px) {
+  .hero-site-grade {
+    /* A esquerda recebe mais espaço porque comporta o título em duas
+       linhas; a direita só precisa caber "E quem quer evoluir" e os botões. */
+    grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+    gap: 32px;
+    align-items: center;
+  }
+  .hero-site-esq { justify-self: start; }
+  .hero-site-dir { justify-self: end; text-align: left; }
+}
+
+.hero-site-rotulo {
+  display: block;
+  font-family: var(--fonte-rotulo);
+  font-size: 0.8rem;
+  font-weight: 600;
+  font-style: italic;
+  text-transform: uppercase;
+  letter-spacing: 0.3em;
+  color: rgba(255, 255, 255, 0.92);
+  margin-bottom: 10px;
+}
+
+.hero-site h1 {
+  color: var(--branco);
+  font-size: 2.4rem;
+  line-height: 1.02;
+  text-transform: uppercase;
+  text-shadow: 0 2px 18px rgba(0, 0, 0, 0.4);
+  margin: 0;
+  /* Equilibra as duas linhas definidas pelo <br> do HTML. */
+  text-wrap: balance;
+}
+
+.hero-site-destaque {
+  color: var(--laranja);
+  font-size: 2.1rem;
+  line-height: 1.02;
+  text-transform: uppercase;
+  text-shadow: 0 2px 18px rgba(0, 0, 0, 0.4);
+  margin-bottom: 18px;
+}
+
+@media (min-width: 700px) {
+  .hero-site h1 { font-size: 3.4rem; }
+  .hero-site-destaque { font-size: 3rem; }
+}
+
+@media (min-width: 1100px) {
+  .hero-site h1 { font-size: 4.1rem; }
+  .hero-site-destaque { font-size: 3.4rem; }
+}
+
+.hero-site-botoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.seta-btn { font-size: 1.1em; line-height: 1; }
+
+.btn-contorno-claro {
+  background: transparent;
+  color: var(--branco);
+  border-color: rgba(255, 255, 255, 0.8);
+}
+
+.btn-contorno-claro:hover {
+  background: var(--branco);
+  color: var(--preto);
+  border-color: var(--branco);
+}
+
+/* Link "Conheça a escola", centralizado no rodapé do hero */
+.hero-site-scroll {
+  position: absolute;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  font-family: var(--fonte-rotulo);
+  font-size: 0.74rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  color: rgba(255, 255, 255, 0.9);
+  animation: onda-piscar 1.6s ease-in-out infinite;
+}
+
+.hero-site-scroll:hover { color: var(--branco); }
+.hero-site-scroll .seta { font-size: 1.6rem; line-height: 0.6; }
+
+@keyframes onda-piscar {
+  0%, 100% { transform: translate(-50%, 0); opacity: 0.45; }
+  50% { transform: translate(-50%, 10px); opacity: 1; }
+}
+
+/* --------------------------------------------------------------------------
+   Caixa com contorno laranja claro (seções "De zero a" e fundador)
+   -------------------------------------------------------------------------- */
+
+.caixa-contorno {
+  background: var(--branco);
+  border: 1px solid var(--laranja-borda);
+  border-radius: 20px;
+  padding: 30px 24px;
+  box-shadow: 0 6px 30px rgba(253, 113, 29, 0.07);
+}
+
+@media (min-width: 900px) {
+  .caixa-contorno { padding: 44px 40px; }
+}
+
+/* --------------------------------------------------------------------------
+   Bloco de duas colunas
+   -------------------------------------------------------------------------- */
+
+.bloco-site {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 32px;
+  align-items: center;
+}
+
+.bloco-site > * { min-width: 0; }
+
+@media (min-width: 900px) {
+  .bloco-site { grid-template-columns: 1fr 1fr; gap: 52px; }
+  .bloco-site.alinhado-topo { align-items: start; }
+}
+
+.bloco-site-texto h2 {
+  font-size: 2rem;
+  text-transform: uppercase;
+  margin-bottom: 16px;
+}
+
+@media (min-width: 900px) {
+  .bloco-site-texto h2 { font-size: 2.6rem; }
+}
+
+.bloco-site-texto p {
+  color: var(--cinza-700);
+  font-size: 0.97rem;
+  line-height: 1.75;
+  margin-bottom: 14px;
+}
+
+.destaque-contador {
+  color: var(--laranja);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Parágrafo com barra lateral laranja */
+.citacao-lateral {
+  border-left: 3px solid var(--laranja);
+  padding-left: 18px;
+}
+
+/* Lista com check laranja circular */
+.lista-check-laranja {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin: 24px 0 28px;
+}
+
+.lista-check-laranja li {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  font-size: 0.97rem;
+  color: var(--cinza-900);
+}
+
+.lista-check-laranja .check {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 25px;
+  height: 25px;
+  border-radius: 50%;
+  background: var(--laranja);
+  color: var(--branco);
+  font-size: 0.78rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+/* Cards de selo com ícone à esquerda */
+.cartao-selo {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 20px;
+  background: var(--branco);
+  border: 1px solid var(--cinza-200);
+  border-radius: 12px;
+  box-shadow: var(--sombra);
+}
+
+.cartao-selo .icone { font-size: 1.4rem; line-height: 1; }
+
+.cartao-selo .titulo {
+  font-family: var(--fonte-rotulo);
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--preto);
+}
+
+/* --------------------------------------------------------------------------
+   Imagens
+   -------------------------------------------------------------------------- */
+
+.foto-emoldurada {
+  margin: 0;
+  aspect-ratio: 4 / 3;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 5px solid var(--branco);
+  box-shadow: 0 10px 34px rgba(0, 0, 0, 0.16);
+  background: var(--cinza-100);
+  position: relative;
+}
+
+.foto-emoldurada img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Galeria com três fotos espalhadas e sobrepostas.
+   `width: 100%` é necessário: com apenas `max-width`, um container cujos
+   filhos são todos absolutos colapsa e o aspect-ratio não tem referência. */
+.galeria-espalhada {
+  position: relative;
+  width: 100%;
+  max-width: 520px;
+  aspect-ratio: 1 / 1;
+  margin-inline: auto;
+  isolation: isolate;
+}
+
+.foto-espalhada {
+  position: absolute;
+  margin: 0;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 4px solid var(--branco);
+  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.2);
+  background: var(--cinza-100);
+}
+
+.foto-espalhada img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.foto-espalhada.f1 { width: 50%; height: 40%; top: 26%; left: 0; z-index: 2; }
+.foto-espalhada.f2 { width: 56%; height: 45%; top: 4%; right: 2%; z-index: 1; }
+.foto-espalhada.f3 { width: 44%; height: 48%; bottom: 2%; left: 30%; z-index: 3; }
+
+/* --------------------------------------------------------------------------
+   LOCALIZAÇÃO
+   -------------------------------------------------------------------------- */
+
+.secao-local {
+  position: relative;
+  padding: 60px 0 70px;
+  overflow: hidden;
+  background: linear-gradient(160deg, #5a4530 0%, #8a6a45 50%, #c89a63 100%);
+  color: var(--branco);
+}
+
+@media (min-width: 900px) {
+  .secao-local { padding: 80px 0 90px; }
+}
+
+.local-fundo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 0;
+}
+
+.local-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(180deg, rgba(20, 16, 10, 0.35) 0%, rgba(20, 16, 10, 0.55) 100%);
+}
+
+.local-conteudo { position: relative; z-index: 2; }
+
+.local-selo { text-align: center; margin-bottom: 28px; }
+
+.local-selo .rotulo {
+  display: inline-block;
+  background: var(--laranja);
+  color: var(--branco);
+  font-family: var(--fonte-rotulo);
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  padding: 7px 20px;
+  border-radius: 100px;
+  margin-bottom: 14px;
+}
+
+.local-selo h2 {
+  color: var(--branco);
+  font-size: 2.1rem;
+  text-transform: uppercase;
+  text-shadow: 0 2px 16px rgba(0, 0, 0, 0.4);
+}
+
+@media (min-width: 900px) {
+  .local-selo h2 { font-size: 3rem; }
+}
+
+.local-grade {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0;
+  align-items: stretch;
+}
+
+.local-grade > * { min-width: 0; }
+
+@media (min-width: 900px) {
+  .local-grade { grid-template-columns: 1fr 1fr; }
+}
+
+/* Mosaico 2×2 colado, sem espaçamento entre as fotos */
+.local-fotos {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+}
+
+.local-fotos figure {
+  margin: 0;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.1);
+  position: relative;
+}
+
+.local-fotos img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.local-cartao {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  background: rgba(18, 16, 14, 0.82);
+  backdrop-filter: blur(3px);
+  padding: 32px 28px;
+}
+
+.local-cartao h3 {
+  color: var(--branco);
+  font-size: 1.7rem;
+  text-transform: uppercase;
+  margin-bottom: 14px;
+}
+
+@media (min-width: 900px) {
+  .local-cartao h3 { font-size: 2.1rem; }
+}
+
+.local-cartao p {
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 0.95rem;
+  line-height: 1.75;
+}
+
+.local-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.tag-local {
+  background: var(--laranja);
+  color: var(--branco);
+  font-family: var(--fonte-rotulo);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 8px 16px;
+  border-radius: 100px;
+}
+
+/* --------------------------------------------------------------------------
+   DEPOIMENTOS
+   -------------------------------------------------------------------------- */
+
+.depoimentos-faixa {
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  padding: 4px 4px 16px;
+  scroll-snap-type: x mandatory;
+}
+
+.print-depoimento {
+  flex: 0 0 86%;
+  scroll-snap-align: center;
+  margin: 0;
+  min-width: 0;
+  aspect-ratio: 4 / 3;
+  border-radius: var(--raio-g);
+  overflow: hidden;
+  background: var(--branco);
+  border: 1px solid var(--cinza-200);
+  box-shadow: var(--sombra);
+  position: relative;
+}
+
+@media (min-width: 700px) {
+  .print-depoimento { flex-basis: 320px; scroll-snap-align: start; }
+}
+
+.print-depoimento img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: var(--branco);
+}
+
+/* --------------------------------------------------------------------------
+   FAIXA DE CHAMADA
+   -------------------------------------------------------------------------- */
+
+.faixa-chamada {
+  background: linear-gradient(135deg, var(--laranja) 0%, var(--laranja-escuro) 100%);
+  color: var(--branco);
+  padding: 54px 0;
+}
+
+.faixa-chamada h2 {
+  color: var(--branco);
+  font-size: 1.8rem;
+  text-transform: uppercase;
+}
+
+@media (min-width: 900px) {
+  .faixa-chamada h2 { font-size: 2.4rem; }
+}
+
+.faixa-chamada p {
+  font-size: 1.02rem;
+  margin-top: 8px;
+  color: rgba(255, 255, 255, 0.94);
+}
+
+.faixa-chamada .btn-primario {
+  background: var(--branco);
+  color: var(--laranja-escuro);
+}
+
+.faixa-chamada .btn-primario:hover {
+  background: var(--preto);
+  color: var(--branco);
+}
+
+/* --------------------------------------------------------------------------
+   SEGURANÇA
+   -------------------------------------------------------------------------- */
+
+.cartao-seguranca {
+  background: var(--branco);
+  border-radius: var(--raio-g);
+  padding: 30px 26px;
+  box-shadow: var(--sombra-m);
+  border-top: 5px solid var(--laranja);
+}
+
+.seguranca-icone { font-size: 2.6rem; line-height: 1; margin-bottom: 12px; }
+
+.cartao-seguranca h2 {
+  font-size: 1.7rem;
+  text-transform: uppercase;
+  margin-bottom: 16px;
+}
+
+.cartao-seguranca p {
+  color: var(--cinza-700);
+  font-size: 0.95rem;
+  line-height: 1.75;
+  margin-bottom: 12px;
+}
+
+/* --------------------------------------------------------------------------
+   NÍVEIS AVANÇADOS + FUNDADOR
+   -------------------------------------------------------------------------- */
+
+/* Leve brilho alaranjado no fundo, como no site. */
+.secao-avancado {
+  background:
+    radial-gradient(ellipse 70% 50% at 50% 0%, rgba(253, 113, 29, 0.07) 0%, transparent 70%),
+    var(--branco);
+}
+
+.pilula-rotulo {
+  display: inline-block;
+  background: var(--laranja);
+  color: var(--branco);
+  font-family: var(--fonte-rotulo);
+  font-size: 0.66rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  padding: 6px 18px;
+  border-radius: 100px;
+  margin-bottom: 12px;
+}
+
+.rotulo-espacado {
+  display: block;
+  font-family: var(--fonte-rotulo);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--laranja);
+}
+
+/* Uma foto grande com duas menores sobrepostas embaixo */
+.galeria-fundador {
+  position: relative;
+  width: 100%;
+  max-width: 460px;
+  aspect-ratio: 1 / 1;
+  margin-inline: auto;
+  isolation: isolate;
+}
+
+.fundador-principal,
+.fundador-secundaria {
+  position: absolute;
+  margin: 0;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 4px solid var(--branco);
+  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.2);
+  background: var(--cinza-100);
+}
+
+.fundador-principal img,
+.fundador-secundaria img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Foto grande acima; as duas miniaturas lado a lado, sobrepostas ao pé dela. */
+.fundador-principal { width: 80%; height: 72%; top: 0; left: 10%; z-index: 1; }
+.fundador-secundaria.s1 { width: 34%; height: 30%; bottom: 2%; left: 4%; z-index: 2; }
+.fundador-secundaria.s2 { width: 38%; height: 30%; bottom: 2%; left: 40%; z-index: 3; }
+
+/* --------------------------------------------------------------------------
+   PRODUTOS — cards com foto de fundo
+   -------------------------------------------------------------------------- */
+
+.secao-produtos {
+  background: #171717;
+  color: var(--cinza-300);
+  padding: 56px 0;
+}
+
+@media (min-width: 900px) {
+  .secao-produtos { padding: 76px 0; }
+}
+
+.secao-produtos .secao-cabecalho { max-width: 860px; }
+.secao-produtos .secao-cabecalho p { color: var(--cinza-300); font-size: 0.95rem; }
+
+.produtos-grade {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+.produtos-grade > * { min-width: 0; }
+
+@media (min-width: 600px) {
+  .produtos-grade { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (min-width: 1000px) {
+  .produtos-grade { grid-template-columns: repeat(4, 1fr); }
+}
+
+.cartao-produto-foto {
+  position: relative;
+  aspect-ratio: 3 / 4;
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--grafite);
+  isolation: isolate;
+}
+
+.cartao-produto-foto img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 0;
+}
+
+/* Escurecimento de baixo para cima, para o texto ficar legível. */
+.cartao-produto-foto::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.1) 35%, rgba(0, 0, 0, 0.82) 100%);
+}
+
+.produto-conteudo {
+  position: absolute;
+  inset: auto 0 0 0;
+  z-index: 2;
+  padding: 16px 14px;
+}
+
+.produto-conteudo h4 {
+  color: var(--branco);
+  font-family: var(--fonte-rotulo);
+  font-weight: 600;
+  font-size: 1.02rem;
+  text-align: left;
+  margin-bottom: 10px;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.5);
+}
+
+.produto-conteudo .btn {
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--preto);
+  border-color: transparent;
+}
+
+.produto-conteudo .btn:hover {
+  background: var(--branco);
+  color: var(--laranja-escuro);
+}

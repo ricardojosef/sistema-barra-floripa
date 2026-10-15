@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Minha Área — Barra Floripa Surf School</title>
+  <link rel="icon" href="logomenor-barrafloripa.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/pages.css">
+</head>
+<body class="painel" data-page="dashboard">
+
+  <header id="painel-topo"></header>
+
+  <div class="painel-shell">
+    <nav id="barra-lateral" aria-label="Menu"></nav>
+
+    <main class="painel-conteudo">
+      <div class="painel-cabecalho">
+        <h1>Olá, <span class="texto-laranja" id="saudacao-nome">—</span></h1>
+        <p id="saudacao-data">—</p>
+      </div>
+
+      <!-- Alerta de saldo zerado -->
+      <div id="alerta-creditos"></div>
+
+      <!-- Estatísticas -->
+      <div class="grade grade-3 mb-24">
+        <div class="card-stat laranja">
+          <span class="stat-rotulo">Créditos disponíveis</span>
+          <span class="stat-valor" id="stat-creditos">—</span>
+          <span class="stat-extra">aulas para agendar</span>
+        </div>
+        <div class="card-stat">
+          <span class="stat-rotulo">Próxima aula</span>
+          <span class="stat-valor" id="stat-proxima">—</span>
+          <span class="stat-extra" id="stat-proxima-detalhe">—</span>
+        </div>
+        <div class="card-stat">
+          <span class="stat-rotulo">Aulas este mês</span>
+          <span class="stat-valor" id="stat-mes">—</span>
+          <span class="stat-extra">agendadas e realizadas</span>
+        </div>
+      </div>
+
+      <!-- Atalhos -->
+      <div class="acoes-rapidas">
+        <a href="agendar.html" class="acao-rapida">
+          <span class="icone">📅</span>
+          <span class="titulo">Agendar Aula</span>
+        </a>
+        <a href="checkout.html" class="acao-rapida">
+          <span class="icone">💳</span>
+          <span class="titulo">Comprar Plano</span>
+        </a>
+        <a href="creditos.html" class="acao-rapida">
+          <span class="icone">🎟️</span>
+          <span class="titulo">Meus Créditos</span>
+        </a>
+        <a href="historico.html" class="acao-rapida">
+          <span class="icone">📋</span>
+          <span class="titulo">Histórico</span>
+        </a>
+      </div>
+
+      <!-- Conteúdo principal -->
+      <div class="painel-colunas">
+        <section class="card">
+          <div class="card-titulo">
+            <h3>📅 Próximas Aulas</h3>
+            <a href="historico.html" class="texto-peq">Ver todas →</a>
+          </div>
+          <div id="lista-proximas" class="rolagem" style="max-height:420px">
+            <div class="vazio"><span class="spinner escuro"></span></div>
+          </div>
+          <a href="agendar.html" class="btn btn-primario btn-bloco mt-16">
+            📅 Agendar nova aula
+          </a>
+        </section>
+
+        <section class="card">
+          <div class="card-titulo">
+            <h3>🎟️ Meus Créditos</h3>
+            <a href="checkout.html" class="texto-peq">Comprar mais →</a>
+          </div>
+          <div id="lista-creditos"></div>
+
+          <h4 class="mt-24 mb-8 texto-min maiusculas texto-cinza">Pacotes disponíveis</h4>
+          <div id="mini-pacotes"></div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <nav id="nav-inferior" aria-label="Menu rápido"></nav>
+
+  <script type="module" src="js/pages/dashboard.js"></script>
+</body>
+</html>

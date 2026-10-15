@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Histórico de Aulas — Barra Floripa Surf School</title>
+  <link rel="icon" href="logomenor-barrafloripa.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/pages.css">
+</head>
+<body class="painel" data-page="historico">
+
+  <header id="painel-topo"></header>
+
+  <div class="painel-shell">
+    <nav id="barra-lateral" aria-label="Menu"></nav>
+
+    <main class="painel-conteudo">
+      <div class="painel-cabecalho">
+        <h1>Histórico de Aulas</h1>
+        <p>Todas as suas aulas — agendadas, realizadas e canceladas.</p>
+      </div>
+
+      <div class="abas" id="abas-historico">
+        <button class="aba ativa" data-filtro="todas" type="button">Todas</button>
+        <button class="aba" data-filtro="confirmado" type="button">Agendadas</button>
+        <button class="aba" data-filtro="realizado" type="button">Realizadas</button>
+        <button class="aba" data-filtro="cancelado" type="button">Canceladas</button>
+      </div>
+
+      <div class="card">
+        <div id="lista-historico"></div>
+      </div>
+    </main>
+  </div>
+
+  <nav id="nav-inferior" aria-label="Menu rápido"></nav>
+
+  <script type="module" src="js/pages/historico.js"></script>
+</body>
+</html>

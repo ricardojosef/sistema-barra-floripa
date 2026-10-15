@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Administração — Barra Floripa Surf School</title>
+  <link rel="icon" href="logomenor-barrafloripa.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/pages.css">
+</head>
+<body class="painel" data-page="admin">
+
+  <header id="painel-topo"></header>
+
+  <div class="painel-shell">
+    <nav id="barra-lateral" aria-label="Menu"></nav>
+
+    <main class="painel-conteudo">
+      <div class="painel-cabecalho">
+        <h1>Administração</h1>
+        <p>Configure professores, preços, locais, avisos e horários da escola.</p>
+      </div>
+
+      <!-- Visão geral -->
+      <div class="grade grade-4 mb-24">
+        <div class="card-stat laranja">
+          <span class="stat-rotulo">Alunos cadastrados</span>
+          <span class="stat-valor" id="stat-alunos">—</span>
+        </div>
+        <div class="card-stat">
+          <span class="stat-rotulo">Aulas confirmadas</span>
+          <span class="stat-valor" id="stat-aulas">—</span>
+          <span class="stat-extra">daqui para frente</span>
+        </div>
+        <div class="card-stat">
+          <span class="stat-rotulo">Receita confirmada</span>
+          <span class="stat-valor" id="stat-receita">—</span>
+          <span class="stat-extra">total de compras pagas</span>
+        </div>
+        <div class="card-stat">
+          <span class="stat-rotulo">Créditos em aberto</span>
+          <span class="stat-valor" id="stat-creditos">—</span>
+          <span class="stat-extra">aulas já pagas a realizar</span>
+        </div>
+      </div>
+
+      <div class="abas" id="abas-admin">
+        <button class="aba ativa" data-aba="professores" type="button">👤 Professores</button>
+        <button class="aba" data-aba="precos" type="button">💰 Preços</button>
+        <button class="aba" data-aba="locais" type="button">📍 Locais</button>
+        <button class="aba" data-aba="avisos" type="button">📢 Avisos</button>
+        <button class="aba" data-aba="horarios" type="button">🕗 Horários</button>
+      </div>
+
+      <!-- PROFESSORES -->
+      <section class="painel-aba ativo" data-painel="professores">
+        <div class="card">
+          <div class="card-titulo">
+            <h3>Professores da escola</h3>
+          </div>
+          <p class="texto-peq texto-cinza mb-16">
+            O nome editado aqui aparece imediatamente na agenda dos alunos e no
+            painel dos professores. Desativar um professor o remove da grade de
+            agendamento, mas preserva o histórico das aulas já dadas.
+          </p>
+          <div id="lista-professores"></div>
+          <button class="btn btn-primario mt-16" id="btn-salvar-professores" type="button">
+            Salvar professores
+          </button>
+        </div>
+      </section>
+
+      <!-- PREÇOS -->
+      <section class="painel-aba" data-painel="precos">
+        <div class="card">
+          <div class="card-titulo">
+            <h3>Planos e preços</h3>
+          </div>
+          <p class="texto-peq texto-cinza mb-16">
+            Alterações aparecem na hora na página inicial e no checkout. O plano
+            marcado como destaque recebe o selo "Mais Popular".
+          </p>
+          <div id="lista-precos"></div>
+          <button class="btn btn-primario mt-16" id="btn-salvar-precos" type="button">
+            Salvar preços
+          </button>
+        </div>
+      </section>
+
+      <!-- LOCAIS -->
+      <section class="painel-aba" data-painel="locais">
+        <div class="card">
+          <div class="card-titulo">
+            <h3>Locais das aulas</h3>
+          </div>
+          <div id="lista-locais"></div>
+
+          <h4 class="mt-24 mb-8">Adicionar novo local</h4>
+          <form id="form-local" class="linha-campos duas">
+            <div class="campo">
+              <label for="novo-local-nome">Nome do local</label>
+              <input type="text" id="novo-local-nome" placeholder="Ex.: Praia da Joaquina">
+            </div>
+            <div class="campo">
+              <label for="novo-local-desc">Ponto de encontro</label>
+              <input type="text" id="novo-local-desc" placeholder="Ex.: Em frente ao quiosque 3">
+            </div>
+            <button class="btn btn-secundario" type="submit">Adicionar local</button>
+          </form>
+
+          <div class="campo mt-24">
+            <label for="local-padrao">Local padrão das aulas</label>
+            <select id="local-padrao"></select>
+            <span class="dica">Usado quando o agendamento não especifica outro local.</span>
+          </div>
+          <button class="btn btn-primario mt-8" id="btn-salvar-locais" type="button">
+            Salvar locais
+          </button>
+        </div>
+      </section>
+
+      <!-- AVISOS -->
+      <section class="painel-aba" data-painel="avisos">
+        <div class="painel-colunas">
+          <div class="card">
+            <div class="card-titulo"><h3>Avisos publicados</h3></div>
+            <p class="texto-peq texto-cinza mb-16">
+              Avisos ativos aparecem como pop-up no painel do aluno até que ele
+              confirme a leitura.
+            </p>
+            <div id="lista-avisos"></div>
+          </div>
+
+          <div class="card">
+            <div class="card-titulo"><h3>Novo aviso</h3></div>
+            <form id="form-aviso">
+              <div class="campo">
+                <label for="aviso-titulo">Título</label>
+                <input type="text" id="aviso-titulo" placeholder="Ex.: Mudança de horário no feriado" required>
+              </div>
+              <div class="campo">
+                <label for="aviso-mensagem">Mensagem</label>
+                <textarea id="aviso-mensagem" placeholder="Escreva o aviso que o aluno vai ver..." required></textarea>
+              </div>
+              <div class="campo">
+                <label for="aviso-tipo">Tipo</label>
+                <select id="aviso-tipo">
+                  <option value="info">Informativo</option>
+                  <option value="aviso">Atenção</option>
+                  <option value="urgente">Urgente</option>
+                </select>
+              </div>
+              <div class="linha-campos duas">
+                <div class="campo">
+                  <label for="aviso-inicio">Exibir a partir de</label>
+                  <input type="date" id="aviso-inicio">
+                </div>
+                <div class="campo">
+                  <label for="aviso-fim">Exibir até</label>
+                  <input type="date" id="aviso-fim">
+                </div>
+              </div>
+              <button class="btn btn-primario btn-bloco" type="submit">Publicar aviso</button>
+            </form>
+          </div>
+        </div>
+      </section>
+
+      <!-- HORÁRIOS -->
+      <section class="painel-aba" data-painel="horarios">
+        <div class="card">
+          <div class="card-titulo"><h3>Grade de horários e capacidade</h3></div>
+
+          <div class="campo">
+            <label>Horários das aulas</label>
+            <div id="lista-horarios" class="flex quebra gap-8 mb-8"></div>
+            <div class="flex gap-8">
+              <input type="time" id="novo-horario" step="1800" style="max-width:160px">
+              <button class="btn btn-secundario btn-peq" id="btn-add-horario" type="button">Adicionar</button>
+            </div>
+          </div>
+
+          <div class="linha-campos duas mt-16">
+            <div class="campo">
+              <label for="cfg-capacidade">Máximo de alunos por professor</label>
+              <input type="number" id="cfg-capacidade" min="1" max="20">
+              <span class="dica">A regra de negócio da escola é 5.</span>
+            </div>
+            <div class="campo">
+              <label for="cfg-duracao">Duração da aula (minutos)</label>
+              <input type="number" id="cfg-duracao" min="30" max="240" step="15">
+            </div>
+          </div>
+
+          <div class="campo">
+            <label for="cfg-cancelamento">Antecedência mínima para o aluno cancelar (horas)</label>
+            <input type="number" id="cfg-cancelamento" min="0" max="72">
+            <span class="dica">Professores e administradores podem cancelar a qualquer momento.</span>
+          </div>
+
+          <button class="btn btn-primario mt-8" id="btn-salvar-horarios" type="button">
+            Salvar configurações
+          </button>
+        </div>
+
+        <div class="card mt-24">
+          <div class="card-titulo"><h3>Manutenção</h3></div>
+          <p class="texto-peq texto-cinza mb-16">
+            Restaura todos os dados de demonstração ao estado inicial. Use para
+            recomeçar um teste do zero. <strong>Não afeta o Firebase</strong> —
+            só o armazenamento local deste navegador.
+          </p>
+          <button class="btn btn-perigo" id="btn-reiniciar" type="button">
+            Reiniciar dados de demonstração
+          </button>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <nav id="nav-inferior" aria-label="Menu rápido"></nav>
+
+  <script type="module" src="js/pages/admin.js"></script>
+</body>
+</html>

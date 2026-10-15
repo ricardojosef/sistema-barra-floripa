@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Painel do Professor — Barra Floripa Surf School</title>
+  <link rel="icon" href="logomenor-barrafloripa.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/pages.css">
+</head>
+<body class="painel" data-page="professor">
+
+  <header id="painel-topo"></header>
+
+  <div class="painel-shell">
+    <nav id="barra-lateral" aria-label="Menu"></nav>
+
+    <main class="painel-conteudo">
+      <div class="painel-cabecalho">
+        <h1 id="titulo-painel">Minhas Turmas</h1>
+        <p id="subtitulo-painel">—</p>
+      </div>
+
+      <!-- Estatísticas do dia -->
+      <div class="grade grade-4 mb-24">
+        <div class="card-stat laranja">
+          <span class="stat-rotulo">Alunos no dia</span>
+          <span class="stat-valor" id="stat-alunos">—</span>
+          <span class="stat-extra">confirmados</span>
+        </div>
+        <div class="card-stat">
+          <span class="stat-rotulo">Turmas com aula</span>
+          <span class="stat-valor" id="stat-turmas">—</span>
+          <span class="stat-extra">no dia selecionado</span>
+        </div>
+        <div class="card-stat">
+          <span class="stat-rotulo">Turmas lotadas</span>
+          <span class="stat-valor" id="stat-lotadas">—</span>
+          <span class="stat-extra">5 de 5 alunos</span>
+        </div>
+        <div class="card-stat">
+          <span class="stat-rotulo">Vagas abertas</span>
+          <span class="stat-valor" id="stat-vagas">—</span>
+          <span class="stat-extra">ainda disponíveis</span>
+        </div>
+      </div>
+
+      <!-- Filtros -->
+      <div class="card mb-24">
+        <div class="flex quebra gap-16 itens-centro entre">
+          <div class="cresce">
+            <h4 class="mb-8">Dia</h4>
+            <div class="faixa-dias" id="faixa-dias"></div>
+          </div>
+          <div id="filtro-professor-area" class="oculto">
+            <div class="campo" style="margin-bottom:0;min-width:200px">
+              <label for="filtro-professor">Professor</label>
+              <select id="filtro-professor">
+                <option value="">Todos os professores</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Turmas -->
+      <div class="grade-turmas" id="grade-turmas">
+        <div class="vazio"><span class="spinner escuro"></span></div>
+      </div>
+    </main>
+  </div>
+
+  <nav id="nav-inferior" aria-label="Menu rápido"></nav>
+
+  <script type="module" src="js/pages/professor.js"></script>
+</body>
+</html>

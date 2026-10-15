@@ -1,0 +1,494 @@
+/* ==========================================================================
+   layout.css — cabeçalho, navegação, rodapé, grades e shell dos painéis
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   Cabeçalho público (landing / login)
+   -------------------------------------------------------------------------- */
+
+.topo {
+  position: sticky;
+  top: 0;
+  z-index: 500;
+  background: var(--branco);
+  border-bottom: 1px solid var(--cinza-200);
+  box-shadow: var(--sombra);
+}
+
+.topo-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  height: var(--header-altura);
+}
+
+.marca {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--preto);
+  flex-shrink: 0;
+}
+
+.marca:hover { color: var(--preto); }
+
+.marca img { width: 42px; height: 42px; border-radius: 50%; }
+
+.marca-texto { display: flex; flex-direction: column; line-height: 1.1; }
+
+.marca-nome {
+  font-family: var(--fonte-titulo);
+  font-weight: 800;
+  font-size: 1.05rem;
+}
+
+.marca-sub {
+  font-family: var(--fonte-titulo);
+  font-size: 0.62rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--laranja);
+}
+
+.nav-publica {
+  display: none;
+  align-items: center;
+  gap: 26px;
+}
+
+.nav-publica a {
+  font-family: var(--fonte-titulo);
+  font-weight: 700;
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--cinza-900);
+}
+
+.nav-publica a:hover { color: var(--laranja); }
+
+.topo-acoes {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+/*
+ * No celular o cabeçalho só comporta a marca e o botão de menu: os dois
+ * botões de texto somados passavam da largura da tela e criavam rolagem
+ * horizontal. Eles continuam acessíveis dentro do menu.
+ */
+.topo-acoes > .btn { display: none; }
+
+@media (min-width: 560px) {
+  .topo-acoes > .btn { display: inline-flex; }
+}
+
+@media (min-width: 900px) {
+  .nav-publica { display: flex; }
+}
+
+/* Ícones de Instagram e WhatsApp no cabeçalho */
+.icone-social {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--cinza-100);
+  font-size: 1rem;
+  text-decoration: none;
+  transition: all var(--transicao);
+}
+
+.icone-social:hover {
+  background: var(--laranja);
+  transform: translateY(-2px);
+}
+
+@media (min-width: 700px) {
+  .icone-social { display: inline-flex; }
+}
+
+/* Menu mobile */
+.btn-menu {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  width: 42px;
+  height: 42px;
+  padding: 0 9px;
+  background: none;
+  border: none;
+}
+
+.btn-menu span {
+  display: block;
+  height: 2.5px;
+  background: var(--preto);
+  border-radius: 2px;
+  transition: all var(--transicao);
+}
+
+@media (min-width: 900px) {
+  .btn-menu { display: none; }
+}
+
+.menu-mobile {
+  display: none;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 16px 20px;
+  border-top: 1px solid var(--cinza-200);
+  background: var(--branco);
+}
+
+.menu-mobile.aberto { display: flex; }
+
+.menu-mobile a {
+  padding: 11px 6px;
+  font-family: var(--fonte-titulo);
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--cinza-900);
+  border-bottom: 1px solid var(--cinza-100);
+}
+
+.menu-mobile .btn { margin-top: 12px; }
+
+@media (min-width: 900px) {
+  .menu-mobile, .menu-mobile.aberto { display: none; }
+}
+
+/* --------------------------------------------------------------------------
+   Seções da landing
+   -------------------------------------------------------------------------- */
+
+.secao { padding: 56px 0; }
+.secao-escura { background: var(--preto); color: var(--cinza-200); }
+.secao-escura h2, .secao-escura h3 { color: var(--branco); }
+.secao-creme { background: var(--creme); }
+.secao-clara { background: var(--cinza-100); }
+
+@media (min-width: 900px) {
+  .secao { padding: 80px 0; }
+}
+
+.secao-cabecalho { text-align: center; max-width: 680px; margin: 0 auto 36px; }
+
+.secao-cabecalho .rotulo {
+  display: inline-block;
+  font-family: var(--fonte-titulo);
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--laranja);
+  margin-bottom: 8px;
+}
+
+.secao-cabecalho p { color: var(--cinza-700); margin-top: 10px; }
+.secao-escura .secao-cabecalho p { color: var(--cinza-300); }
+
+/* --------------------------------------------------------------------------
+   Grades reutilizáveis
+   -------------------------------------------------------------------------- */
+
+.grade {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+}
+
+/* Mesma razão do .painel-conteudo: sem isto, um filho largo estica a coluna. */
+.grade > *,
+.painel-colunas > * {
+  min-width: 0;
+}
+
+@media (min-width: 600px) {
+  .grade-2, .grade-3, .grade-4 { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (min-width: 900px) {
+  .grade-3 { grid-template-columns: repeat(3, 1fr); }
+  .grade-4 { grid-template-columns: repeat(4, 1fr); }
+}
+
+@media (min-width: 1100px) {
+  .grade-4 { grid-template-columns: repeat(4, 1fr); }
+}
+
+/* --------------------------------------------------------------------------
+   Rodapé
+   -------------------------------------------------------------------------- */
+
+.rodape {
+  background: var(--preto);
+  color: var(--cinza-300);
+  padding: 44px 0 24px;
+  font-size: 0.88rem;
+}
+
+.rodape-grade {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 28px;
+  margin-bottom: 28px;
+}
+
+@media (min-width: 700px) {
+  .rodape-grade { grid-template-columns: 1.4fr 1fr 1fr; }
+}
+
+.rodape h4 {
+  color: var(--branco);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 12px;
+}
+
+.rodape a { color: var(--cinza-300); }
+.rodape a:hover { color: var(--laranja); }
+.rodape li { margin-bottom: 7px; }
+
+.rodape .marca-nome, .rodape .marca { color: var(--branco); }
+
+.rodape-fim {
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  padding-top: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--cinza-500);
+}
+
+@media (min-width: 700px) {
+  .rodape-fim { flex-direction: row; justify-content: space-between; text-align: left; }
+}
+
+/* --------------------------------------------------------------------------
+   Shell dos painéis (dashboard / professor / admin)
+   -------------------------------------------------------------------------- */
+
+body.painel {
+  background: var(--creme);
+  min-height: 100vh;
+}
+
+.painel-topo {
+  position: sticky;
+  top: 0;
+  z-index: 500;
+  background: var(--branco);
+  border-bottom: 1px solid var(--cinza-200);
+  box-shadow: var(--sombra);
+}
+
+.painel-topo-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  height: var(--header-altura);
+  padding-inline: 16px;
+}
+
+.usuario-chip {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 5px 6px 5px 12px;
+  background: var(--branco);
+  border: 1px solid var(--cinza-200);
+  border-radius: 100px;
+  transition: border-color var(--transicao);
+}
+
+.usuario-chip:hover { border-color: var(--laranja-borda); }
+
+.usuario-chip .nome {
+  display: none;
+  font-family: var(--fonte-titulo);
+  font-weight: 700;
+  font-size: 0.82rem;
+  color: var(--preto);
+}
+
+@media (min-width: 600px) {
+  .usuario-chip .nome { display: block; }
+}
+
+.avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--laranja);
+  color: var(--branco);
+  font-family: var(--fonte-titulo);
+  font-weight: 800;
+  font-size: 0.82rem;
+  flex-shrink: 0;
+}
+
+.chip-creditos {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 14px;
+  background: var(--laranja-suave);
+  border: 1px solid var(--laranja-borda);
+  border-radius: 100px;
+  font-family: var(--fonte-titulo);
+  font-weight: 700;
+  font-size: 0.82rem;
+  color: var(--laranja-escuro);
+}
+
+/* Layout com barra lateral */
+.painel-shell {
+  display: grid;
+  grid-template-columns: 1fr;
+  min-height: calc(100vh - var(--header-altura));
+}
+
+@media (min-width: 900px) {
+  .painel-shell { grid-template-columns: 240px 1fr; }
+}
+
+.barra-lateral {
+  display: none;
+  flex-direction: column;
+  gap: 4px;
+  padding: 20px 14px;
+  background: var(--branco);
+  border-right: 1px solid var(--cinza-200);
+  position: sticky;
+  top: var(--header-altura);
+  height: calc(100vh - var(--header-altura));
+}
+
+@media (min-width: 900px) {
+  .barra-lateral { display: flex; }
+}
+
+.barra-lateral a,
+.barra-lateral button {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 11px 14px;
+  border: none;
+  background: none;
+  border-radius: var(--raio);
+  font-family: var(--fonte-titulo);
+  font-weight: 700;
+  font-size: 0.88rem;
+  color: var(--cinza-700);
+  text-align: left;
+  transition: all var(--transicao);
+}
+
+.barra-lateral a:hover,
+.barra-lateral button:hover {
+  background: var(--cinza-100);
+  color: var(--preto);
+}
+
+.barra-lateral a.ativo {
+  background: var(--laranja-suave);
+  color: var(--laranja-escuro);
+}
+
+.barra-lateral .separador {
+  height: 1px;
+  background: var(--cinza-200);
+  margin: 12px 4px;
+}
+
+.barra-lateral .empurra { margin-top: auto; }
+
+/* Navegação inferior (mobile) */
+.nav-inferior {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 500;
+  display: flex;
+  background: var(--branco);
+  border-top: 1px solid var(--cinza-200);
+  box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.07);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.nav-inferior a {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 9px 4px;
+  font-family: var(--fonte-titulo);
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--cinza-500);
+}
+
+.nav-inferior a .icone { font-size: 1.15rem; line-height: 1; }
+.nav-inferior a.ativo { color: var(--laranja); }
+
+@media (min-width: 900px) {
+  .nav-inferior { display: none; }
+}
+
+.painel-conteudo {
+  padding: 22px 16px 88px;
+  max-width: 1100px;
+  width: 100%;
+  /*
+   * Itens de grid têm `min-width: auto` por padrão, então o conteúdo mais
+   * largo de dentro (a faixa de dias, uma tabela) empurrava esta coluna
+   * além da largura da tela no celular. `min-width: 0` deixa a coluna
+   * encolher e transfere a rolagem para quem realmente precisa dela.
+   */
+  min-width: 0;
+  overflow-x: hidden;
+}
+
+@media (min-width: 900px) {
+  .painel-conteudo { padding: 30px 30px 40px; }
+}
+
+.painel-cabecalho { margin-bottom: 24px; }
+
+.painel-cabecalho h1 { font-size: 1.7rem; }
+
+.painel-cabecalho p {
+  color: var(--cinza-700);
+  font-size: 0.92rem;
+  margin-top: 4px;
+}
+
+/* Grade de duas colunas dos painéis */
+.painel-colunas {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+}
+
+@media (min-width: 1000px) {
+  .painel-colunas { grid-template-columns: 1.35fr 1fr; align-items: start; }
+}

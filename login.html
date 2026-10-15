@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Entrar — Barra Floripa Surf School</title>
+  <meta name="description" content="Acesse sua área de aluno para agendar aulas e ver seus créditos.">
+  <link rel="icon" href="logomenor-barrafloripa.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/pages.css">
+</head>
+<body data-page="login">
+
+  <header class="topo" id="topo"></header>
+
+  <div class="auth-wrap">
+    <!-- Lateral ilustrativa (só em telas grandes) -->
+    <aside class="auth-lateral">
+      <h2>Sua próxima aula está a<br>dois cliques de distância.</h2>
+      <p>
+        Entre na sua área para agendar aulas, acompanhar seus créditos e
+        ver o histórico da sua evolução.
+      </p>
+      <ul class="lista-check mt-24">
+        <li><span class="num-passo">✓</span><span>Agende pelo calendário, sem precisar ligar</span></li>
+        <li><span class="num-passo">✓</span><span>Veja quantas vagas restam em cada turma</span></li>
+        <li><span class="num-passo">✓</span><span>Cancele e recupere seu crédito automaticamente</span></li>
+      </ul>
+    </aside>
+
+    <!-- Painel de autenticação -->
+    <main class="auth-painel">
+      <div class="auth-caixa">
+        <!-- Escolha de perfil -->
+        <div class="escolha-perfil" id="escolha-perfil">
+          <button type="button" class="cartao-perfil ativo" data-perfil="aluno">
+            <span class="icone">🏄</span>
+            <span class="titulo">Sou Aluno</span>
+            <span class="sub">Agendar aulas</span>
+          </button>
+          <button type="button" class="cartao-perfil" data-perfil="professor">
+            <span class="icone">🎓</span>
+            <span class="titulo">Sou Professor</span>
+            <span class="sub">Acesso restrito</span>
+          </button>
+        </div>
+
+        <div class="card">
+          <!-- Abas (só para alunos) -->
+          <div class="abas" id="abas-auth">
+            <button class="aba ativa" data-aba="login" type="button">Entrar</button>
+            <button class="aba" data-aba="cadastro" type="button">Criar conta</button>
+          </div>
+
+          <div id="alerta-area"></div>
+
+          <!-- LOGIN -->
+          <section class="painel-aba ativo" data-painel="login">
+            <form id="form-login" novalidate>
+              <div class="campo">
+                <label for="login-email">E-mail</label>
+                <input type="email" id="login-email" name="email" autocomplete="email"
+                       placeholder="voce@email.com" required>
+                <span class="msg-erro">Informe um e-mail válido.</span>
+              </div>
+              <div class="campo">
+                <label for="login-senha">Senha</label>
+                <input type="password" id="login-senha" name="senha"
+                       autocomplete="current-password" placeholder="Sua senha" required>
+                <span class="msg-erro">Informe sua senha.</span>
+              </div>
+              <button type="submit" class="btn btn-primario btn-bloco" id="btn-entrar">Entrar</button>
+            </form>
+
+            <div id="area-google-login">
+              <div class="separador-ou">ou</div>
+              <button type="button" class="btn-google" id="btn-google-login">
+                <svg viewBox="0 0 48 48" aria-hidden="true">
+                  <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+                  <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+                  <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24s.92 7.54 2.56 10.78l7.97-6.19z"/>
+                  <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+                </svg>
+                Continuar com Google
+              </button>
+            </div>
+
+            <!-- Contas prontas do modo demonstração -->
+            <div class="contas-demo oculto" id="contas-demo">
+              <h4>🔑 Contas de demonstração</h4>
+              <p class="texto-min mb-8">Clique para preencher. Senha de todas: <strong>barra123</strong></p>
+              <div id="lista-contas-demo"></div>
+            </div>
+          </section>
+
+          <!-- CADASTRO -->
+          <section class="painel-aba" data-painel="cadastro">
+            <form id="form-cadastro" novalidate>
+              <div class="campo">
+                <label for="cad-nome">Nome completo</label>
+                <input type="text" id="cad-nome" name="nome" autocomplete="name"
+                       placeholder="Como podemos te chamar?" required>
+                <span class="msg-erro">Informe seu nome completo.</span>
+              </div>
+              <div class="campo">
+                <label for="cad-email">E-mail</label>
+                <input type="email" id="cad-email" name="email" autocomplete="email"
+                       placeholder="voce@email.com" required>
+                <span class="msg-erro">Informe um e-mail válido.</span>
+              </div>
+              <div class="campo">
+                <label for="cad-telefone">WhatsApp <span class="dica">Para avisarmos sobre condições do mar</span></label>
+                <input type="tel" id="cad-telefone" name="telefone" autocomplete="tel"
+                       placeholder="(48) 99999-9999">
+              </div>
+              <div class="linha-campos duas">
+                <div class="campo">
+                  <label for="cad-senha">Senha</label>
+                  <input type="password" id="cad-senha" name="senha"
+                         autocomplete="new-password" placeholder="Mínimo 6 caracteres" required>
+                  <span class="msg-erro">A senha precisa ter pelo menos 6 caracteres.</span>
+                </div>
+                <div class="campo">
+                  <label for="cad-senha2">Repita a senha</label>
+                  <input type="password" id="cad-senha2" name="senha2"
+                         autocomplete="new-password" placeholder="Digite de novo" required>
+                  <span class="msg-erro">As senhas não são iguais.</span>
+                </div>
+              </div>
+              <label class="checkbox-linha mb-16">
+                <input type="checkbox" id="cad-termos" required>
+                <span>Li e aceito os termos de uso e a política de cancelamento da escola.</span>
+              </label>
+              <button type="submit" class="btn btn-primario btn-bloco" id="btn-cadastrar">Criar conta</button>
+            </form>
+
+            <div class="separador-ou">ou</div>
+            <button type="button" class="btn-google" id="btn-google-cadastro">
+              <svg viewBox="0 0 48 48" aria-hidden="true">
+                <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+                <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+                <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24s.92 7.54 2.56 10.78l7.97-6.19z"/>
+                <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+              </svg>
+              Criar conta com Google
+            </button>
+          </section>
+        </div>
+
+        <p class="texto-centro texto-peq texto-cinza mt-16">
+          Precisa de ajuda? Fale com a escola pelo
+          <a href="#" id="link-whatsapp" target="_blank" rel="noopener">WhatsApp</a>.
+        </p>
+      </div>
+    </main>
+  </div>
+
+  <script type="module" src="js/pages/login.js"></script>
+</body>
+</html>
