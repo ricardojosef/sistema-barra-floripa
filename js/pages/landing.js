@@ -11,6 +11,7 @@
 import { ESCOLA } from '../config.js';
 import { inicializarStore } from '../store.js';
 import { usuarioOpcional } from '../auth.js';
+import { iniciarAnimacoes } from '../animacoes.js';
 import { qs, qsa, montarTopoPublico, montarRodape } from '../ui.js';
 
 /* --------------------------------------------------------------------------
@@ -112,6 +113,26 @@ function iniciarBarraProgresso() {
 }
 
 /* --------------------------------------------------------------------------
+   Cabeçalho translúcido
+   -------------------------------------------------------------------------- */
+
+/**
+ * O topo é transparente sobre o hero e ganha o fundo de vidro assim que a
+ * página rola. O CSS cuida da aparência; aqui só alternamos a classe.
+ */
+function iniciarTopoRolagem() {
+  const topo = qs('#topo');
+  if (!topo) return;
+
+  const atualizar = () => {
+    topo.classList.toggle('rolado', (window.scrollY || 0) > 60);
+  };
+
+  window.addEventListener('scroll', atualizar, { passive: true });
+  atualizar();
+}
+
+/* --------------------------------------------------------------------------
    Placeholders de imagem
    -------------------------------------------------------------------------- */
 
@@ -143,6 +164,10 @@ async function iniciar() {
   montarLinkDepoimentos();
   iniciarContador();
   iniciarBarraProgresso();
+  iniciarTopoRolagem();
+
+  // As animações entram por último e nunca bloqueiam o resto da página.
+  iniciarAnimacoes();
 
   // Se já houver sessão, o topo troca "Entrar" por "Minha Área".
   try {

@@ -6,13 +6,62 @@
    Cabeçalho público (landing / login)
    -------------------------------------------------------------------------- */
 
+/*
+ * Cabeçalho translúcido com desfoque. Na landing ele fica fixo sobre o hero
+ * (transparente) e ganha fundo ao rolar — a classe `.rolado` é aplicada por
+ * js/pages/landing.js. Nas demais páginas, o fundo claro é imediato.
+ */
 .topo {
   position: sticky;
   top: 0;
   z-index: 500;
+  background: rgba(255, 255, 255, 0.72);
+  -webkit-backdrop-filter: blur(14px) saturate(160%);
+  backdrop-filter: blur(14px) saturate(160%);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  transition: background 0.35s ease, border-color 0.35s ease, box-shadow 0.35s ease;
+}
+
+/* Na landing o cabeçalho flutua sobre o hero. */
+body[data-page='landing'] .topo {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: transparent;
+  border-bottom-color: transparent;
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
+}
+
+/* Sobre a foto escura do hero, os textos do menu ficam claros. */
+body[data-page='landing'] .topo:not(.rolado) .nav-publica a,
+body[data-page='landing'] .topo:not(.rolado) .marca-nome {
+  color: var(--branco);
+}
+
+body[data-page='landing'] .topo:not(.rolado) .btn-secundario {
+  color: var(--branco);
+  border-color: rgba(255, 255, 255, 0.75);
+}
+
+body[data-page='landing'] .topo:not(.rolado) .btn-menu span {
   background: var(--branco);
-  border-bottom: 1px solid var(--cinza-200);
-  box-shadow: var(--sombra);
+}
+
+/* Depois da primeira rolagem, assume o vidro claro. */
+body[data-page='landing'] .topo.rolado {
+  background: rgba(255, 255, 255, 0.82);
+  -webkit-backdrop-filter: blur(16px) saturate(170%);
+  backdrop-filter: blur(16px) saturate(170%);
+  border-bottom-color: rgba(0, 0, 0, 0.07);
+  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.07);
+}
+
+/* Navegadores sem backdrop-filter recebem um fundo sólido legível. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .topo { background: var(--branco); }
+  body[data-page='landing'] .topo.rolado { background: var(--branco); }
 }
 
 .topo-inner {
@@ -89,29 +138,6 @@
 
 @media (min-width: 900px) {
   .nav-publica { display: flex; }
-}
-
-/* Ícones de Instagram e WhatsApp no cabeçalho */
-.icone-social {
-  display: none;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: var(--cinza-100);
-  font-size: 1rem;
-  text-decoration: none;
-  transition: all var(--transicao);
-}
-
-.icone-social:hover {
-  background: var(--laranja);
-  transform: translateY(-2px);
-}
-
-@media (min-width: 700px) {
-  .icone-social { display: inline-flex; }
 }
 
 /* Menu mobile */

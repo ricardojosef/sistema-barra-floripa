@@ -7,7 +7,10 @@
 
 import { CONFIG } from '../config.js';
 import { exigirAuth, sair } from '../auth.js';
-import { obterPacote, obterPacotesAgrupados, precoUnitario, sufixoPeriodo } from '../precos.js';
+import {
+  obterPacote, obterPacotesAgrupados, precoUnitario, sufixoPeriodo,
+  economiaDoPacote, textoValidade,
+} from '../precos.js';
 import { saldoCreditos } from '../creditos.js';
 import {
   METODOS, criarCompra, confirmarPagamento, processarPagamento, payloadPixDaCompra,
@@ -45,8 +48,31 @@ function cardPlano(p) {
 
   card.append(el('div', {
     class: 'plano-unitario',
-    text: p.creditos > 1 ? `${formatarBRL(unitario)} por aula` : 'Aula avulsa',
+    text: p.creditos > 1
+      ? `${formatarBRL(unitario)} por aula`
+      : (p.tipo === 'individual' ? 'Aula particular' : 'Aula avulsa'),
   }));
+
+  // Quanto o aluno economiza em relação a comprar aulas avulsas.
+  const economia = economiaDoPacote(p);
+  if (economia) {
+    card.append(el('div', { class: 'selo-economia' }, [
+      el('span', { text: `Economize ${formatarBRL(economia.valor)}` }),
+      el('span', { class: 'percentual', text: `${economia.percentual}%` }),
+    ]));
+  }
+
+  // Prazo de uso e restrição de dia, quando houver.
+  const avisos = [];
+  const validade = textoValidade(p);
+  if (validade) avisos.push(`⏳ ${validade.charAt(0).toUpperCase()}${validade.slice(1)}`);
+  if (p.apenasFimDeSemana) avisos.push('📅 Somente sábado e domingo');
+
+  if (avisos.length) {
+    const lista = el('ul', { class: 'plano-condicoes' });
+    avisos.forEach((texto) => lista.append(el('li', { text: texto })));
+    card.append(lista);
+  }
 
   card.append(el('a', {
     class: `btn ${p.destaque ? 'btn-primario' : 'btn-secundario'} btn-bloco`,
@@ -95,10 +121,25 @@ function montarResumo() {
       <span>Valor por aula</span>
       <span>${escapar(formatarBRL(precoUnitario(pacote)))}</span>
     </div>` : ''}
+    ${textoValidade(pacote) ? `
+    <div class="linha-resumo">
+      <span>Prazo para usar</span>
+      <span>${escapar(textoValidade(pacote).replace('válido por ', ''))}</span>
+    </div>` : ''}
+    ${pacote.apenasFimDeSemana ? `
+    <div class="linha-resumo">
+      <span>Dias permitidos</span>
+      <span>Sábado e domingo</span>
+    </div>` : ''}
     <div class="linha-resumo total">
       <span>Total</span>
       <span class="valor">${escapar(formatarBRL(pacote.preco))}</span>
-    </div>`;
+    </div>
+    ${economiaDoPacote(pacote) ? `
+    <div class="linha-economia">
+      💰 Você economiza ${escapar(formatarBRL(economiaDoPacote(pacote).valor))}
+      em relação a ${pacote.creditos} aulas avulsas
+    </div>` : ''}`;
 
   const aviso = qs('#aviso-modo');
   if (CONFIG.MODO_PAGAMENTO === 'mock') {

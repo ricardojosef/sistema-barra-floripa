@@ -7,7 +7,8 @@
  */
 
 import { exigirAuth, sair } from '../auth.js';
-import { saldoCreditos } from '../creditos.js';
+import { lotesVigentes, diasAteVencer } from '../creditos.js';
+import { listar } from '../store.js';
 import { horariosDoDia, resumoDoPeriodo, agendar, ErroAgenda } from '../agenda.js';
 import { carregarContexto, nomeLocal } from '../precos.js';
 import {
@@ -18,6 +19,8 @@ import {
 let usuario = null;
 let contexto = null;
 let saldo = 0;
+/** true quando todos os créditos do aluno são restritos a sábado/domingo. */
+let soFimDeSemana = false;
 
 let mesVisivel = new Date();
 let diaSelecionado = null;
@@ -80,7 +83,10 @@ async function montarCalendario() {
 
     const passou = iso < hojeIso;
     const semVagas = resumo ? !resumo.temVaga : true;
-    const indisponivel = passou || semVagas;
+    // Créditos de plano mensal só valem sábado e domingo.
+    const diaDaSemana = data.getDay();
+    const bloqueadoPorPlano = soFimDeSemana && diaDaSemana !== 0 && diaDaSemana !== 6;
+    const indisponivel = passou || semVagas || bloqueadoPorPlano;
 
     const cel = el('button', {
       type: 'button',
@@ -92,7 +98,11 @@ async function montarCalendario() {
         !passou && semVagas ? 'lotado-total' : '',
       ].filter(Boolean).join(' '),
       disabled: indisponivel,
-      'aria-label': `${dia} de ${MESES[mes]}${indisponivel ? ' — indisponível' : `, ${resumo?.vagasTotais || 0} vagas`}`,
+      title: bloqueadoPorPlano ? 'Seu plano é válido apenas aos sábados e domingos' : '',
+      'aria-label': `${dia} de ${MESES[mes]}${
+        bloqueadoPorPlano ? ' — indisponível: seu plano vale só no fim de semana'
+          : indisponivel ? ' — indisponível'
+            : `, ${resumo?.vagasTotais || 0} vagas`}`,
       dataset: { data: iso },
     }, [el('span', { text: String(dia) })]);
 
@@ -241,6 +251,27 @@ async function confirmarAgendamento() {
       return;
     }
 
+    if (err instanceof ErroAgenda && err.codigo === 'APENAS_FIM_DE_SEMANA') {
+      abrirModal({
+        titulo: 'Plano válido só no fim de semana',
+        corpo: `
+          <p>${escapar(err.message)}</p>
+          <p class="mt-16 texto-cinza texto-peq">
+            Escolha um sábado ou domingo no calendário, ou compre uma aula
+            avulsa para treinar durante a semana.
+          </p>`,
+        botoes: [
+          { texto: 'Escolher outro dia', classe: 'btn-claro' },
+          {
+            texto: 'Ver planos',
+            classe: 'btn-primario',
+            onClick: () => { location.href = 'checkout.html'; },
+          },
+        ],
+      });
+      return;
+    }
+
     toast(err instanceof ErroAgenda ? err.message : 'Não foi possível agendar.', 'erro', 6000);
     console.error('[agendar] erro ao agendar:', err);
 
@@ -275,7 +306,13 @@ function mostrarSemCreditos() {
    -------------------------------------------------------------------------- */
 
 async function atualizarSaldo() {
-  saldo = await saldoCreditos(usuario.id);
+  const lancamentos = await listar('creditos', { alunoId: usuario.id });
+  const lotes = lotesVigentes(lancamentos);
+  saldo = lotes.reduce((t, l) => t + l.restante, 0);
+
+  // Se TODOS os créditos forem de plano mensal, o aluno só pode agendar
+  // no fim de semana — o calendário precisa refletir isso.
+  soFimDeSemana = lotes.length > 0 && lotes.every((l) => l.apenasFimDeSemana);
 
   qs('#badge-creditos').textContent = saldo === 1 ? '1 crédito' : `${saldo} créditos`;
   const chip = qs('#chip-creditos-valor');
@@ -283,6 +320,7 @@ async function atualizarSaldo() {
 
   const alerta = qs('#alerta-area');
   alerta.innerHTML = '';
+
   if (saldo < 1) {
     alerta.innerHTML = `
       <div class="alerta alerta-aviso">
@@ -293,6 +331,39 @@ async function atualizarSaldo() {
         </span>
         <a href="checkout.html" class="negrito">Comprar →</a>
       </div>`;
+    return;
+  }
+
+  if (soFimDeSemana) {
+    alerta.innerHTML = `
+      <div class="alerta alerta-info">
+        <span>📅</span>
+        <span class="cresce">
+          Seus créditos são do <strong>plano mensalista</strong>, válido
+          apenas para <strong>sábado e domingo</strong>. Os demais dias
+          aparecem indisponíveis no calendário.
+        </span>
+      </div>`;
+  }
+
+  // Avisa quando há crédito perto de vencer.
+  const proximo = lotes
+    .filter((l) => l.expiraEm)
+    .sort((a, b) => String(a.expiraEm).localeCompare(String(b.expiraEm)))[0];
+
+  if (proximo) {
+    const dias = diasAteVencer(proximo.expiraEm);
+    if (dias !== null && dias <= 7) {
+      alerta.insertAdjacentHTML('beforeend', `
+        <div class="alerta alerta-aviso">
+          <span>⏳</span>
+          <span class="cresce">
+            ${proximo.restante} ${proximo.restante === 1 ? 'crédito vence' : 'créditos vencem'}
+            em ${dias <= 0 ? 'breve' : `${dias} ${dias === 1 ? 'dia' : 'dias'}`}.
+            Agende para não perder.
+          </span>
+        </div>`);
+    }
   }
 }
 

@@ -81,17 +81,26 @@ export const DEFAULTS = {
     { id: 'local-mole', nome: 'Praia Mole', descricao: 'Usado quando a Barra está sem condições', ativo: true },
   ],
 
-  /** Catálogo de pacotes. `creditos` = quantas aulas o aluno pode agendar. */
+  /**
+   * Catálogo de pacotes.
+   *
+   * `creditos`        quantas aulas o aluno pode agendar
+   * `validadeDias`    prazo para usar os créditos (null = sem prazo)
+   * `apenasFimDeSemana` restringe o agendamento a sábado e domingo
+   */
   pacotes: [
-    { id: 'pac-avulsa', tipo: 'avulsa', nome: 'Aula em Grupo Avulsa', descricao: '1 aula em grupo (máx. 5 alunos)', creditos: 1, preco: 130, destaque: false, ativo: true, ordem: 1 },
-    { id: 'pac-4', tipo: 'pacote', nome: 'Pacote 4 Aulas', descricao: '4 aulas em grupo', creditos: 4, preco: 480, destaque: false, ativo: true, ordem: 2 },
-    { id: 'pac-9', tipo: 'pacote', nome: 'Pacote 9 Aulas', descricao: '9 aulas em grupo', creditos: 9, preco: 990, destaque: false, ativo: true, ordem: 3 },
-    { id: 'pac-12', tipo: 'pacote', nome: 'Pacote 12 Aulas', descricao: '12 aulas em grupo', creditos: 12, preco: 1300, destaque: false, ativo: true, ordem: 4 },
-    { id: 'pac-individual', tipo: 'individual', nome: 'Aula Individual', descricao: 'Aula particular, só você e o professor', creditos: 1, preco: 230, destaque: false, ativo: true, ordem: 5 },
-    { id: 'pac-mensal-1x', tipo: 'mensal', nome: 'Mensalista 1x/semana', descricao: '4 aulas por mês', creditos: 4, preco: 350, frequenciaSemanal: 1, destaque: false, ativo: true, ordem: 6 },
-    { id: 'pac-mensal-2x', tipo: 'mensal', nome: 'Mensalista 2x/semana', descricao: '8 aulas por mês', creditos: 8, preco: 610, frequenciaSemanal: 2, destaque: true, ativo: true, ordem: 7 },
+    { id: 'pac-avulsa', tipo: 'avulsa', nome: 'Aula em Grupo Avulsa', descricao: '1 aula em grupo (máx. 5 alunos)', creditos: 1, preco: 150, validadeDias: null, destaque: false, ativo: true, ordem: 1 },
+    { id: 'pac-4', tipo: 'pacote', nome: 'Pacote 4 Aulas', descricao: '4 aulas em grupo · válido por 1 mês', creditos: 4, preco: 480, validadeDias: 30, destaque: false, ativo: true, ordem: 2 },
+    { id: 'pac-9', tipo: 'pacote', nome: 'Pacote 9 Aulas', descricao: '9 aulas em grupo · válido por 40 dias', creditos: 9, preco: 990, validadeDias: 40, destaque: false, ativo: true, ordem: 3 },
+    { id: 'pac-12', tipo: 'pacote', nome: 'Pacote 12 Aulas', descricao: '12 aulas em grupo · válido por 2 meses', creditos: 12, preco: 1300, validadeDias: 60, destaque: false, ativo: true, ordem: 4 },
+    { id: 'pac-individual', tipo: 'individual', nome: 'Aula Particular', descricao: 'Só você e o professor', creditos: 1, preco: 250, validadeDias: null, destaque: false, ativo: true, ordem: 5 },
+    { id: 'pac-mensal-1x', tipo: 'mensal', nome: 'Mensalista 1x/semana', descricao: '4 aulas por mês · somente sábado e domingo', creditos: 4, preco: 400, frequenciaSemanal: 1, validadeDias: 30, apenasFimDeSemana: true, destaque: false, ativo: true, ordem: 6 },
+    { id: 'pac-mensal-2x', tipo: 'mensal', nome: 'Mensalista 2x/semana', descricao: '8 aulas por mês · somente sábado e domingo', creditos: 8, preco: 720, frequenciaSemanal: 2, validadeDias: 30, apenasFimDeSemana: true, destaque: true, ativo: true, ordem: 7 },
   ],
 };
+
+/** Preço de referência de uma aula avulsa, usado para calcular a economia. */
+export const PRECO_AULA_AVULSA = 150;
 
 /** Senha das contas de demonstração (apenas modo 'local'). */
 export const SENHA_DEMO = 'barra123';

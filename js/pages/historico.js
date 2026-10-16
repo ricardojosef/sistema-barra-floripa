@@ -51,7 +51,7 @@ function cartaoAula(aula) {
     cancelado: ['badge-perigo', 'Cancelada'],
   };
   const [classe, texto] = badges[aula.status] || ['badge-neutro', aula.status];
-  acoes.append(el('span', { class: `badge ${classe}`, text }));
+  acoes.append(el('span', { class: `badge ${classe}`, text: texto }));
 
   if (aula.status === 'confirmado' && futura) {
     acoes.append(el('button', {

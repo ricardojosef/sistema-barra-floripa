@@ -232,7 +232,57 @@
 .card-plano .plano-unitario {
   font-size: 0.8rem;
   color: var(--cinza-500);
-  margin-bottom: 18px;
+  margin-bottom: 12px;
+}
+
+/* Selo de economia em relação às aulas avulsas */
+.selo-economia {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  align-self: flex-start;
+  padding: 5px 11px;
+  margin-bottom: 12px;
+  border-radius: 100px;
+  background: var(--verde-suave);
+  color: var(--verde);
+  font-family: var(--fonte-rotulo);
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+
+.selo-economia .percentual {
+  padding: 1px 7px;
+  border-radius: 100px;
+  background: var(--verde);
+  color: var(--branco);
+  font-size: 0.68rem;
+}
+
+/* Condições do plano: validade e dias permitidos */
+.plano-condicoes {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 16px;
+}
+
+.plano-condicoes li {
+  font-size: 0.76rem;
+  color: var(--cinza-700);
+  line-height: 1.4;
+}
+
+/* Destaque da economia no resumo do pedido */
+.linha-economia {
+  margin-top: 12px;
+  padding: 10px 13px;
+  border-radius: var(--raio);
+  background: var(--verde-suave);
+  color: #1d6b3d;
+  font-size: 0.82rem;
+  font-weight: 600;
+  line-height: 1.45;
 }
 
 .card-plano .btn { margin-top: auto; }

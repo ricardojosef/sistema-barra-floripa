@@ -356,10 +356,6 @@ export function montarTopoPublico(usuario = null) {
         <a href="index.html#produtos">Produtos</a>
       </nav>
       <div class="topo-acoes">
-        <a class="icone-social" href="https://instagram.com/${ESCOLA.instagram}"
-           target="_blank" rel="noopener" aria-label="Instagram da escola">📷</a>
-        <a class="icone-social" href="https://wa.me/${ESCOLA.whatsapp}"
-           target="_blank" rel="noopener" aria-label="WhatsApp da escola">💬</a>
         ${usuario
           ? `<a href="${linkPainel}" class="btn btn-primario btn-peq">Minha Área</a>`
           : `<a href="login.html" class="btn btn-secundario btn-peq">Entrar</a>

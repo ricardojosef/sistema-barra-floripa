@@ -56,24 +56,42 @@ A tela de login traz botões que preenchem essas contas automaticamente.
 
 ## Regras de negócio
 
+### Aula em grupo
+
+| Item | Valor | Validade | Por aula |
+|---|---|---|---|
+| 1 aula | R$ 150,00 | sem prazo | R$ 150,00 |
+| Pacote 4 aulas | R$ 480,00 | 1 mês | R$ 120,00 |
+| Pacote 9 aulas | R$ 990,00 | 40 dias | R$ 110,00 |
+| Pacote 12 aulas | R$ 1.300,00 | 2 meses | R$ 108,33 |
+
+### Aula particular
+
 | Item | Valor |
 |---|---|
-| Aula em grupo avulsa | R$ 130,00 |
-| Pacote 4 aulas | R$ 480,00 |
-| Pacote 9 aulas | R$ 990,00 |
-| Pacote 12 aulas | R$ 1.300,00 |
-| Aula individual | R$ 230,00 |
-| Mensalista 1x/semana | R$ 350,00/mês |
-| Mensalista 2x/semana | R$ 610,00/mês (Mais Popular) |
+| Aula particular | R$ 250,00 |
+
+### Planos mensais — **somente sábado e domingo**
+
+| Item | Valor | Aulas/mês |
+|---|---|---|
+| 1x por semana | R$ 400,00/mês | 4 |
+| 2x por semana | R$ 720,00/mês (Mais Popular) | 8 |
+
+### Demais regras
 
 - **Máximo de 5 alunos** por professor em cada horário
-- Horários: **08:00, 10:00, 14:00, 16:00** — aulas de **1h30**
+- Horários: **08:00, 10:00, 14:00, 16:00**, todos os dias — aulas de **1h30**
 - Três professores: **Laudinei Neves** (admin), **Igor** e **Jorge**
 - Aluno cancela pelo site até **12h antes**; a equipe cancela a qualquer momento
-- Todo cancelamento **devolve o crédito**
+- Todo cancelamento **devolve o crédito**, mantendo a validade e as restrições
+  do pacote de origem
+- **Créditos vencidos saem do saldo** e não permitem agendar
+- Créditos de **plano mensal só valem para sábado e domingo**: o calendário
+  desabilita os demais dias para quem só tem esse tipo de crédito
 
-Preços, horários, capacidade e nomes são editáveis pelo painel administrativo
-e propagam imediatamente para todas as telas.
+Preços, validade, horários, capacidade e nomes são editáveis pelo painel
+administrativo e propagam imediatamente para todas as telas.
 
 ---
 

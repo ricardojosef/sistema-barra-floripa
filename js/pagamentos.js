@@ -50,6 +50,11 @@ export async function criarCompra({ alunoId, pacoteId, metodo }) {
     nomePacote: pacote.nome,
     valor: pacote.preco,
     creditos: pacote.creditos,
+    // Regras do pacote viajam junto com a compra: assim, se o admin alterar
+    // o catálogo depois, quem já comprou mantém as condições contratadas.
+    validadeDias: pacote.validadeDias ?? null,
+    apenasFimDeSemana: pacote.apenasFimDeSemana === true,
+    tipoPacote: pacote.tipo === 'individual' ? 'individual' : 'grupo',
     metodo,
     status: 'pendente',
     referenciaPagamento: null,
@@ -77,17 +82,33 @@ export async function confirmarPagamento(compraId, referencia = null) {
       throw new ErroPagamento('CANCELADA', 'Esta compra foi cancelada e não pode ser paga.');
     }
 
+    const pagoEm = new Date();
+
     const atualizada = await ops.atualizar('compras', compraId, {
       status: 'pago',
-      pagoEm: new Date().toISOString(),
+      pagoEm: pagoEm.toISOString(),
       referenciaPagamento: referencia || `SIM-${Date.now().toString(36).toUpperCase()}`,
     });
+
+    // A validade começa a contar do pagamento, não da criação da compra.
+    let expiraEm = null;
+    if (compra.validadeDias) {
+      const limite = new Date(pagoEm);
+      limite.setDate(limite.getDate() + Number(compra.validadeDias));
+      limite.setHours(23, 59, 59, 999);
+      expiraEm = limite.toISOString();
+    }
 
     await lancarCredito(ops, {
       alunoId: compra.alunoId,
       delta: Number(compra.creditos) || 0,
       motivo: 'compra',
       compraId,
+      nomePacote: compra.nomePacote,
+      pacoteId: compra.pacoteId,
+      tipoPacote: compra.tipoPacote || 'grupo',
+      apenasFimDeSemana: compra.apenasFimDeSemana === true,
+      expiraEm,
     });
 
     return { compra: atualizada, jaEstavaPaga: false };

@@ -67,11 +67,12 @@ Todas as contas usam a senha **`barra123`**.
 
 | E-mail | Nome | Situação inicial |
 |---|---|---|
-| `aluno@teste.com` | Ricardo Alves | Tem créditos e aulas agendadas |
+| `aluno@teste.com` | Ricardo Alves | Pacote de 4 aulas + 1 aula particular, com aulas agendadas |
 | `giovanna@teste.com` | Giovanna Zambrini | Pacote de 9 aulas |
 | `ana@teste.com` | Ana Gabriela Ferreira | Pacote de 4 aulas |
-| `andre@teste.com` | André Pagorare | Mensalista 2x/semana |
-| `marina@teste.com`, `bruno@teste.com`, `camila@teste.com`, `diego@teste.com` | — | Variados |
+| `andre@teste.com` | André Pagorare | Pacote de 9 aulas |
+| **`camila@teste.com`** | **Camila Rocha** | **Mensalista 2x/semana — créditos válidos só no fim de semana** |
+| `marina@teste.com`, `bruno@teste.com`, `diego@teste.com` | — | Variados |
 
 Na tela de login, em modo demonstração, aparece um bloco **"Contas de
 demonstração"** com botões que preenchem e-mail e senha para você.
@@ -119,7 +120,42 @@ outra coisa — e ninguém saberia qual está certo. Somando o extrato, saldo e
 histórico são a mesma informação e nunca divergem. Além disso, dá para
 auditar cada crédito: de onde veio e para onde foi.
 
-### 3.3 A regra das 5 vagas
+### 3.3 Validade dos pacotes
+
+Os pacotes têm prazo para uso, contado **a partir do pagamento**:
+
+| Pacote | Prazo |
+|---|---|
+| 4 aulas | 1 mês (30 dias) |
+| 9 aulas | 40 dias |
+| 12 aulas | 2 meses (60 dias) |
+| Planos mensais | 30 dias |
+| Aula avulsa e particular | sem prazo |
+
+Por isso os créditos são organizados em **lotes**: cada compra vira um lote
+com a própria data de expiração. Quando o aluno agenda, o sistema consome o
+lote que **vence primeiro** (FEFO), para ele não perder crédito à toa.
+
+- O vencimento cai às **23:59:59** do último dia, dando o dia inteiro ao aluno.
+- Créditos vencidos **saem do saldo** e não permitem agendar.
+- O painel avisa quando há crédito vencendo em 7 dias ou menos.
+
+### 3.4 Planos mensais: só sábado e domingo
+
+Os créditos de plano mensalista valem **apenas para sábado e domingo**.
+
+No agendamento, se todos os créditos do aluno forem desse tipo, os dias de
+semana aparecem desabilitados no calendário, com a explicação do motivo. Se
+ele tiver também créditos sem restrição, pode agendar em qualquer dia — e o
+sistema usa primeiro o crédito mais restrito, para não desperdiçar a
+flexibilidade do outro.
+
+**Cancelamento preserva as condições.** Ao cancelar, o crédito volta com a
+mesma validade e a mesma restrição de dia do lote original. Sem esse cuidado,
+cancelar viraria uma forma de transformar um crédito com prazo em um crédito
+eterno e irrestrito.
+
+### 3.5 A regra das 5 vagas
 
 Cada professor atende no máximo **5 alunos por horário**. A verificação
 acontece dentro de uma *transação*: o sistema conta quantos alunos já estão
@@ -132,17 +168,18 @@ tempo resultam em 5 aceitos e 1 recusado.
 
 **Aula individual** ocupa o horário inteiro do professor — ninguém mais entra.
 
-### 3.4 Cancelamento e devolução
+### 3.6 Cancelamento e devolução
 
 - O **aluno** cancela pelo site até **12 horas** antes da aula (configurável
   no painel admin). Depois disso, precisa falar com a escola.
 - **Professor e administrador** cancelam a qualquer momento — inclusive a
   turma inteira, quando o mar não está bom.
-- Em qualquer caso o crédito **volta automaticamente** para o aluno.
+- Em qualquer caso o crédito **volta automaticamente** para o aluno, com a
+  mesma validade e as mesmas restrições do pacote original (veja 3.4).
 - O cancelamento é **idempotente**: clicar duas vezes não devolve dois
   créditos.
 
-### 3.5 Onde os dados ficam
+### 3.7 Onde os dados ficam
 
 O sistema tem dois "modos" de armazenamento, escolhidos em `js/config.js`:
 
@@ -176,8 +213,11 @@ Siga na ordem. Cada passo verifica uma regra de negócio diferente.
 2. Vá em **"Criar conta"**, preencha seus dados e confirme.
    - ✅ Você cai no painel com **0 créditos** e um aviso de saldo vazio.
 3. Clique em **"Comprar Plano"** e escolha o **Pacote 4 Aulas (R$ 480)**.
+   - ✅ O card mostra **R$ 120,00 por aula**, o selo **"Economize R$ 120 · 20%"**
+     e a condição **"Válido por 1 mês"**.
 4. Deixe em **PIX**. Um QR Code aparece, junto com o código copia e cola.
    - ✅ O código começa com `00020126...` — é um BR Code válido de verdade.
+   - ✅ O resumo traz **Prazo para usar: 1 mês** e a economia em destaque.
 5. Clique em **"Já fiz o PIX"** e aguarde a confirmação.
    - ✅ Tela de sucesso, **saldo agora é 4**.
 
@@ -202,8 +242,47 @@ Siga na ordem. Cada passo verifica uma regra de negócio diferente.
     - ✅ Aviso de confirmação, depois: **crédito devolvido** (saldo sobe 1).
 12. Vá em **"Meus Créditos"** e veja o extrato.
     - ✅ Há três linhas: `+4` (compra), `−1` (agendamento), `+1` (cancelamento).
+    - ✅ O cartão do pacote mostra a data de validade.
 
-### Teste 5 — Painel do professor
+### Teste 5 — Plano mensal só no fim de semana
+
+Entre com `camila@teste.com` / `barra123` — ela é mensalista no seed.
+
+13. Vá em **"Agendar Aula"**.
+    - ✅ Um aviso explica que o plano vale **apenas sábado e domingo**.
+    - ✅ No calendário, os dias de semana aparecem **desabilitados**; só
+      sábados e domingos ficam clicáveis.
+14. Passe o mouse sobre uma segunda-feira.
+    - ✅ A dica diz "Seu plano é válido apenas aos sábados e domingos".
+15. Agende num sábado ou domingo.
+    - ✅ Funciona normalmente e debita 1 crédito.
+
+> Para ver o bloqueio pelo lado do servidor (e não só da interface), tente
+> agendar num dia útil pelo console. O sistema recusa com a mensagem do
+> plano mensalista — a validação não depende do calendário.
+
+### Teste 6 — Crédito vencido
+
+Este caso é mais fácil de simular pelo console do navegador (F12), já que
+exige um crédito com data passada:
+
+```javascript
+// Cria um crédito que venceu ontem, para o aluno logado
+const { criar } = await import('./js/store.js');
+const ontem = new Date(); ontem.setDate(ontem.getDate() - 1);
+await criar('creditos', {
+  alunoId: 'COLE_AQUI_O_ID_DO_ALUNO',
+  delta: 5, motivo: 'compra', nomePacote: 'Pacote vencido',
+  expiraEm: ontem.toISOString(), criadoEm: new Date().toISOString(),
+});
+```
+
+16. Recarregue o painel.
+    - ✅ O saldo **não** aumentou em 5 — créditos vencidos não contam.
+    - ✅ Tentar agendar com apenas créditos vencidos devolve "Você não tem
+      créditos disponíveis".
+
+### Teste 7 — Painel do professor
 
 13. Saia e entre com `igor@barrafloripa.com.br` / `barra123`.
     - ✅ Você vê **apenas as turmas do Igor**, não as dos outros.
@@ -214,7 +293,7 @@ Siga na ordem. Cada passo verifica uma regra de negócio diferente.
 16. Teste **"Cancelar turma"** em outro horário — escolha um motivo.
     - ✅ Todos os alunos daquele horário recebem o crédito de volta.
 
-### Teste 6 — Painel administrativo
+### Teste 8 — Painel administrativo
 
 17. Saia e entre com `laudinei@barrafloripa.com.br` / `barra123`.
     - ✅ Você vê as turmas de **todos os professores**, com filtro por nome.
@@ -222,8 +301,10 @@ Siga na ordem. Cada passo verifica uma regra de negócio diferente.
 
 **Preços:**
 19. Aba **💰 Preços** → mude o "Pacote 9 Aulas" de R$ 990 para R$ 950 → Salvar.
-20. Abra a **página inicial** em outra aba.
+20. Abra **checkout.html** em outra aba (ou "Comprar Plano" como aluno).
     - ✅ O novo preço aparece na hora, sem republicar nada.
+    - ✅ O selo de economia se recalcula sozinho: com 9 aulas a R$ 950, a
+      economia sobe para R$ 400 (9 × R$ 150 = R$ 1.350).
 
 **Professores:**
 21. Aba **👤 Professores** → renomeie "Igor" para "Igor Silva" → Salvar.
@@ -242,14 +323,14 @@ Siga na ordem. Cada passo verifica uma regra de negócio diferente.
 27. Volte a "Agendar Aula" como aluno.
     - ✅ O horário das 18:00 agora aparece na grade.
 
-### Teste 7 — Segurança de acesso
+### Teste 9 — Segurança de acesso
 
 28. Logado como **aluno**, digite na barra de endereço: `admin.html`.
     - ✅ Você é **redirecionado** para o painel de aluno. Sem acesso.
 29. Saia da conta e tente abrir `dashboard.html` diretamente.
     - ✅ Você vai para o login, e **depois de entrar volta para o dashboard**.
 
-### Teste 8 — Recomeçar do zero
+### Teste 10 — Recomeçar do zero
 
 30. Como admin: **Administração → Horários → "Reiniciar dados de demonstração"**.
     - ✅ Tudo volta ao estado inicial.
@@ -360,17 +441,22 @@ Repita para `prof-igor` (ordem 2) e `prof-jorge` (ordem 3).
 Crie a coleção `pacotes` com um documento para cada plano. Use exatamente
 estes IDs, porque o sistema os referencia:
 
-| ID do documento | nome | preco | creditos | tipo | destaque |
-|---|---|---|---|---|---|
-| `pac-avulsa` | Aula em Grupo Avulsa | 130 | 1 | `avulsa` | false |
-| `pac-4` | Pacote 4 Aulas | 480 | 4 | `pacote` | false |
-| `pac-9` | Pacote 9 Aulas | 990 | 9 | `pacote` | false |
-| `pac-12` | Pacote 12 Aulas | 1300 | 12 | `pacote` | false |
-| `pac-individual` | Aula Individual | 230 | 1 | `individual` | false |
-| `pac-mensal-1x` | Mensalista 1x/semana | 350 | 4 | `mensal` | false |
-| `pac-mensal-2x` | Mensalista 2x/semana | 610 | 8 | `mensal` | **true** |
+| ID do documento | nome | preco | creditos | tipo | validadeDias | apenasFimDeSemana | destaque |
+|---|---|---|---|---|---|---|---|
+| `pac-avulsa` | Aula em Grupo Avulsa | 150 | 1 | `avulsa` | *(vazio)* | false | false |
+| `pac-4` | Pacote 4 Aulas | 480 | 4 | `pacote` | 30 | false | false |
+| `pac-9` | Pacote 9 Aulas | 990 | 9 | `pacote` | 40 | false | false |
+| `pac-12` | Pacote 12 Aulas | 1300 | 12 | `pacote` | 60 | false | false |
+| `pac-individual` | Aula Particular | 250 | 1 | `individual` | *(vazio)* | false | false |
+| `pac-mensal-1x` | Mensalista 1x/semana | 400 | 4 | `mensal` | 30 | **true** | false |
+| `pac-mensal-2x` | Mensalista 2x/semana | 720 | 8 | `mensal` | 30 | **true** | **true** |
 
 Todos com `ativo: true` (boolean) e `ordem` (number, de 1 a 7).
+
+- `validadeDias` (number) é o prazo para usar os créditos. Deixe o campo
+  ausente — ou `null` — quando o crédito não expira.
+- `apenasFimDeSemana` (boolean) restringe o agendamento a sábado e domingo.
+- Os planos mensais também precisam de `frequenciaSemanal` (number: 1 ou 2).
 
 E a coleção `config`, documento de ID `app`:
 

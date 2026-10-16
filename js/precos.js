@@ -8,7 +8,7 @@
  * landing, o checkout, o agendamento e os painéis.
  */
 
-import { DEFAULTS } from './config.js';
+import { DEFAULTS, PRECO_AULA_AVULSA } from './config.js';
 import { listar, obter } from './store.js';
 
 /* --------------------------------------------------------------------------
@@ -70,6 +70,38 @@ export function precoUnitario(pacote) {
 
 /** Texto do período para planos mensais ('/mês') ou vazio para pacotes. */
 export const sufixoPeriodo = (pacote) => (pacote?.tipo === 'mensal' ? '/mês' : '');
+
+/**
+ * Quanto o aluno economiza em relação a comprar aulas avulsas.
+ * Retorna null quando não há desconto (aula avulsa ou particular).
+ */
+export function economiaDoPacote(pacote, precoAvulsa = PRECO_AULA_AVULSA) {
+  if (!pacote || pacote.tipo === 'avulsa' || pacote.tipo === 'individual') return null;
+
+  const creditos = Number(pacote.creditos) || 0;
+  if (creditos < 2) return null;
+
+  const valorSemDesconto = creditos * precoAvulsa;
+  const economia = valorSemDesconto - (Number(pacote.preco) || 0);
+  if (economia <= 0) return null;
+
+  return {
+    valor: economia,
+    percentual: Math.round((economia / valorSemDesconto) * 100),
+    valorSemDesconto,
+  };
+}
+
+/** Texto curto da validade: 'válido por 1 mês', '40 dias'... */
+export function textoValidade(pacote) {
+  const dias = pacote?.validadeDias;
+  if (!dias) return null;
+  if (dias % 30 === 0) {
+    const meses = dias / 30;
+    return meses === 1 ? 'válido por 1 mês' : `válido por ${meses} meses`;
+  }
+  return `válido por ${dias} dias`;
+}
 
 /* --------------------------------------------------------------------------
    Professores

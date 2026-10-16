@@ -16,7 +16,7 @@ import { aplicarFiltros, aplicarOrdenacao } from './store.js';
 
 const PREFIXO = 'bf_';
 const CHAVE_VERSAO = `${PREFIXO}versao_seed`;
-const VERSAO_SEED = 3;
+const VERSAO_SEED = 4;
 
 const COLECOES = [
   'usuarios', 'professores', 'pacotes', 'compras', 'creditos',
@@ -97,6 +97,21 @@ function diaRelativo(dias) {
   return `${d.getFullYear()}-${mes}-${dia}`;
 }
 
+/**
+ * Offset (em dias a partir de hoje) do próximo sábado ou domingo.
+ * O seed roda em qualquer dia da semana, então o mensalista — cujos
+ * créditos só valem no fim de semana — precisa de uma data coerente.
+ */
+function proximoFimDeSemana(aPartirDe = 1) {
+  for (let i = aPartirDe; i < aPartirDe + 7; i += 1) {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    d.setDate(d.getDate() + i);
+    if (d.getDay() === 6 || d.getDay() === 0) return i;
+  }
+  return aPartirDe;
+}
+
 /* --------------------------------------------------------------------------
    Seed dos dados de demonstração
    -------------------------------------------------------------------------- */
@@ -166,10 +181,12 @@ async function semear() {
     { aluno: 0, pacote: 'pac-4', metodo: 'pix' },
     { aluno: 1, pacote: 'pac-9', metodo: 'cartao' },
     { aluno: 2, pacote: 'pac-4', metodo: 'mercadopago' },
-    { aluno: 3, pacote: 'pac-mensal-2x', metodo: 'cartao' },
+    { aluno: 3, pacote: 'pac-9', metodo: 'cartao' },
     { aluno: 4, pacote: 'pac-4', metodo: 'pix' },
     { aluno: 5, pacote: 'pac-avulsa', metodo: 'pix' },
-    { aluno: 6, pacote: 'pac-12', metodo: 'paypal' },
+    // Camila é a mensalista: os créditos dela só valem sábado e domingo,
+    // o que dá um caso pronto para testar a restrição no agendamento.
+    { aluno: 6, pacote: 'pac-mensal-2x', metodo: 'cartao' },
     { aluno: 7, pacote: 'pac-4', metodo: 'pix' },
     { aluno: 0, pacote: 'pac-individual', metodo: 'cartao' },
   ];
@@ -180,6 +197,8 @@ async function semear() {
     const compraId = `cmp-demo-${i + 1}`;
     const quando = new Date();
     quando.setDate(quando.getDate() - (comprasDemo.length - i) * 3);
+    const tipoPacote = pacote.tipo === 'individual' ? 'individual' : 'grupo';
+
     compras.push({
       id: compraId,
       alunoId,
@@ -187,18 +206,36 @@ async function semear() {
       nomePacote: pacote.nome,
       valor: pacote.preco,
       creditos: pacote.creditos,
+      validadeDias: pacote.validadeDias ?? null,
+      apenasFimDeSemana: pacote.apenasFimDeSemana === true,
+      tipoPacote,
       metodo: c.metodo,
       status: 'pago',
       referenciaPagamento: `DEMO-${String(i + 1).padStart(6, '0')}`,
       criadoEm: quando.toISOString(),
       pagoEm: quando.toISOString(),
     });
+
+    // A validade conta a partir do pagamento, igual ao fluxo real.
+    let expiraEm = null;
+    if (pacote.validadeDias) {
+      const limite = new Date(quando);
+      limite.setDate(limite.getDate() + pacote.validadeDias);
+      limite.setHours(23, 59, 59, 999);
+      expiraEm = limite.toISOString();
+    }
+
     creditos.push({
       id: `crd-demo-${i + 1}`,
       alunoId,
       delta: pacote.creditos,
       motivo: 'compra',
       compraId,
+      nomePacote: pacote.nome,
+      pacoteId: pacote.id,
+      tipoPacote,
+      apenasFimDeSemana: pacote.apenasFimDeSemana === true,
+      expiraEm,
       agendamentoId: null,
       criadoEm: quando.toISOString(),
     });
@@ -254,7 +291,8 @@ async function semear() {
   marcar(3, 'prof-igor', 2, '16:00');
   marcar(4, 'prof-jorge', 3, '08:00', 'grupo', 'local-mole');
   marcar(5, 'prof-jorge', 3, '08:00', 'grupo', 'local-mole');
-  marcar(6, 'prof-igor', 4, '10:00');
+  // Camila é mensalista: aula no fim de semana, como o plano exige.
+  marcar(6, 'prof-igor', proximoFimDeSemana(3), '10:00');
   marcar(0, 'prof-laudinei', 5, '16:00', 'individual');
   marcar(7, 'prof-igor', 6, '08:00');
   marcar(1, 'prof-jorge', 7, '14:00');

@@ -15,7 +15,7 @@
 
 import { listar, transacao } from './store.js';
 import { obterConfig, obterProfessores } from './precos.js';
-import { saldoCreditosEm, lancarCredito } from './creditos.js';
+import { lancarCredito, avaliarUsoNaData } from './creditos.js';
 import { dataHoraDe, hojeISO, isoDeData } from './ui.js';
 
 /* --------------------------------------------------------------------------
@@ -212,13 +212,25 @@ export async function agendar({ alunoId, alunoNome, professorId, data, horario, 
       throw new ErroAgenda('SLOT_DUPLICADO', 'Você já tem uma aula marcada neste dia e horário.');
     }
 
-    // 4. Saldo
-    const saldo = await saldoCreditosEm(ops, alunoId);
-    if (saldo < 1) {
+    // 4. Saldo e regras do crédito disponível
+    const lancamentos = await ops.listar('creditos', { alunoId });
+    const avaliacao = avaliarUsoNaData(lancamentos, data);
+
+    if (!avaliacao.pode) {
+      if (avaliacao.motivo === 'APENAS_FIM_DE_SEMANA') {
+        throw new ErroAgenda(
+          'APENAS_FIM_DE_SEMANA',
+          'Seus créditos são do plano mensalista, válido apenas para sábado e domingo. Escolha um desses dias ou compre uma aula avulsa.',
+        );
+      }
       throw new ErroAgenda('SEM_CREDITOS', 'Você não tem créditos disponíveis. Compre um pacote para agendar.');
     }
 
-    // 5. Grava o agendamento e debita o crédito
+    const lote = avaliacao.lote;
+
+    // 5. Grava o agendamento e debita o crédito.
+    // As condições do lote ficam registradas na aula para que um eventual
+    // cancelamento devolva o crédito exatamente como estava.
     const agendamento = await ops.criar('agendamentos', {
       alunoId,
       alunoNome,
@@ -231,6 +243,10 @@ export async function agendar({ alunoId, alunoNome, professorId, data, horario, 
       status: 'confirmado',
       canceladoPor: null,
       motivoCancelamento: null,
+      loteNomePacote: lote.nomePacote || null,
+      lotePacoteId: lote.pacoteId || null,
+      loteExpiraEm: lote.expiraEm || null,
+      loteApenasFimDeSemana: lote.apenasFimDeSemana === true,
       criadoEm: new Date().toISOString(),
     });
 
@@ -295,12 +311,21 @@ export async function cancelar(agendamentoId, porQuem, motivo = null) {
       canceladoEm: new Date().toISOString(),
     });
 
+    // O crédito volta com as MESMAS condições do lote que foi usado: se o
+    // pacote tinha prazo ou era restrito a fim de semana, o estorno mantém
+    // isso. Sem esse cuidado, cancelar viraria uma forma de converter um
+    // crédito com validade em um crédito eterno e irrestrito.
     await lancarCredito(ops, {
       alunoId: agendamento.alunoId,
       delta: 1,
       motivo: 'cancelamento',
       agendamentoId,
       observacao: motivo,
+      nomePacote: agendamento.loteNomePacote || null,
+      pacoteId: agendamento.lotePacoteId || null,
+      tipoPacote: agendamento.tipo === 'individual' ? 'individual' : 'grupo',
+      apenasFimDeSemana: agendamento.loteApenasFimDeSemana === true,
+      expiraEm: agendamento.loteExpiraEm || null,
     });
 
     return { ...agendamento, status: 'cancelado' };
