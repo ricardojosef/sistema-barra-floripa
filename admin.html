@@ -7,7 +7,7 @@
   <link rel="icon" href="logomenor-barrafloripa.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/components.css">
   <link rel="stylesheet" href="css/layout.css">
@@ -65,12 +65,42 @@
           </div>
           <p class="texto-peq texto-cinza mb-16">
             O nome editado aqui aparece imediatamente na agenda dos alunos e no
-            painel dos professores. Desativar um professor o remove da grade de
-            agendamento, mas preserva o histórico das aulas já dadas.
+            painel dos professores. <strong>Ativo</strong> desligado tira o
+            professor da grade temporariamente (férias, lesão).
+            <strong>Retirar</strong> encerra o acesso dele ao sistema e cancela
+            as aulas futuras, devolvendo o crédito aos alunos.
           </p>
           <div id="lista-professores"></div>
           <button class="btn btn-primario mt-16" id="btn-salvar-professores" type="button">
             Salvar professores
+          </button>
+        </div>
+
+        <div class="card mt-24">
+          <div class="card-titulo">
+            <h3>Adicionar professor</h3>
+          </div>
+          <p class="texto-peq texto-cinza mb-16">
+            Cria o acesso do professor ao sistema. Ele entra com o e-mail e a
+            senha inicial abaixo — passe esses dados a ele pessoalmente. Se o
+            e-mail for de alguém que já foi retirado, o cadastro é reativado.
+          </p>
+          <form id="form-professor" class="linha-campos tres" novalidate>
+            <div class="campo">
+              <label for="novo-prof-nome">Nome</label>
+              <input type="text" id="novo-prof-nome" autocomplete="off" placeholder="Nome do professor">
+            </div>
+            <div class="campo">
+              <label for="novo-prof-email">E-mail de acesso</label>
+              <input type="email" id="novo-prof-email" autocomplete="off" placeholder="nome@barrafloripa.com.br">
+            </div>
+            <div class="campo">
+              <label for="novo-prof-senha">Senha inicial</label>
+              <input type="text" id="novo-prof-senha" autocomplete="new-password" placeholder="Mínimo 6 caracteres">
+            </div>
+          </form>
+          <button class="btn btn-primario" id="btn-adicionar-professor" type="submit" form="form-professor">
+            + Adicionar professor
           </button>
         </div>
       </section>

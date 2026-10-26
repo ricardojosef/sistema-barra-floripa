@@ -59,9 +59,10 @@ Todas as contas usam a senha **`barra123`**.
 
 | E-mail | Nome | Papel | O que pode fazer |
 |---|---|---|---|
-| `laudinei@barrafloripa.com.br` | Laudinei Neves | **Administrador** | Tudo: turmas de todos os professores + painel de administração |
+| `laudinei@barrafloripa.com.br` | Laudinei Neves | **Administrador** | Tudo: turmas de todos os professores, painel de administração e gestão da equipe |
+| `pedro@barrafloripa.com.br` | Pedro | Professor | Ver e cancelar as próprias turmas |
 | `igor@barrafloripa.com.br` | Igor | Professor | Ver e cancelar as próprias turmas |
-| `jorge@barrafloripa.com.br` | Jorge | Professor | Ver e cancelar as próprias turmas |
+| `gabrieli@barrafloripa.com.br` | Gabrieli | Professor | Ver e cancelar as próprias turmas |
 
 ### Alunos
 
@@ -201,6 +202,52 @@ Firebase não exige reescrever nenhuma tela.
 > dados de demonstração de novo, do zero. Isso é esperado — é uma demonstração,
 > não um banco de dados compartilhado.
 
+### 3.8 Gestão da equipe (só o administrador)
+
+Em **Administração → Professores**, o Laudinei — e apenas ele, por ser o
+único com papel `admin` — pode:
+
+| Ação | O que acontece |
+|---|---|
+| **Adicionar professor** | Cria o acesso (e-mail + senha inicial) e põe o professor no fim da grade. |
+| **Ativo** desmarcado | Tira o professor da grade *temporariamente* (férias, lesão). Ele continua entrando no sistema. |
+| **Retirar** | Encerra o acesso ao sistema, tira da grade e **cancela as aulas futuras**, devolvendo o crédito a cada aluno. Antes de confirmar, o painel mostra quantas aulas serão canceladas. |
+
+Detalhes importantes:
+
+- **Retirar não apaga.** O cadastro fica guardado como "retirado", para o
+  histórico continuar mostrando quem deu cada aula. Com Firebase, apagar a
+  conta do Authentication só é possível pelo servidor (Admin SDK); pelo
+  navegador, o seguro é bloquear o login — e é isso que acontece.
+- **Recontratação:** cadastrar de novo um e-mail retirado **reativa** o
+  cadastro antigo em vez de duplicar. No modo Firebase a pessoa volta com a
+  senha que já tinha (a de outra conta não pode ser trocada pelo navegador).
+- O administrador não pode ser retirado, e o painel não cria outro admin.
+- No Firebase, a conta nova é criada numa instância separada do app, para o
+  Laudinei **não ser deslogado** no meio do cadastro.
+
+### 3.9 Tutorial de primeiro acesso
+
+Todo aluno, no primeiro login, vê um tour guiado em duas partes:
+
+1. **Painel** (9 passos): créditos, saldo no topo, onde comprar, onde
+   agendar, próximas aulas, créditos por pacote e menu. No fim, o aluno
+   escolhe se quer ver o agendamento na prática.
+2. **Agendamento** (6 passos): tipo de aula, calendário (e o que significa
+   cada cor), horários com lotação, custo em créditos e o botão de confirmar.
+   Para mostrar esse botão o tour seleciona um horário de exemplo — **nada é
+   agendado**, e a seleção é desfeita no fim.
+
+Como funciona:
+
+- Fica marcado no perfil do aluno (`tutorialConcluido`), então não reaparece
+  — nem em outro dispositivo. **Pular** também conta como visto.
+- Pode ser revisto a qualquer momento em **Como agendar**: no menu lateral
+  (computador) ou tocando na foto do perfil, no topo (celular).
+- Navegação por teclado: <kbd>→</kbd> avança, <kbd>←</kbd> volta e
+  <kbd>Esc</kbd> encerra.
+- Professores e administrador não veem o tour de aluno.
+
 ---
 
 ## 4. Roteiro de teste completo
@@ -211,7 +258,14 @@ Siga na ordem. Cada passo verifica uma regra de negócio diferente.
 
 1. Abra o site e clique em **"Agendar Aula"**.
 2. Vá em **"Criar conta"**, preencha seus dados e confirme.
-   - ✅ Você cai no painel com **0 créditos** e um aviso de saldo vazio.
+   - ✅ Você cai no painel e o **tutorial guiado** começa sozinho. Avance
+     com **Próximo** (ou <kbd>→</kbd>): cada passo destaca uma parte do painel.
+   - ✅ No último passo, **Ver o agendamento** leva à tela de agendamento e
+     o tour continua lá, mostrando calendário, horários e o botão de
+     confirmar — sem agendar nada.
+   - ✅ Ao terminar, o painel mostra **0 créditos** e um aviso de saldo vazio.
+   - ✅ Recarregue a página: o tutorial **não** aparece de novo. Para revê-lo,
+     use **Como agendar** no menu.
 3. Clique em **"Comprar Plano"** e escolha o **Pacote 4 Aulas (R$ 480)**.
    - ✅ O card mostra **R$ 120,00 por aula**, o selo **"Economize R$ 120 · 20%"**
      e a condição **"Válido por 1 mês"**.
@@ -309,7 +363,21 @@ await criar('creditos', {
 **Professores:**
 21. Aba **👤 Professores** → renomeie "Igor" para "Igor Silva" → Salvar.
 22. Vá em **Turmas**.
-    - ✅ O novo nome aparece em todas as turmas dele.
+    - ✅ O novo nome aparece em todas as turmas do Igor.
+
+**Equipe (adicionar e retirar):**
+- Em **Adicionar professor**, cadastre um nome, um e-mail novo e uma senha.
+  - ✅ O professor entra no fim da lista e consegue fazer login com esses dados.
+- Tente cadastrar um e-mail que já existe (ex.: `igor@barrafloripa.com.br`).
+  - ✅ O painel recusa com "Esse e-mail já pertence a…".
+- Clique em **Retirar** ao lado do Pedro.
+  - ✅ A confirmação diz quantas aulas futuras serão canceladas.
+  - ✅ Depois de confirmar, o Pedro some da lista e da grade de agendamento,
+    e quem tinha aula marcada com o Pedro recebe o crédito de volta.
+  - ✅ Tentar entrar com `pedro@barrafloripa.com.br` mostra "conta desativada".
+- Cadastre de novo `pedro@barrafloripa.com.br`.
+  - ✅ O cadastro é **reativado** (não aparece um segundo "Pedro").
+- O Laudinei aparece com o selo **Admin** e **sem** botão Retirar.
 
 **Avisos:**
 23. Aba **📢 Avisos** → publique um aviso com título e mensagem.
@@ -405,7 +473,17 @@ Essas regras garantem, no servidor, que:
 
 ### Passo 7 — Criar as contas da equipe
 
-Para cada professor (Laudinei, Igor, Jorge):
+Só o **administrador (Laudinei)** precisa ser criado à mão no Console. Os
+demais professores — Pedro, Igor e Gabrieli — o próprio Laudinei cadastra
+depois, pelo painel (**Administração → Professores → Adicionar professor**).
+
+> ⚠️ Para o cadastro pelo painel funcionar, as regras do Passo 6 precisam
+> estar **atualizadas**: a versão atual do `firestore.rules` permite que o
+> administrador crie perfis de professor. Com as regras antigas, a conta é
+> criada no Authentication mas o perfil é recusado — o painel avisa, e basta
+> publicar as regras novas e cadastrar o mesmo e-mail de novo.
+
+Para criar o Laudinei:
 
 **a) Criar o usuário:**
 1. Authentication → **Users** → **Adicionar usuário**.
@@ -430,11 +508,26 @@ Para cada professor (Laudinei, Igor, Jorge):
 2. Campos: `nome` (string), `usuarioId` (string, o mesmo UID), `ativo`
    (boolean `true`), `ordem` (number `1`).
 
-Repita para `prof-igor` (ordem 2) e `prof-jorge` (ordem 3).
+**d) Cadastrar o restante da equipe pelo painel:** entre como Laudinei e use
+**Adicionar professor** para Pedro, Igor e Gabrieli — nome, e-mail e uma
+senha inicial. Passe a senha pessoalmente a cada um.
 
-> **Atenção ao campo `papel`:** apenas Laudinei recebe `admin`. Igor e Jorge
-> recebem `professor`. Um aluno que se cadastrar pelo site recebe `aluno`
-> automaticamente, e as regras impedem que ele mude isso.
+> **Atenção ao campo `papel`:** apenas Laudinei recebe `admin`. Quem é
+> cadastrado pelo painel recebe `professor` automaticamente, e as regras
+> impedem que o painel crie outro administrador. Um aluno que se cadastrar
+> pelo site recebe `aluno`, e também não consegue mudar isso.
+
+#### Já tinha o Firebase configurado com a equipe antiga?
+
+Se o seu projeto foi montado quando a equipe era Laudinei, Igor e Jorge:
+
+1. Publique o `firestore.rules` atualizado (Passo 6).
+2. Entre como Laudinei → **Administração → Professores**.
+3. Clique em **Retirar** ao lado do Jorge. As aulas futuras do Jorge são
+   canceladas e o crédito volta para cada aluno.
+4. Use **Adicionar professor** para Pedro e Gabrieli.
+5. Ajuste a **Ordem na grade** (Laudinei 1, Pedro 2, Igor 3, Gabrieli 4) e
+   clique em **Salvar professores**.
 
 ### Passo 8 — Cadastrar preços e configuração
 

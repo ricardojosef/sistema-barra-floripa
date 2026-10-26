@@ -16,7 +16,7 @@ import { aplicarFiltros, aplicarOrdenacao } from './store.js';
 
 const PREFIXO = 'bf_';
 const CHAVE_VERSAO = `${PREFIXO}versao_seed`;
-const VERSAO_SEED = 4;
+const VERSAO_SEED = 5;
 
 const COLECOES = [
   'usuarios', 'professores', 'pacotes', 'compras', 'creditos',
@@ -183,7 +183,9 @@ async function semear() {
     { aluno: 2, pacote: 'pac-4', metodo: 'mercadopago' },
     { aluno: 3, pacote: 'pac-9', metodo: 'cartao' },
     { aluno: 4, pacote: 'pac-4', metodo: 'pix' },
-    { aluno: 5, pacote: 'pac-avulsa', metodo: 'pix' },
+    // Bruno tem duas aulas marcadas: precisa de créditos para as duas.
+    // (Com uma aula avulsa só, o seed deixava uma aula "fiada", sem crédito.)
+    { aluno: 5, pacote: 'pac-4', metodo: 'pix' },
     // Camila é a mensalista: os créditos dela só valem sábado e domingo,
     // o que dá um caso pronto para testar a restrição no agendamento.
     { aluno: 6, pacote: 'pac-mensal-2x', metodo: 'cartao' },
@@ -282,20 +284,21 @@ async function semear() {
   // Turma LOTADA amanhã às 08:00 com o Igor (5 alunos) — testa o limite.
   [0, 1, 2, 3, 4].forEach((idx) => marcar(idx, 'prof-igor', 1, '08:00'));
 
-  // Turma quase cheia amanhã às 10:00 com o Jorge (4 alunos).
-  [5, 6, 7, 0].forEach((idx) => marcar(idx, 'prof-jorge', 1, '10:00'));
+  // Turma quase cheia amanhã às 10:00 com o Pedro (4 alunos).
+  // A Camila (6) fica de fora: é mensalista e amanhã pode ser dia útil.
+  [5, 3, 7, 0].forEach((idx) => marcar(idx, 'prof-pedro', 1, '10:00'));
 
-  // Aulas espalhadas nos próximos dias.
+  // Aulas espalhadas nos próximos dias, cobrindo os quatro professores.
   marcar(1, 'prof-laudinei', 2, '14:00');
   marcar(2, 'prof-laudinei', 2, '14:00');
   marcar(3, 'prof-igor', 2, '16:00');
-  marcar(4, 'prof-jorge', 3, '08:00', 'grupo', 'local-mole');
-  marcar(5, 'prof-jorge', 3, '08:00', 'grupo', 'local-mole');
+  marcar(4, 'prof-gabrieli', 3, '08:00', 'grupo', 'local-mole');
+  marcar(5, 'prof-gabrieli', 3, '08:00', 'grupo', 'local-mole');
   // Camila é mensalista: aula no fim de semana, como o plano exige.
   marcar(6, 'prof-igor', proximoFimDeSemana(3), '10:00');
   marcar(0, 'prof-laudinei', 5, '16:00', 'individual');
-  marcar(7, 'prof-igor', 6, '08:00');
-  marcar(1, 'prof-jorge', 7, '14:00');
+  marcar(7, 'prof-pedro', 6, '08:00');
+  marcar(1, 'prof-gabrieli', 7, '14:00');
 
   // --- Aviso de exemplo ---
   const inicio = new Date();

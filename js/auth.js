@@ -98,6 +98,13 @@ export async function carregarUsuario() {
       return null;
     }
     const perfil = await obter('usuarios', usuarioFirebase.uid);
+    // Conta desativada (ex.: professor retirado do quadro) perde o acesso
+    // mesmo com uma sessão do Firebase ainda válida no navegador.
+    if (!perfil || perfil.ativo === false) {
+      try { await driverAtual().sair(); } catch { /* sessão já encerrada */ }
+      usuarioCache = null;
+      return null;
+    }
     usuarioCache = semSegredos(perfil);
     return usuarioCache;
   }
@@ -140,6 +147,10 @@ export async function entrar(email, senha) {
       const perfil = await obter('usuarios', cred.user.uid);
       if (!perfil) {
         throw new ErroAuth('sem-perfil', 'Sua conta existe, mas não tem perfil cadastrado. Fale com a escola.');
+      }
+      if (perfil.ativo === false) {
+        await driverAtual().sair();
+        throw new ErroAuth('inativo', 'Esta conta está desativada. Fale com a escola.');
       }
       usuarioCache = semSegredos(perfil);
       emitirMudanca();

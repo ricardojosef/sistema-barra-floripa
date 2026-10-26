@@ -72,8 +72,9 @@ export const DEFAULTS = {
 
   professores: [
     { id: 'prof-laudinei', nome: 'Laudinei Neves', email: 'laudinei@barrafloripa.com.br', papel: 'admin', ordem: 1 },
-    { id: 'prof-igor', nome: 'Igor', email: 'igor@barrafloripa.com.br', papel: 'professor', ordem: 2 },
-    { id: 'prof-jorge', nome: 'Jorge', email: 'jorge@barrafloripa.com.br', papel: 'professor', ordem: 3 },
+    { id: 'prof-pedro', nome: 'Pedro', email: 'pedro@barrafloripa.com.br', papel: 'professor', ordem: 2 },
+    { id: 'prof-igor', nome: 'Igor', email: 'igor@barrafloripa.com.br', papel: 'professor', ordem: 3 },
+    { id: 'prof-gabrieli', nome: 'Gabrieli', email: 'gabrieli@barrafloripa.com.br', papel: 'professor', ordem: 4 },
   ],
 
   locais: [

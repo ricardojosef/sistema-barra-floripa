@@ -10,6 +10,7 @@ import { resumoAluno, creditosPorOrigem } from '../creditos.js';
 import { proximasAulasDoAluno, cancelar, ErroAgenda } from '../agenda.js';
 import { carregarContexto, obterPacotes, nomeProfessor, nomeLocal } from '../precos.js';
 import { mostrarAvisosPendentes } from '../avisos.js';
+import { executarTour, passosPainel, tutorialPendente, marcarTutorialConcluido } from '../tutorial.js';
 import {
   qs, el, formatarBRL, formatarDataExtenso, faixaHorario, MESES_CURTO,
   dataDeISO, primeiroNome, montarShellPainel, toast, confirmar, paramUrl, vazio,
@@ -227,6 +228,22 @@ async function iniciar() {
   if (paramUrl('agendado') === 'ok') {
     toast('Aula agendada com sucesso! 🏄', 'sucesso', 4000);
     history.replaceState(null, '', 'dashboard.html');
+  }
+
+  // Tutorial no primeiro acesso (ou quando o aluno pede para rever).
+  // Vem antes dos avisos para os dois não disputarem a tela.
+  const pedidoNoMenu = paramUrl('tutorial') === '1';
+  if (pedidoNoMenu || tutorialPendente(usuario)) {
+    if (pedidoNoMenu) history.replaceState(null, '', 'dashboard.html');
+
+    const resultado = await executarTour(passosPainel(usuario), { rotuloEtapa: 'Seu painel' });
+    // Pular também conta como visto: o aluno pode rever pelo menu.
+    await marcarTutorialConcluido(usuario);
+
+    if (resultado === 'agendar') {
+      location.href = 'agendar.html?tutorial=1';
+      return;
+    }
   }
 
   // Avisos do administrador, depois que a tela já está montada.

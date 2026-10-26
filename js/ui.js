@@ -466,6 +466,15 @@ export function montarShellPainel({ usuario, paginaAtual, aoSair, chipCreditos =
             </div>
           </div>`,
         botoes: [
+          // No celular a barra inferior não comporta o atalho do tutorial;
+          // por isso ele também fica aqui, no modal da conta.
+          ...(usuario.papel === 'aluno'
+            ? [{
+              texto: 'Como agendar',
+              classe: 'btn-claro',
+              onClick: () => { location.href = 'dashboard.html?tutorial=1'; },
+            }]
+            : []),
           { texto: 'Fechar', classe: 'btn-claro' },
           { texto: 'Sair', classe: 'btn-perigo', onClick: () => aoSair?.() },
         ],
@@ -481,6 +490,7 @@ export function montarShellPainel({ usuario, paginaAtual, aoSair, chipCreditos =
       { id: 'historico', href: 'historico.html', icone: '📋', texto: 'Histórico' },
       { separador: true },
       { id: 'planos', href: 'checkout.html', icone: '💳', texto: 'Planos e Preços' },
+      { id: 'tutorial', href: 'dashboard.html?tutorial=1', icone: '❓', texto: 'Como agendar' },
     ],
     professor: [
       { id: 'turmas', href: 'professor.html', icone: '🏄', texto: 'Minhas Turmas' },

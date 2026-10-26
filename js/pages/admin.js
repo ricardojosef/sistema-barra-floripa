@@ -8,7 +8,10 @@
 
 import { exigirAuth, sair } from '../auth.js';
 import { listar, criar, atualizar, remover, obter, reiniciarDados } from '../store.js';
-import { obterProfessores, obterPacotes, obterLocais, obterConfig } from '../precos.js';
+import { obterPacotes, obterLocais, obterConfig } from '../precos.js';
+import {
+  listarEquipe, adicionarProfessor, removerProfessor, aulasFuturasDoProfessor, ErroEquipe,
+} from '../equipe.js';
 import { listarAvisos, criarAviso, alternarAviso, removerAviso, contarLeituras, descreverJanela } from '../avisos.js';
 import {
   qs, qsa, el, formatarBRL, escapar, hojeISO, montarShellPainel,
@@ -46,24 +49,100 @@ async function montarEstatisticas() {
 
 async function montarProfessores() {
   const alvo = qs('#lista-professores');
-  const professores = await obterProfessores({ incluirInativos: true });
+  // Professores retirados não aparecem aqui; continuam só no histórico.
+  const professores = await listarEquipe();
 
   alvo.innerHTML = '';
+  if (!professores.length) {
+    alvo.append(vazio('Nenhum professor no quadro.', '🏄'));
+    return;
+  }
+
   for (const professor of professores) {
+    const acoes = el('div', { class: 'flex gap-12 itens-centro quebra' }, [
+      el('label', { class: 'checkbox-linha' }, [
+        el('input', { type: 'checkbox', checked: professor.ativo !== false, dataset: { campo: 'ativo' } }),
+        el('span', { text: 'Ativo' }),
+      ]),
+    ]);
+
+    if (professor.ehAdmin) {
+      acoes.append(el('span', { class: 'badge badge-laranja', text: 'Admin' }));
+    } else {
+      acoes.append(el('button', {
+        type: 'button',
+        class: 'btn btn-fantasma btn-peq texto-perigo',
+        text: 'Retirar',
+        onclick: () => retirarProfessor(professor),
+      }));
+    }
+
     alvo.append(el('div', { class: 'linha-editavel prof', dataset: { id: professor.id } }, [
       el('div', { class: 'campo' }, [
         el('label', { text: 'Nome do professor' }),
         el('input', { type: 'text', value: professor.nome, dataset: { campo: 'nome' } }),
+        professor.email ? el('span', { class: 'dica', text: professor.email }) : null,
       ]),
       el('div', { class: 'campo' }, [
         el('label', { text: 'Ordem na grade' }),
         el('input', { type: 'number', min: '1', value: String(professor.ordem ?? 1), dataset: { campo: 'ordem' } }),
       ]),
-      el('label', { class: 'checkbox-linha' }, [
-        el('input', { type: 'checkbox', checked: professor.ativo !== false, dataset: { campo: 'ativo' } }),
-        el('span', { text: 'Ativo' }),
-      ]),
+      acoes,
     ]));
+  }
+}
+
+async function adicionarProfessorUI(ev) {
+  ev.preventDefault();
+  const btn = qs('#btn-adicionar-professor');
+  const nome = qs('#novo-prof-nome').value;
+  const email = qs('#novo-prof-email').value;
+  const senha = qs('#novo-prof-senha').value;
+
+  const restaurar = botaoCarregando(btn, 'Cadastrando...');
+  try {
+    const professor = await adicionarProfessor({ nome, email, senha });
+    qs('#form-professor').reset();
+    toast(`${professor.nome} entrou no quadro de professores.`, 'sucesso', 4500);
+    await Promise.all([montarProfessores(), montarEstatisticas()]);
+  } catch (err) {
+    toast(err instanceof ErroEquipe ? err.message : 'Não foi possível adicionar o professor.', 'erro', 6000);
+    // Validação (e-mail repetido, senha curta) já virou mensagem na tela;
+    // no console só vale registrar o que for inesperado.
+    if (!(err instanceof ErroEquipe)) console.error('[admin] erro ao adicionar professor:', err);
+  } finally {
+    restaurar();
+  }
+}
+
+async function retirarProfessor(professor) {
+  // Mostra o impacto antes de confirmar: quantas aulas serão canceladas.
+  const futuras = await aulasFuturasDoProfessor(professor.id);
+  const impacto = futuras.length
+    ? `${futuras.length} ${futuras.length === 1 ? 'aula futura será cancelada' : 'aulas futuras serão canceladas'} e o crédito volta para cada aluno.`
+    : 'Ele não tem aulas futuras marcadas.';
+
+  const confirmou = await confirmar({
+    titulo: `Retirar ${professor.nome}?`,
+    mensagem: `${professor.nome} perde o acesso ao sistema e sai da grade de agendamento. ${impacto} O histórico de aulas já dadas é preservado.`,
+    textoOk: 'Retirar professor',
+    perigo: true,
+  });
+  if (!confirmou) return;
+
+  try {
+    const { aulasCanceladas } = await removerProfessor(professor.id);
+    toast(
+      aulasCanceladas
+        ? `${professor.nome} saiu do quadro. ${aulasCanceladas} aula(s) cancelada(s) com estorno.`
+        : `${professor.nome} saiu do quadro de professores.`,
+      'sucesso',
+      5000,
+    );
+    await Promise.all([montarProfessores(), montarEstatisticas()]);
+  } catch (err) {
+    toast(err instanceof ErroEquipe ? err.message : 'Não foi possível retirar o professor.', 'erro', 6000);
+    if (!(err instanceof ErroEquipe)) console.error('[admin] erro ao retirar professor:', err);
   }
 }
 
@@ -539,6 +618,7 @@ async function iniciar() {
   qs('#btn-salvar-precos').addEventListener('click', (ev) => salvarPrecos(ev.currentTarget));
   qs('#btn-salvar-locais').addEventListener('click', (ev) => salvarLocais(ev.currentTarget));
   qs('#btn-salvar-horarios').addEventListener('click', (ev) => salvarHorarios(ev.currentTarget));
+  qs('#form-professor').addEventListener('submit', adicionarProfessorUI);
   qs('#form-local').addEventListener('submit', adicionarLocal);
   qs('#form-aviso').addEventListener('submit', publicarAviso);
   qs('#btn-reiniciar').addEventListener('click', reiniciarDemo);

@@ -87,7 +87,8 @@ async function atualizarContasDemo() {
   }
 
   try {
-    const usuarios = await listar('usuarios');
+    // Contas desativadas (ex.: professor retirado) não entram mais.
+    const usuarios = (await listar('usuarios')).filter((u) => u.ativo !== false);
     const equipe = usuarios.filter((u) => u.papel === 'professor' || u.papel === 'admin');
     const alunos = usuarios.filter((u) => u.papel === 'aluno').slice(0, 2);
     const mostrar = perfilSelecionado === 'professor' ? equipe : alunos;
@@ -180,7 +181,7 @@ async function aoEnviarLogin(ev) {
   } catch (err) {
     restaurar();
     mostrarAlerta(err instanceof ErroAuth ? err.message : 'Não foi possível entrar. Tente novamente.');
-    console.error('[login] erro ao entrar:', err);
+    if (!(err instanceof ErroAuth)) console.error('[login] erro ao entrar:', err);
   }
 }
 
@@ -219,7 +220,7 @@ async function aoEnviarCadastro(ev) {
   } catch (err) {
     restaurar();
     mostrarAlerta(err instanceof ErroAuth ? err.message : 'Não foi possível criar a conta.');
-    console.error('[login] erro ao cadastrar:', err);
+    if (!(err instanceof ErroAuth)) console.error('[login] erro ao cadastrar:', err);
   }
 }
 
@@ -237,7 +238,7 @@ async function aoClicarGoogle() {
       entrarEredirecionar(usuario);
     } catch (err) {
       mostrarAlerta(err instanceof ErroAuth ? err.message : 'Não foi possível entrar com o Google.');
-      console.error('[login] erro no Google:', err);
+      if (!(err instanceof ErroAuth)) console.error('[login] erro no Google:', err);
     }
     return;
   }
@@ -291,7 +292,7 @@ async function aoClicarGoogle() {
     entrarEredirecionar(usuario);
   } catch (err) {
     mostrarAlerta(err instanceof ErroAuth ? err.message : 'Não foi possível entrar com o Google.');
-    console.error('[login] erro no Google simulado:', err);
+    if (!(err instanceof ErroAuth)) console.error('[login] erro no Google simulado:', err);
   }
 }
 

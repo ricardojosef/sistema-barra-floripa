@@ -27,8 +27,9 @@ no primeiro acesso.
 |---|---|
 | `aluno@teste.com` | Aluno (com créditos e aulas marcadas) |
 | `laudinei@barrafloripa.com.br` | Administrador |
+| `pedro@barrafloripa.com.br` | Professor |
 | `igor@barrafloripa.com.br` | Professor |
-| `jorge@barrafloripa.com.br` | Professor |
+| `gabrieli@barrafloripa.com.br` | Professor |
 
 A tela de login traz botões que preenchem essas contas automaticamente.
 
@@ -37,6 +38,8 @@ A tela de login traz botões que preenchem essas contas automaticamente.
 ## O que o sistema faz
 
 **Aluno**
+- Recebe um **tutorial guiado no primeiro acesso**, mostrando o painel e a
+  tela de agendamento passo a passo (dá para rever em "Como agendar")
 - Compra pacotes com PIX (QR Code + copia e cola), cartão, Mercado Pago ou PayPal
 - Agenda aulas em calendário que mostra as vagas de cada turma em tempo real
 - Cancela aulas e recebe o crédito de volta na hora
@@ -48,7 +51,8 @@ A tela de login traz botões que preenchem essas contas automaticamente.
 - Cancela a aula de um aluno ou a turma inteira, com motivo
 
 **Administrador** (Laudinei)
-- Tudo do professor, para os três professores
+- Tudo do professor, para todos os professores
+- **Adiciona e retira professores** do sistema — exclusivo do administrador
 - Edita nomes dos professores, preços, locais e grade de horários
 - Publica avisos que aparecem como pop-up no painel dos alunos
 
@@ -82,7 +86,8 @@ A tela de login traz botões que preenchem essas contas automaticamente.
 
 - **Máximo de 5 alunos** por professor em cada horário
 - Horários: **08:00, 10:00, 14:00, 16:00**, todos os dias — aulas de **1h30**
-- Três professores: **Laudinei Neves** (admin), **Igor** e **Jorge**
+- Professores: **Laudinei Neves** (admin), **Pedro**, **Igor** e **Gabrieli** —
+  o quadro é gerenciado pelo painel administrativo
 - Aluno cancela pelo site até **12h antes**; a equipe cancela a qualquer momento
 - Todo cancelamento **devolve o crédito**, mantendo a validade e as restrições
   do pacote de origem

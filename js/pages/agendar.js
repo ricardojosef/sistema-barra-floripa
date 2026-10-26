@@ -14,7 +14,9 @@ import { carregarContexto, nomeLocal } from '../precos.js';
 import {
   qs, el, isoDeData, hojeISO, dataDeISO, formatarDataExtenso, faixaHorario,
   MESES, SEMANA_CURTO, montarShellPainel, toast, botaoCarregando, abrirModal, escapar,
+  paramUrl,
 } from '../ui.js';
+import { executarTour, passosAgendamento, marcarTutorialConcluido } from '../tutorial.js';
 
 let usuario = null;
 let contexto = null;
@@ -410,6 +412,46 @@ async function iniciar() {
   const primeiroComVaga = Array.from(resumosDoMes.values())
     .find((r) => r.temVaga && r.data >= hojeISO());
   if (primeiroComVaga) await selecionarDia(primeiroComVaga.data);
+
+  // Parte 2 do tutorial: chega aqui a partir do painel.
+  if (paramUrl('tutorial') === '1') {
+    history.replaceState(null, '', 'agendar.html');
+    await rodarTutorialAgendamento();
+  }
+}
+
+/**
+ * Mostra o agendamento sobre a tela real. Para revelar o botão de
+ * confirmação, o tour seleciona um horário de exemplo — e desfaz isso no
+ * fim. Nada é agendado: a reserva só acontece no clique em "Confirmar".
+ */
+async function rodarTutorialAgendamento() {
+  let selecionouExemplo = false;
+
+  const limparSelecao = () => {
+    if (!selecionouExemplo) return;
+    selecionouExemplo = false;
+    slotSelecionado = null;
+    qs('#lista-slots').querySelectorAll('.slot.selecionado')
+      .forEach((s) => s.classList.remove('selecionado'));
+    qs('#area-confirmacao').classList.add('oculto');
+  };
+
+  const ganchos = {
+    selecionarHorarioExemplo: () => {
+      const livre = qs('#lista-slots .slot:not(.lotado)');
+      if (livre && !slotSelecionado) {
+        livre.click();
+        selecionouExemplo = true;
+      }
+    },
+    limparSelecao,
+  };
+
+  await executarTour(passosAgendamento(ganchos), { rotuloEtapa: 'Agendamento' });
+  // Se o aluno saiu no meio, a seleção de exemplo não pode ficar para trás.
+  limparSelecao();
+  await marcarTutorialConcluido(usuario);
 }
 
 iniciar();

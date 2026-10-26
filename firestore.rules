@@ -50,9 +50,13 @@ service cloud.firestore {
       allow read: if ehDono(usuarioId) || ehEquipe();
 
       // No cadastro o usuário cria o próprio documento, sempre como 'aluno'.
-      allow create: if ehDono(usuarioId)
-                    && request.resource.data.papel == 'aluno'
-                    && request.resource.data.ativo == true;
+      // O administrador também cria perfis — é assim que entra um professor
+      // novo (a conta nasce em js/equipe.js). Ele não pode criar outro admin.
+      allow create: if (ehDono(usuarioId)
+                        && request.resource.data.papel == 'aluno'
+                        && request.resource.data.ativo == true)
+                    || (ehAdmin()
+                        && request.resource.data.papel in ['aluno', 'professor']);
 
       // O aluno edita nome/telefone, mas não o próprio papel.
       allow update: if (ehDono(usuarioId) && naoMudouCamposCriticos()) || ehAdmin();

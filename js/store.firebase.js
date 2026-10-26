@@ -18,6 +18,7 @@ let db = null;
 let auth = null;
 let fs = null;   // módulo firestore
 let fa = null;   // módulo auth
+let fapp = null; // módulo app (usado para instâncias secundárias)
 
 /** Espera a primeira resposta do Firebase Auth sobre a sessão. */
 function aguardarAuthPronto() {
@@ -76,6 +77,7 @@ export function criarDriver() {
 
       fs = modFs;
       fa = modAuth;
+      fapp = modApp;
       app = modApp.initializeApp(CONFIG.firebaseConfig);
       db = fs.getFirestore(app);
       auth = fa.getAuth(app);
@@ -200,5 +202,28 @@ export function criarDriver() {
     entrarComGoogle: () => fa.signInWithPopup(auth, new fa.GoogleAuthProvider()),
 
     sair: () => fa.signOut(auth),
+
+    /**
+     * Cria uma conta de e-mail/senha SEM trocar o usuário logado.
+     *
+     * `createUserWithEmailAndPassword` sempre autentica a conta recém-criada
+     * na instância em que roda. Se usássemos a instância principal, o
+     * administrador seria deslogado no meio do cadastro. Por isso a conta
+     * nasce numa instância secundária e descartável do app.
+     *
+     * Devolve o UID da conta criada.
+     */
+    async criarContaSemTrocarSessao(email, senha) {
+      const nomeInstancia = `cadastro-equipe-${Date.now()}`;
+      const appSecundario = fapp.initializeApp(CONFIG.firebaseConfig, nomeInstancia);
+      try {
+        const authSecundario = fa.getAuth(appSecundario);
+        const cred = await fa.createUserWithEmailAndPassword(authSecundario, email, senha);
+        await fa.signOut(authSecundario);
+        return cred.user.uid;
+      } finally {
+        await fapp.deleteApp(appSecundario);
+      }
+    },
   };
 }
