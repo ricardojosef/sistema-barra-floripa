@@ -180,6 +180,12 @@ body:not([data-page='landing']) .btn-peq { font-size: 0.9rem; }
 
 .nav-inferior a .icone { width: 22px; height: 22px; }
 
+/* ---------- Largura ---------- */
+
+/* A coluna de conteúdo ocupa toda a largura da tela, com a foto do
+   cabeçalho indo até a borda. */
+.painel-conteudo { max-width: none; }
+
 /* ---------- Cabeçalho de cada tela: foto + onda ---------- */
 
 .painel-cabecalho {
