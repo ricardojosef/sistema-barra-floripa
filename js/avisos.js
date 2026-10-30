@@ -8,7 +8,7 @@
  */
 
 import { listar, criar, obter, atualizar, remover } from './store.js';
-import { abrirModal, escapar, formatarData } from './ui.js';
+import { abrirModal, escapar, formatarData, icone as svgIcone } from './ui.js';
 
 /** Id determinístico da confirmação de leitura. */
 const idLeitura = (alunoId, avisoId) => `${alunoId}_${avisoId}`;
@@ -50,7 +50,7 @@ export async function marcarComoLido(alunoId, avisoId) {
   });
 }
 
-const ICONES = { info: 'ℹ️', aviso: '⚠️', urgente: '🚨' };
+const ICONES = { info: 'info', aviso: 'alerta', urgente: 'urgente' };
 
 /**
  * Mostra os avisos pendentes, um de cada vez. Cada "Entendi" grava a leitura
@@ -65,7 +65,7 @@ export async function mostrarAvisosPendentes(alunoId) {
 
   for (let i = 0; i < pendentes.length; i += 1) {
     const aviso = pendentes[i];
-    const icone = ICONES[aviso.tipo] || ICONES.info;
+    const icone = svgIcone(ICONES[aviso.tipo] || ICONES.info);
     const contador = pendentes.length > 1
       ? `<p class="contador">Aviso ${i + 1} de ${pendentes.length}</p>`
       : '';

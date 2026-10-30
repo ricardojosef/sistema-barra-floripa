@@ -16,7 +16,7 @@ import { aplicarFiltros, aplicarOrdenacao } from './store.js';
 
 const PREFIXO = 'bf_';
 const CHAVE_VERSAO = `${PREFIXO}versao_seed`;
-const VERSAO_SEED = 6;
+const VERSAO_SEED = 7;
 
 const COLECOES = [
   'usuarios', 'professores', 'pacotes', 'compras', 'creditos',
@@ -338,7 +338,12 @@ async function semear() {
     {
       id: 'prof-laudinei', professorId: 'prof-laudinei',
       semana: semanaToda(DEFAULTS.horarios), locais: localTodaSemana('local-barra'),
-      bloqueios: [{ data: diaRelativo(4), horarios: [], motivo: 'Campeonato' }],
+      // Folga no dia +4 e só a turma da manhã, na Praia Mole, no dia +9.
+      dias: {
+        [diaRelativo(4)]: { horarios: [], localId: 'local-barra', motivo: 'Campeonato' },
+        [diaRelativo(9)]: { horarios: ['08:00'], localId: 'local-mole', motivo: '' },
+      },
+      bloqueios: [],
       criadoEm: agora(),
     },
   ];

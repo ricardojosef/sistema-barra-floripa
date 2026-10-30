@@ -285,6 +285,22 @@ Detalhes importantes:
 - No Firebase, a conta nova é criada numa instância separada do app, para o
   Laudinei **não ser deslogado** no meio do cadastro.
 
+### 3.8.1 Meu perfil
+
+Todo usuário (aluno, professor e administrador) tem a tela **Meu perfil**
+(menu lateral, ou tocando na foto no topo):
+
+- **Pode alterar:** telefone (com máscara e validação de DDD) e foto.
+- **Não pode alterar:** nome e e-mail. Eles identificam a conta no login,
+  nos recibos e nas listas de turma; para corrigir, o aluno fala com a
+  escola (o link já abre o WhatsApp com a mensagem pronta).
+- A foto é recortada em quadrado e reduzida no próprio navegador (320 px,
+  JPEG) e fica guardada no perfil — não precisa de Firebase Storage.
+- A foto aparece no topo, na lista de alunos da turma e na ficha que o
+  professor abre.
+- A trava também está nas regras do Firestore: mesmo editando o
+  JavaScript, o usuário só consegue mudar telefone e foto do próprio perfil.
+
 ### 3.9 Tutorial de primeiro acesso
 
 Todo aluno, no primeiro login, vê um tour guiado em duas partes:
@@ -541,6 +557,7 @@ firebaseConfig: {
 Essas regras garantem, no servidor, que:
 - um aluno só lê os próprios dados;
 - ninguém consegue se promover a administrador editando o JavaScript;
+- cada usuário só altera telefone e foto do próprio perfil;
 - só o administrador altera preços, professores e avisos.
 
 > 🔁 **Atualizou o sistema?** Sempre que o arquivo `firestore.rules` mudar,
@@ -843,13 +860,15 @@ Não na versão atual. Como cancelar devolve o crédito na hora, o efeito práti
 ```
 index.html · login.html · dashboard.html · agendar.html
 checkout.html · creditos.html · historico.html · mensagens.html
-professor.html · admin.html
+professor.html · admin.html · perfil.html
 
 css/
   base.css          variáveis de cor, tipografia, utilitários
   components.css    botões, cards, formulários, modais
   layout.css        cabeçalho, menus, rodapé, grades
   pages.css         estilos específicos de cada tela
+  tema.css          visual do sistema (fontes Barlow, cabeçalho com foto e
+                    onda, menu) — a página inicial não usa
 
 js/
   config.js         ⚙️ AQUI você configura tudo
@@ -865,6 +884,7 @@ js/
   precos.js         preços e configuração efetivos
   avisos.js         pop-ups para os alunos
   ui.js             utilitários de tela
+  icones.js         ícones de traço do sistema (sem emojis)
   pages/            um controlador por página
 
 firestore.rules     regras de segurança (colar no Console)

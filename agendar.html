@@ -3,15 +3,16 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Agendar Aula — Barra Floripa Surf School</title>
+  <title>Agendar aula — Barra Floripa Surf School</title>
   <link rel="icon" href="logomenor-barrafloripa.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/components.css">
   <link rel="stylesheet" href="css/layout.css">
   <link rel="stylesheet" href="css/pages.css">
+  <link rel="stylesheet" href="css/tema.css">
 </head>
 <body class="painel" data-page="agendar">
 
@@ -22,7 +23,7 @@
 
     <main class="painel-conteudo">
       <div class="painel-cabecalho">
-        <h1>Agendar Aula</h1>
+        <h1>Agendar aula</h1>
         <p>Escolha o dia e o horário. Cada aula dura 1h30 e consome 1 crédito.</p>
       </div>
 
@@ -72,8 +73,8 @@
 
           <!-- Mesmo controle do "Tipo de aula", à vista ao lado dos horários -->
           <div class="segmento mb-16" role="group" aria-label="Ver lotação de">
-            <button type="button" class="segmento-opcao ativo" data-tipo="grupo">👥 Em grupo</button>
-            <button type="button" class="segmento-opcao" data-tipo="individual">🧑 Particular</button>
+            <button type="button" class="segmento-opcao ativo" data-tipo="grupo"><span data-icone="grupo"></span>Em grupo</button>
+            <button type="button" class="segmento-opcao" data-tipo="individual"><span data-icone="perfil"></span>Particular</button>
           </div>
 
           <div id="lista-slots"></div>

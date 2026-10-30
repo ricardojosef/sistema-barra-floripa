@@ -13,7 +13,7 @@ import { mostrarAvisosPendentes } from '../avisos.js';
 import { executarTour, passosPainel, tutorialPendente, marcarTutorialConcluido } from '../tutorial.js';
 import {
   qs, el, formatarBRL, formatarDataExtenso, faixaHorario, MESES_CURTO,
-  dataDeISO, primeiroNome, montarShellPainel, toast, confirmar, paramUrl, vazio,
+  dataDeISO, primeiroNome, montarShellPainel, toast, confirmar, paramUrl, vazio, icone,
 } from '../ui.js';
 
 let usuario = null;
@@ -28,8 +28,8 @@ function itemAula(aula) {
   const professor = nomeProfessor(contexto.mapaProfessores, aula.professorId, aula.professorNome);
   const local = nomeLocal(contexto.mapaLocais, aula.localId);
   const titulo = aula.tipo === 'individual'
-    ? 'Aula Individual'
-    : `Aula em Grupo — ${professor}`;
+    ? 'Aula particular'
+    : `Aula em grupo — ${professor}`;
 
   const item = el('div', { class: 'item-aula' }, [
     el('div', { class: 'data-bloco' }, [
@@ -87,7 +87,7 @@ async function montarProximas() {
   if (!aulas.length) {
     alvo.append(vazio(
       'Você ainda não tem aulas agendadas.',
-      '🏄',
+      'prancha',
       { href: 'agendar.html', texto: 'Agendar agora' },
     ));
     return aulas;
@@ -104,7 +104,7 @@ async function montarCreditos(saldo) {
   if (saldo <= 0) {
     alvo.append(vazio(
       'Você não tem créditos disponíveis.',
-      '🎟️',
+      'creditos',
       { href: 'checkout.html', texto: 'Comprar pacote' },
     ));
     return;
@@ -173,7 +173,7 @@ function montarEstatisticas(resumo, proximaAula) {
   if (resumo.saldo === 0 && resumo.totalAgendadas === 0) {
     alerta.innerHTML = `
       <div class="alerta alerta-aviso">
-        <span>🎟️</span>
+        ${icone('creditos')}
         <span class="cresce">
           Você está sem créditos. Escolha um pacote para voltar a agendar.
         </span>
@@ -222,11 +222,11 @@ async function iniciar() {
 
   // Mensagens vindas de outras telas
   if (paramUrl('compra') === 'ok') {
-    toast('Pagamento confirmado! Seus créditos já estão disponíveis. 🎉', 'sucesso', 5000);
+    toast('Pagamento confirmado! Seus créditos já estão disponíveis.', 'sucesso', 5000);
     history.replaceState(null, '', 'dashboard.html');
   }
   if (paramUrl('agendado') === 'ok') {
-    toast('Aula agendada com sucesso! 🏄', 'sucesso', 4000);
+    toast('Aula agendada. Até a praia!', 'sucesso', 4000);
     history.replaceState(null, '', 'dashboard.html');
   }
 

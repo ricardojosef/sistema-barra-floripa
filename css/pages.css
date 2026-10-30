@@ -1278,25 +1278,120 @@ body[data-page='login'] { background: var(--creme); }
 
 .tabela-semana select { min-width: 150px; }
 
-#bloqueio-horarios { gap: 6px 14px; padding-top: 10px; }
+/* Calendário de disponibilidade do professor */
+.calendario-prof .dia-cel { position: relative; }
 
-#bloqueio-horarios .checkbox-linha {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  margin: 0;
+.calendario-prof .cal-qtd {
+  font-family: var(--fonte-texto);
+  font-size: 0.62rem;
+  font-weight: 500;
+  color: var(--verde);
 }
 
-.linha-bloqueio {
+.calendario-prof .dia-cel.cal-ajustado { border-color: var(--laranja-borda); background: var(--laranja-suave); }
+.calendario-prof .dia-cel.cal-ajustado .cal-qtd { color: var(--laranja-escuro); }
+
+.calendario-prof .dia-cel.cal-folga { background: var(--cinza-100); color: var(--cinza-500); }
+.calendario-prof .dia-cel.cal-folga .cal-qtd { color: var(--cinza-500); }
+
+.calendario-prof .dia-cel.selecionado,
+.calendario-prof .dia-cel.selecionado .cal-qtd { color: var(--branco); }
+.calendario-prof .dia-cel.selecionado { background: var(--laranja); border-color: var(--laranja); }
+
+/* Quantos alunos já estão marcados naquele dia */
+.calendario-prof .cal-aulas {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: var(--preto);
+  color: var(--branco);
+  font-family: var(--fonte-texto);
+  font-size: 0.6rem;
+  line-height: 16px;
+  text-align: center;
+}
+
+.chip-estado {
+  display: inline-block;
+  margin-bottom: 16px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  background: var(--verde-suave);
+  color: var(--verde);
+  font-size: 0.78rem;
+  font-weight: 500;
+}
+
+.chip-estado.ajustado { background: var(--laranja-suave); color: var(--laranja-escuro); }
+
+.rotulo-editor {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--cinza-900);
+}
+
+.horarios-dia {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(76px, 1fr));
+  gap: 8px;
+}
+
+.chip-horario {
+  padding: 10px 6px;
+  border: 1px solid var(--cinza-200);
+  border-radius: var(--raio);
+  background: var(--branco);
+  font: inherit;
+  font-weight: 600;
+  color: var(--cinza-500);
+  cursor: pointer;
+  transition: all var(--transicao);
+}
+
+.chip-horario:hover { border-color: var(--laranja); }
+
+.chip-horario.ativo {
+  background: var(--laranja);
+  border-color: var(--laranja);
+  color: var(--branco);
+}
+
+.aulas-do-dia li {
+  padding: 6px 0;
+  border-bottom: 1px solid var(--cinza-100);
+  font-size: 0.85rem;
+}
+
+.aulas-do-dia li:last-child { border-bottom: none; }
+.aulas-do-dia li.fora { color: #7a5c00; }
+
+/* Barra de salvar: fica presa ao rodapé enquanto se edita */
+.barra-salvar {
+  position: sticky;
+  bottom: 12px;
+  z-index: 5;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
-  padding: 10px 0;
-  border-bottom: 1px solid var(--cinza-100);
+  gap: 12px;
+  padding: 12px 16px;
+  border: 1px solid var(--cinza-200);
+  border-radius: var(--raio-g);
+  background: var(--branco);
+  box-shadow: var(--sombra-m);
 }
 
-.linha-bloqueio strong { text-transform: capitalize; }
+@media (max-width: 899px) {
+  /* No celular a barra inferior de navegação ocupa o rodapé */
+  .barra-salvar { bottom: 76px; }
+}
 
 /* Mensagens enviadas (professor) e recebidas (aluno) */
 .mensagem-enviada,

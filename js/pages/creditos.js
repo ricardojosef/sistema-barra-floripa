@@ -8,16 +8,16 @@ import { listar } from '../store.js';
 import { nomeMetodo } from '../pagamentos.js';
 import {
   qs, el, formatarBRL, formatarData, tempoRelativo,
-  montarShellPainel, toast, vazio,
+  montarShellPainel, toast, vazio, iconeEl,
 } from '../ui.js';
 
 let usuario = null;
 
 const ICONES_MOTIVO = {
-  compra: '💳',
-  agendamento: '📅',
-  cancelamento: '↩️',
-  ajuste: '⚙️',
+  compra: 'planos',
+  agendamento: 'agenda',
+  cancelamento: 'estorno',
+  ajuste: 'ajustes',
 };
 
 async function montarExtrato() {
@@ -26,7 +26,7 @@ async function montarExtrato() {
 
   alvo.innerHTML = '';
   if (!lancamentos.length) {
-    alvo.append(vazio('Nenhuma movimentação ainda.', '📋', { href: 'checkout.html', texto: 'Comprar pacote' }));
+    alvo.append(vazio('Nenhuma movimentação ainda.', 'lista', { href: 'checkout.html', texto: 'Comprar pacote' }));
     return;
   }
 
@@ -46,7 +46,7 @@ async function montarExtrato() {
           text: `${formatarData(String(lancamento.criadoEm).slice(0, 10))} · ${tempoRelativo(lancamento.criadoEm)}`,
         }),
       ]),
-      el('span', { class: 'texto-peq', text: ICONES_MOTIVO[lancamento.motivo] || '•' }),
+      el('span', { class: 'texto-cinza' }, [iconeEl(ICONES_MOTIVO[lancamento.motivo] || 'lista')]),
     ]));
   }
 }
@@ -56,7 +56,7 @@ async function montarPorOrigem(saldo) {
   alvo.innerHTML = '';
 
   if (saldo <= 0) {
-    alvo.append(vazio('Sem créditos disponíveis.', '🎟️', { href: 'checkout.html', texto: 'Comprar pacote' }));
+    alvo.append(vazio('Sem créditos disponíveis.', 'creditos', { href: 'checkout.html', texto: 'Comprar pacote' }));
     return;
   }
 
@@ -85,7 +85,7 @@ async function montarCompras() {
   const pagas = compras.filter((c) => c.status !== 'cancelado');
 
   if (!pagas.length) {
-    alvo.append(vazio('Nenhuma compra registrada.', '🧾'));
+    alvo.append(vazio('Nenhuma compra registrada.', 'recibo'));
     return;
   }
 

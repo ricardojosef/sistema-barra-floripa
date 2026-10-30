@@ -16,7 +16,7 @@ import { listarAvisos, criarAviso, alternarAviso, removerAviso, contarLeituras, 
 import { recalcularVagas } from '../agenda.js';
 import {
   qs, qsa, el, formatarBRL, escapar, hojeISO, montarShellPainel,
-  toast, confirmar, botaoCarregando, vazio,
+  toast, confirmar, botaoCarregando, vazio, iconeEl,
 } from '../ui.js';
 
 let usuario = null;
@@ -55,7 +55,7 @@ async function montarProfessores() {
 
   alvo.innerHTML = '';
   if (!professores.length) {
-    alvo.append(vazio('Nenhum professor no quadro.', '🏄'));
+    alvo.append(vazio('Nenhum professor no quadro.', 'prancha'));
     return;
   }
 
@@ -385,7 +385,7 @@ async function salvarLocais(btn) {
    Avisos
    -------------------------------------------------------------------------- */
 
-const ICONES_AVISO = { info: 'ℹ️', aviso: '⚠️', urgente: '🚨' };
+const ICONES_AVISO = { info: 'info', aviso: 'alerta', urgente: 'urgente' };
 
 async function montarAvisos() {
   const alvo = qs('#lista-avisos');
@@ -393,7 +393,7 @@ async function montarAvisos() {
 
   alvo.innerHTML = '';
   if (!avisos.length) {
-    alvo.append(vazio('Nenhum aviso publicado ainda.', '📢'));
+    alvo.append(vazio('Nenhum aviso publicado ainda.', 'megafone'));
     return;
   }
 
@@ -402,7 +402,7 @@ async function montarAvisos() {
 
     const card = el('div', { class: 'card mb-16', style: 'box-shadow:none' }, [
       el('div', { class: 'flex entre itens-centro gap-8 mb-8' }, [
-        el('h4', { text: `${ICONES_AVISO[aviso.tipo] || 'ℹ️'} ${aviso.titulo}` }),
+        el('h4', { class: `com-icone aviso-${aviso.tipo}` }, [iconeEl(ICONES_AVISO[aviso.tipo] || 'info'), aviso.titulo]),
         el('span', {
           class: `badge ${aviso.vigente ? 'badge-sucesso' : 'badge-neutro'}`,
           text: aviso.vigente ? 'No ar' : 'Inativo',

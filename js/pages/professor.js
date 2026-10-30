@@ -19,12 +19,13 @@ import { obter, listar } from '../store.js';
 import { saldoCreditos } from '../creditos.js';
 import {
   obterDisponibilidade, salvarDisponibilidade, aulasForaDaDisponibilidade, ErroDisponibilidade,
+  horariosNoDia, bloqueiosComoDias,
 } from '../disponibilidade.js';
 import { enviarMensagem, enviosDaEquipe, ErroMensagem } from '../mensagens.js';
 import {
-  qs, qsa, el, isoDeData, hojeISO, formatarData, formatarDataExtenso, faixaHorario, iniciais,
+  qs, qsa, el, isoDeData, dataDeISO, hojeISO, MESES, formatarData, formatarDataExtenso, faixaHorario, iniciais,
   SEMANA, SEMANA_CURTO, montarShellPainel, toast, abrirModal, confirmar, escapar, vazio,
-  botaoCarregando, tempoRelativo, marcarItemMenu,
+  botaoCarregando, tempoRelativo, marcarItemMenu, iconeEl, avatarEl,
 } from '../ui.js';
 
 let usuario = null;
@@ -33,6 +34,7 @@ let diaAtual = hojeISO();
 let professorFiltro = null;      // admin: professor escolhido no filtro
 let abaAtual = 'turmas';
 let rascunhoDisp = null;         // disponibilidade em edição
+const fotosAlunos = new Map();   // alunoId -> fotoUrl (ou null)
 
 const ehAdmin = () => usuario.papel === 'admin';
 
@@ -70,6 +72,12 @@ async function trocarAba(nome) {
     professorFiltro = meuProfessorId();
     qs('#filtro-professor').value = professorFiltro || '';
   }
+
+  const subtitulos = {
+    disponibilidade: 'Quando e onde você atende — os alunos só agendam no que estiver marcado.',
+    mensagens: 'Recados enviados aos alunos e quantos já leram.',
+  };
+  if (subtitulos[nome]) qs('#subtitulo-painel').textContent = subtitulos[nome];
 
   if (nome === 'turmas') await carregarTurmas();
   if (nome === 'disponibilidade') await carregarDisponibilidade();
@@ -120,7 +128,7 @@ function cartaoTurma(slot) {
     : slot.ocupados === 0
       ? el('span', { class: 'badge badge-neutro', text: 'Sem alunos' })
       : slot.cheio
-        ? el('span', { class: 'badge badge-perigo', text: `LOTADA ${slot.ocupados}/${slot.capacidade}` })
+        ? el('span', { class: 'badge badge-perigo', text: `Lotada ${slot.ocupados}/${slot.capacidade}` })
         : el('span', {
           class: `badge ${ocupacao >= 0.8 ? 'badge-aviso' : 'badge-sucesso'}`,
           text: `${slot.ocupados}/${slot.capacidade}`,
@@ -142,7 +150,7 @@ function cartaoTurma(slot) {
   if (slot.foraDaDisponibilidade) {
     card.append(el('div', {
       class: 'aviso-fora',
-      text: '⚠️ Fora da sua disponibilidade — aula marcada antes da mudança.',
+      text: 'Fora da sua disponibilidade — aula marcada antes da mudança.',
     }));
   }
 
@@ -156,7 +164,7 @@ function cartaoTurma(slot) {
           title: `Ver dados de ${aula.alunoNome}`,
           onclick: () => abrirFichaAluno(aula),
         }, [
-          el('span', { class: 'avatar', text: iniciais(aula.alunoNome) }),
+          avatarEl({ nome: aula.alunoNome, fotoUrl: fotosAlunos.get(aula.alunoId) }),
           el('span', { class: 'cresce' }, [
             el('span', { class: 'aluno-nome', text: aula.alunoNome }),
             aula.tipo === 'individual' ? el('span', { class: 'badge badge-info texto-min', text: 'Particular' }) : null,
@@ -177,12 +185,12 @@ function cartaoTurma(slot) {
   }
 
   const acoes = el('div', { class: 'turma-acoes' }, [
-    el('span', { class: 'texto-min texto-cinza', text: `📍 ${nomeLocal(contexto.mapaLocais, slot.localId)}` }),
+    el('span', { class: 'texto-min texto-cinza com-icone' }, [iconeEl('local'), nomeLocal(contexto.mapaLocais, slot.localId)]),
   ]);
   if (slot.alunos.length) {
     acoes.append(
       el('button', {
-        class: 'btn btn-claro btn-peq', type: 'button', text: '💬 Mensagem para a turma',
+        class: 'btn btn-claro btn-peq', type: 'button', text: 'Mensagem para a turma',
         onclick: () => escreverMensagem({
           destinatarios: slot.alunos.map((a) => ({ id: a.alunoId, nome: a.alunoNome })),
           turma: slot,
@@ -199,6 +207,18 @@ function cartaoTurma(slot) {
   return card;
 }
 
+/** Busca a foto dos alunos que ainda não estão no cache. Falha sem travar. */
+async function carregarFotos(ids) {
+  const faltam = [...new Set(ids)].filter((id) => !fotosAlunos.has(id));
+  await Promise.all(faltam.map(async (id) => {
+    try {
+      fotosAlunos.set(id, (await obter('usuarios', id))?.fotoUrl || null);
+    } catch {
+      fotosAlunos.set(id, null);
+    }
+  }));
+}
+
 async function carregarTurmas() {
   const alvo = qs('#grade-turmas');
   alvo.innerHTML = '<div class="vazio" style="grid-column:1/-1"><span class="spinner escuro"></span></div>';
@@ -209,6 +229,7 @@ async function carregarTurmas() {
   try {
     const filtro = ehAdmin() ? professorFiltro : meuProfessorId();
     const slots = await turmasDoDia(diaAtual, filtro);
+    await carregarFotos(slots.flatMap((s) => s.alunos.map((a) => a.alunoId)));
 
     const comAlunos = slots.filter((s) => s.ocupados > 0);
     qs('#stat-alunos').textContent = String(comAlunos.reduce((t, s) => t + s.ocupados, 0));
@@ -220,7 +241,7 @@ async function carregarTurmas() {
 
     alvo.innerHTML = '';
     if (!slots.length) {
-      alvo.append(vazio('Sem horários neste dia. Confira a aba Disponibilidade.', '📅'));
+      alvo.append(vazio('Sem horários neste dia. Confira a aba Disponibilidade.', 'agenda'));
       return;
     }
 
@@ -232,7 +253,7 @@ async function carregarTurmas() {
   } catch (err) {
     console.error('[professor] falha ao carregar turmas:', err);
     alvo.innerHTML = '';
-    alvo.append(vazio('Não foi possível carregar as turmas. Recarregue a página.', '⚠️'));
+    alvo.append(vazio('Não foi possível carregar as turmas. Recarregue a página.', 'alerta'));
   }
 }
 
@@ -273,7 +294,7 @@ async function abrirFichaAluno(aula) {
     corpo.innerHTML = '';
     corpo.append(
       el('div', { class: 'ficha-topo' }, [
-        el('span', { class: 'avatar avatar-g', text: iniciais(nome) }),
+        avatarEl({ nome, fotoUrl: aluno?.fotoUrl }, 'avatar-g'),
         el('div', {}, [
           el('div', { class: 'negrito', text: nome }),
           el('div', {
@@ -285,11 +306,11 @@ async function abrirFichaAluno(aula) {
 
       el('h4', { class: 'ficha-secao', text: 'Contato' }),
       el('div', { class: 'ficha-contatos' }, [
-        linhaContato('✉️', 'E-mail', email, email ? `mailto:${email}` : null),
-        linhaContato('📞', 'Telefone', telefone, telefone ? `tel:${String(telefone).replace(/[^\d+]/g, '')}` : null),
+        linhaContato('email', 'E-mail', email, email ? `mailto:${email}` : null),
+        linhaContato('telefone', 'Telefone', telefone, telefone ? `tel:${String(telefone).replace(/[^\d+]/g, '')}` : null),
         zap ? el('a', {
           class: 'btn btn-secundario btn-peq', href: `https://wa.me/${zap}`, target: '_blank', rel: 'noopener',
-          text: '🟢 Abrir no WhatsApp',
+          text: 'Abrir no WhatsApp',
         }) : null,
       ]),
 
@@ -309,7 +330,7 @@ async function abrirFichaAluno(aula) {
 
     corpo.append(el('div', { class: 'ficha-rodape' }, [
       el('button', {
-        type: 'button', class: 'btn btn-primario btn-peq', text: '💬 Enviar mensagem',
+        type: 'button', class: 'btn btn-primario btn-peq', text: 'Enviar mensagem',
         onclick: () => {
           fechar();
           escreverMensagem({
@@ -323,13 +344,13 @@ async function abrirFichaAluno(aula) {
   } catch (err) {
     console.error('[professor] falha ao carregar dados do aluno:', err);
     corpo.innerHTML = '';
-    corpo.append(vazio('Não foi possível carregar os dados deste aluno.', '⚠️'));
+    corpo.append(vazio('Não foi possível carregar os dados deste aluno.', 'alerta'));
   }
 }
 
 function linhaContato(icone, rotulo, valor, href) {
   return el('div', { class: 'linha-contato' }, [
-    el('span', { class: 'texto-min texto-cinza', text: `${icone} ${rotulo}` }),
+    el('span', { class: 'texto-min texto-cinza com-icone' }, [iconeEl(icone), rotulo]),
     valor
       ? (href ? el('a', { href, text: valor }) : el('span', { text: valor }))
       : el('span', { class: 'texto-cinza', text: 'não informado' }),
@@ -398,7 +419,7 @@ async function carregarEnviadas() {
     const envios = await enviosDaEquipe(usuario.id);
     alvo.innerHTML = '';
     if (!envios.length) {
-      alvo.append(vazio('Você ainda não enviou mensagens.', '💬'));
+      alvo.append(vazio('Você ainda não enviou mensagens.', 'mensagens'));
       return;
     }
     for (const e of envios) {
@@ -421,7 +442,7 @@ async function carregarEnviadas() {
   } catch (err) {
     console.error('[professor] falha ao carregar mensagens enviadas:', err);
     alvo.innerHTML = '';
-    alvo.append(vazio('Não foi possível carregar as mensagens.', '⚠️'));
+    alvo.append(vazio('Não foi possível carregar as mensagens.', 'alerta'));
   }
 }
 
@@ -544,37 +565,256 @@ async function cancelarTurmaInteira(slot) {
    ABA DISPONIBILIDADE
    ========================================================================== */
 
+let mesDisp = null;              // 1º dia do mês mostrado no calendário
+let diaDisp = null;              // data aberta no editor do dia
+let aulasDoProfessor = [];       // aulas futuras confirmadas (para avisos)
+let rascunhoAlterado = false;
+
+const capitalizar = (t) => t.charAt(0).toUpperCase() + t.slice(1);
+const diaDaSemanaDe = (iso) => String(dataDeISO(iso).getDay());
+
 async function carregarDisponibilidade() {
   const professorId = professorEmFoco();
   const grade = qs('#grade-semana');
 
   if (!professorId) {
     grade.innerHTML = '';
-    grade.append(vazio('Escolha um professor no filtro acima para editar a disponibilidade.', '👆'));
+    grade.append(vazio('Escolha um professor no filtro acima para editar a disponibilidade.', 'filtro'));
     return;
   }
 
-  qs('#titulo-disponibilidade').textContent = professorId === meuProfessorId()
-    ? 'Minha semana'
-    : `Semana do Prof. ${nomeDoProfessor(professorId)}`;
+  // Só precisa dizer de quem é quando o admin está editando outro professor.
+  const titulo = qs('#titulo-disponibilidade');
+  titulo.textContent = professorId === meuProfessorId() ? '' : `Editando a disponibilidade do Prof. ${nomeDoProfessor(professorId)}.`;
+  titulo.classList.toggle('oculto', professorId === meuProfessorId());
 
   grade.innerHTML = '<div class="vazio"><span class="spinner escuro"></span></div>';
   try {
-    const disp = await obterDisponibilidade(professorId, contexto.config);
+    const [disp, aulas] = await Promise.all([
+      obterDisponibilidade(professorId, contexto.config),
+      listar('agendamentos', { professorId, status: 'confirmado' }),
+    ]);
+    const hoje = hojeISO();
+    aulasDoProfessor = aulas.filter((a) => a.data >= hoje);
     rascunhoDisp = {
       professorId,
       semana: structuredClone(disp.semana),
       locais: { ...disp.locais },
-      bloqueios: disp.bloqueios.map((b) => ({ ...b, horarios: [...(b.horarios || [])] })),
+      // Folgas no formato antigo viram ajustes de dia: um formato só na tela.
+      dias: bloqueiosComoDias(disp, contexto.config),
+      bloqueios: [],
     };
+    if (!mesDisp) {
+      const agora = new Date();
+      mesDisp = new Date(agora.getFullYear(), agora.getMonth(), 1);
+    }
+    marcarAlterado(false);
     montarGradeSemana();
-    montarBloqueios();
+    montarCalendarioDisp();
+    montarEditorDia();
   } catch (err) {
     console.error('[professor] falha ao carregar disponibilidade:', err);
     grade.innerHTML = '';
-    grade.append(vazio('Não foi possível carregar a disponibilidade.', '⚠️'));
+    grade.append(vazio('Não foi possível carregar a disponibilidade.', 'alerta'));
   }
 }
+
+function marcarAlterado(alterado = true) {
+  rascunhoAlterado = alterado;
+  const status = qs('#status-rascunho');
+  status.textContent = alterado ? 'Alterações ainda não salvas.' : 'Tudo salvo.';
+  status.classList.toggle('texto-laranja', alterado);
+}
+
+/** Algo mudou no rascunho: redesenha o que depende dele. */
+function aposMudanca() {
+  marcarAlterado();
+  montarCalendarioDisp();
+  montarEditorDia();
+}
+
+/* --- Calendário do mês ------------------------------------------------ */
+
+function montarCalendarioDisp() {
+  const ano = mesDisp.getFullYear();
+  const mes = mesDisp.getMonth();
+  const primeiro = new Date(ano, mes, 1);
+  const ultimo = new Date(ano, mes + 1, 0);
+  const hoje = hojeISO();
+  const agora = new Date();
+
+  qs('#disp-mes-atual').textContent = capitalizar(`${MESES[mes]} de ${ano}`);
+  qs('#disp-mes-anterior').disabled = ano === agora.getFullYear() && mes === agora.getMonth();
+
+  const grade = qs('#disp-calendario');
+  grade.innerHTML = '';
+  SEMANA_CURTO.forEach((d) => grade.append(el('div', { class: 'cab-dia', text: d })));
+  for (let i = 0; i < primeiro.getDay(); i += 1) grade.append(el('div', { class: 'dia-cel vazio' }));
+
+  for (let dia = 1; dia <= ultimo.getDate(); dia += 1) {
+    const iso = isoDeData(new Date(ano, mes, dia));
+    const passou = iso < hoje;
+    const efetivos = horariosNoDia(rascunhoDisp, iso, contexto.config);
+    const ajustado = Boolean(rascunhoDisp.dias[iso]);
+    const folga = efetivos.length === 0;
+    const aulas = aulasDoProfessor.filter((a) => a.data === iso).length;
+
+    const titulo = folga
+      ? `Folga${rascunhoDisp.dias[iso]?.motivo ? ` — ${rascunhoDisp.dias[iso].motivo}` : ''}`
+      : `${efetivos.map((s) => s.horario).join(' · ')} — ${nomeLocal(contexto.mapaLocais, efetivos[0].localId)}`;
+
+    const cel = el('button', {
+      type: 'button',
+      class: [
+        'dia-cel',
+        passou ? 'indisponivel' : 'disponivel',
+        iso === hoje ? 'hoje' : '',
+        iso === diaDisp ? 'selecionado' : '',
+        !passou && folga ? 'cal-folga' : '',
+        !passou && ajustado && !folga ? 'cal-ajustado' : '',
+      ].filter(Boolean).join(' '),
+      disabled: passou,
+      title: passou ? '' : `${titulo}${aulas ? ` · ${aulas} aluno(s) marcado(s)` : ''}`,
+      'aria-label': `${dia} de ${MESES[mes]}: ${passou ? 'passou' : titulo}`,
+      dataset: { data: iso },
+      onclick: passou ? null : () => { diaDisp = iso; montarCalendarioDisp(); montarEditorDia(); },
+    }, [
+      el('span', { text: String(dia) }),
+      passou ? null : el('span', { class: 'cal-qtd', text: folga ? 'folga' : `${efetivos.length}h` }),
+      !passou && aulas ? el('span', { class: 'cal-aulas', title: `${aulas} aluno(s) marcado(s)`, text: String(aulas) }) : null,
+    ]);
+    grade.append(cel);
+  }
+}
+
+function trocarMesDisp(delta) {
+  mesDisp = new Date(mesDisp.getFullYear(), mesDisp.getMonth() + delta, 1);
+  montarCalendarioDisp();
+}
+
+/* --- Editor do dia ---------------------------------------------------- */
+
+/** Garante um ajuste para a data, partindo do que vale hoje nela. */
+function ajusteDoDia(iso) {
+  if (!rascunhoDisp.dias[iso]) {
+    const efetivos = horariosNoDia(rascunhoDisp, iso, contexto.config);
+    rascunhoDisp.dias[iso] = {
+      horarios: efetivos.map((s) => s.horario),
+      localId: rascunhoDisp.locais[diaDaSemanaDe(iso)],
+      motivo: '',
+    };
+  }
+  return rascunhoDisp.dias[iso];
+}
+
+function montarEditorDia() {
+  const corpo = qs('#editor-dia-corpo');
+  corpo.innerHTML = '';
+  if (!diaDisp) {
+    qs('#editor-dia-titulo').textContent = 'Escolha um dia';
+    corpo.append(el('p', {
+      class: 'texto-peq texto-cinza',
+      text: 'Selecione uma data no calendário para ver e mudar os horários dela.',
+    }));
+    return;
+  }
+
+  const iso = diaDisp;
+  const { horarios } = contexto.config;
+  const ajuste = rascunhoDisp.dias[iso];
+  const efetivos = horariosNoDia(rascunhoDisp, iso, contexto.config);
+  const ativos = new Set(efetivos.map((s) => s.horario));
+  const nomeDia = SEMANA[Number(diaDaSemanaDe(iso))];
+  const localAtual = ajuste?.localId || rascunhoDisp.locais[diaDaSemanaDe(iso)];
+  const aulasNoDia = aulasDoProfessor.filter((a) => a.data === iso);
+
+  qs('#editor-dia-titulo').textContent = capitalizar(formatarDataExtenso(iso, true));
+
+  corpo.append(el('p', {
+    class: `chip-estado ${ajuste ? 'ajustado' : ''}`,
+    text: ajuste
+      ? 'Ajustado só para esta data'
+      : `Seguindo a semana padrão de ${nomeDia}`,
+  }));
+
+  // Horários: um botão por horário da escola, liga/desliga.
+  corpo.append(el('label', { class: 'rotulo-editor', text: 'Horários em que você atende' }));
+  const linha = el('div', { class: 'horarios-dia' });
+  for (const h of horarios) {
+    const ligado = ativos.has(h);
+    linha.append(el('button', {
+      type: 'button',
+      class: `chip-horario ${ligado ? 'ativo' : ''}`,
+      'aria-pressed': String(ligado),
+      text: h,
+      onclick: () => {
+        const a = ajusteDoDia(iso);
+        const lista = new Set(a.horarios);
+        if (lista.has(h)) lista.delete(h); else lista.add(h);
+        a.horarios = horarios.filter((x) => lista.has(x));
+        aposMudanca();
+      },
+    }));
+  }
+  corpo.append(linha);
+
+  const select = el('select', {
+    id: 'editor-dia-local',
+    onchange: (ev) => { ajusteDoDia(iso).localId = ev.target.value; aposMudanca(); },
+  });
+  for (const local of contexto.locais) {
+    select.append(el('option', { value: local.id, text: local.nome, selected: local.id === localAtual }));
+  }
+  corpo.append(el('div', { class: 'campo mt-16' }, [
+    el('label', { for: 'editor-dia-local', text: 'Local' }), select,
+  ]));
+
+  const motivo = el('input', {
+    id: 'editor-dia-motivo',
+    type: 'text',
+    maxlength: '120',
+    placeholder: 'Ex.: campeonato, viagem',
+    value: ajuste?.motivo || '',
+    onchange: (ev) => { ajusteDoDia(iso).motivo = ev.target.value; aposMudanca(); },
+  });
+  corpo.append(el('div', { class: 'campo' }, [
+    el('label', { for: 'editor-dia-motivo', text: 'Observação (opcional)' }), motivo,
+  ]));
+
+  const acoes = el('div', { class: 'flex quebra gap-8' }, [
+    el('button', {
+      type: 'button', class: 'btn btn-claro btn-peq', text: 'Folga neste dia',
+      onclick: () => { ajusteDoDia(iso).horarios = []; aposMudanca(); },
+    }),
+    el('button', {
+      type: 'button', class: 'btn btn-claro btn-peq', text: 'Todos os horários',
+      onclick: () => { ajusteDoDia(iso).horarios = [...horarios]; aposMudanca(); },
+    }),
+    ajuste ? el('button', {
+      type: 'button', class: 'btn btn-fantasma btn-peq', text: 'Voltar à semana padrão',
+      onclick: () => { delete rascunhoDisp.dias[iso]; aposMudanca(); },
+    }) : null,
+  ]);
+  corpo.append(acoes);
+
+  // Aulas já marcadas nesta data — e se alguma ficou fora do que foi marcado.
+  if (aulasNoDia.length) {
+    const porHorario = new Map();
+    aulasNoDia.forEach((a) => porHorario.set(a.horario, (porHorario.get(a.horario) || 0) + 1));
+    const lista = el('ul', { class: 'aulas-do-dia' });
+    for (const [h, qtd] of [...porHorario].sort()) {
+      const fora = !ativos.has(h);
+      lista.append(el('li', { class: fora ? 'fora' : '' }, [
+        el('strong', { text: h }),
+        el('span', { text: ` · ${qtd} ${qtd === 1 ? 'aluno marcado' : 'alunos marcados'}` }),
+        fora ? el('span', { class: 'texto-min', text: ' — fora dos horários marcados; a aula continua valendo' }) : null,
+      ]));
+    }
+    corpo.append(el('label', { class: 'rotulo-editor mt-16', text: 'Aulas já marcadas' }), lista);
+  }
+}
+
+/* --- Semana padrão ---------------------------------------------------- */
 
 /** Tabela dia da semana × horário, com o local de cada dia. */
 function montarGradeSemana() {
@@ -602,6 +842,7 @@ function montarGradeSemana() {
           const lista = new Set(rascunhoDisp.semana[dia]);
           if (ev.target.checked) lista.add(horario); else lista.delete(horario);
           rascunhoDisp.semana[dia] = horarios.filter((h) => lista.has(h));
+          aposMudanca();
         },
       });
       linha.append(el('td', { class: 'texto-centro' }, [caixa]));
@@ -609,7 +850,7 @@ function montarGradeSemana() {
 
     const select = el('select', {
       'aria-label': `Local de ${SEMANA[Number(dia)]}`,
-      onchange: (ev) => { rascunhoDisp.locais[dia] = ev.target.value; },
+      onchange: (ev) => { rascunhoDisp.locais[dia] = ev.target.value; aposMudanca(); },
     });
     for (const local of contexto.locais) {
       select.append(el('option', {
@@ -621,71 +862,19 @@ function montarGradeSemana() {
   }
   tabela.append(corpo);
 
+  const preencher = (valor) => {
+    ordemDias.forEach((d) => { rascunhoDisp.semana[d] = [...valor]; });
+    montarGradeSemana();
+    aposMudanca();
+  };
   const atalhos = el('div', { class: 'flex quebra gap-8 mt-16' }, [
-    el('button', {
-      type: 'button', class: 'btn btn-claro btn-peq', text: 'Marcar tudo',
-      onclick: () => { ordemDias.forEach((d) => { rascunhoDisp.semana[d] = [...horarios]; }); montarGradeSemana(); },
-    }),
-    el('button', {
-      type: 'button', class: 'btn btn-claro btn-peq', text: 'Desmarcar tudo',
-      onclick: () => { ordemDias.forEach((d) => { rascunhoDisp.semana[d] = []; }); montarGradeSemana(); },
-    }),
+    el('button', { type: 'button', class: 'btn btn-claro btn-peq', text: 'Marcar tudo', onclick: () => preencher(horarios) }),
+    el('button', { type: 'button', class: 'btn btn-claro btn-peq', text: 'Desmarcar tudo', onclick: () => preencher([]) }),
   ]);
 
   const alvo = qs('#grade-semana');
   alvo.innerHTML = '';
   alvo.append(tabela, atalhos);
-}
-
-function montarBloqueios() {
-  // Horários do formulário
-  const alvoHorarios = qs('#bloqueio-horarios');
-  alvoHorarios.innerHTML = '';
-  for (const h of contexto.config.horarios) {
-    alvoHorarios.append(el('label', { class: 'checkbox-linha' }, [
-      el('input', { type: 'checkbox', value: h, class: 'bloqueio-horario' }),
-      el('span', { text: h }),
-    ]));
-  }
-  qs('#bloqueio-data').min = hojeISO();
-
-  const lista = qs('#lista-bloqueios');
-  lista.innerHTML = '';
-  if (!rascunhoDisp.bloqueios.length) {
-    lista.append(el('p', { class: 'texto-peq texto-cinza', text: 'Nenhum bloqueio marcado.' }));
-    return;
-  }
-  rascunhoDisp.bloqueios.forEach((b, i) => {
-    lista.append(el('div', { class: 'linha-bloqueio' }, [
-      el('div', {}, [
-        el('strong', { text: formatarDataExtenso(b.data) }),
-        el('span', {
-          class: 'texto-peq texto-cinza',
-          text: ` · ${b.horarios?.length ? b.horarios.join(', ') : 'dia todo'}${b.motivo ? ` · ${b.motivo}` : ''}`,
-        }),
-      ]),
-      el('button', {
-        type: 'button', class: 'btn btn-fantasma btn-peq', text: 'Remover',
-        onclick: () => { rascunhoDisp.bloqueios.splice(i, 1); montarBloqueios(); },
-      }),
-    ]));
-  });
-}
-
-function adicionarBloqueio(ev) {
-  ev.preventDefault();
-  const data = qs('#bloqueio-data').value;
-  if (!data) { toast('Escolha a data do bloqueio.', 'aviso'); return; }
-  if (data < hojeISO()) { toast('Escolha uma data a partir de hoje.', 'aviso'); return; }
-
-  const horarios = qsa('.bloqueio-horario').filter((c) => c.checked).map((c) => c.value);
-  rascunhoDisp.bloqueios = rascunhoDisp.bloqueios.filter((b) => b.data !== data);
-  rascunhoDisp.bloqueios.push({ data, horarios, motivo: qs('#bloqueio-motivo').value.trim() });
-  rascunhoDisp.bloqueios.sort((a, b) => a.data.localeCompare(b.data));
-
-  qs('#form-bloqueio').reset();
-  montarBloqueios();
-  toast('Bloqueio adicionado. Clique em Salvar disponibilidade para valer.', 'info');
 }
 
 async function salvarDisponibilidadeUI(btn) {
@@ -708,6 +897,7 @@ async function salvarDisponibilidadeUI(btn) {
   try {
     await salvarDisponibilidade(professorId, rascunhoDisp, contexto.config, contexto.locais);
     toast('Disponibilidade salva. Os alunos já veem os novos horários.', 'sucesso', 4500);
+    marcarAlterado(false);
     await carregarDisponibilidade();
   } catch (err) {
     toast(err instanceof ErroDisponibilidade ? err.message : 'Não foi possível salvar a disponibilidade.', 'erro', 6000);
@@ -733,7 +923,7 @@ async function iniciar() {
   contexto = await carregarContexto();
 
   if (ehAdmin()) {
-    qs('#titulo-painel').textContent = 'Turmas da Escola';
+    qs('#titulo-painel').textContent = 'Turmas da escola';
     qs('#filtro-professor-area').classList.remove('oculto');
     const select = qs('#filtro-professor');
     for (const professor of contexto.professores) {
@@ -748,8 +938,12 @@ async function iniciar() {
   }
 
   qsa('#abas-professor .aba').forEach((b) => b.addEventListener('click', () => trocarAba(b.dataset.aba)));
-  qs('#form-bloqueio').addEventListener('submit', adicionarBloqueio);
   qs('#btn-salvar-disponibilidade').addEventListener('click', (ev) => salvarDisponibilidadeUI(ev.currentTarget));
+  qs('#disp-mes-anterior').addEventListener('click', () => trocarMesDisp(-1));
+  qs('#disp-mes-proximo').addEventListener('click', () => trocarMesDisp(1));
+  window.addEventListener('beforeunload', (ev) => {
+    if (rascunhoAlterado) { ev.preventDefault(); ev.returnValue = ''; }
+  });
 
   montarFaixaDias();
 

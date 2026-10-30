@@ -19,7 +19,7 @@ import {
 } from '../pagamentos.js';
 import {
   qs, qsa, el, formatarBRL, escapar, paramUrl, toast, copiar,
-  montarShellPainel, botaoCarregando, esperar,
+  montarShellPainel, botaoCarregando, esperar, icone, iconeEl,
 } from '../ui.js';
 
 let usuario = null;
@@ -65,12 +65,12 @@ function cardPlano(p) {
   // Prazo de uso e restrição de dia, quando houver.
   const avisos = [];
   const validade = textoValidade(p);
-  if (validade) avisos.push(`⏳ ${validade.charAt(0).toUpperCase()}${validade.slice(1)}`);
-  if (p.apenasFimDeSemana) avisos.push('📅 Somente sábado e domingo');
+  if (validade) avisos.push({ icone: 'ampulheta', texto: `${validade.charAt(0).toUpperCase()}${validade.slice(1)}` });
+  if (p.apenasFimDeSemana) avisos.push({ icone: 'agenda', texto: 'Somente sábado e domingo' });
 
   if (avisos.length) {
     const lista = el('ul', { class: 'plano-condicoes' });
-    avisos.forEach((texto) => lista.append(el('li', { text: texto })));
+    avisos.forEach((a) => lista.append(el('li', { class: 'com-icone' }, [iconeEl(a.icone), a.texto])));
     card.append(lista);
   }
 
@@ -137,14 +137,14 @@ function montarResumo() {
     </div>
     ${economiaDoPacote(pacote) ? `
     <div class="linha-economia">
-      💰 Você economiza ${escapar(formatarBRL(economiaDoPacote(pacote).valor))}
+      ${icone('moeda')} Você economiza ${escapar(formatarBRL(economiaDoPacote(pacote).valor))}
       em relação a ${pacote.creditos} aulas avulsas
     </div>` : ''}`;
 
   const aviso = qs('#aviso-modo');
   if (CONFIG.MODO_PAGAMENTO === 'mock') {
     aviso.innerHTML = `
-      <span>🧪</span>
+      ${icone('teste')}
       <span><strong>Modo demonstração.</strong> Nenhuma cobrança real é feita.
       O pagamento é simulado e os créditos entram na hora, para você testar o
       sistema inteiro.</span>`;
@@ -164,7 +164,7 @@ function montarMetodos() {
       dataset: { metodo: metodo.id },
       onclick: () => selecionarMetodo(metodo.id),
     }, [
-      el('span', { class: 'icone', text: metodo.icone }),
+      el('span', { class: 'icone-metodo-btn' }, [iconeEl(metodo.icone)]),
       el('span', { text: metodo.nome }),
       el('span', { class: 'texto-min texto-cinza', text: metodo.descricao }),
     ]));

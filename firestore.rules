@@ -38,10 +38,19 @@ service cloud.firestore {
       return autenticado() && request.auth.uid == alunoId;
     }
 
-    // Impede que o cliente altere campos sensíveis do próprio perfil.
-    function naoMudouCamposCriticos() {
-      return request.resource.data.papel == resource.data.papel
-          && request.resource.data.ativo == resource.data.ativo;
+    // No próprio perfil, o usuário só muda telefone e foto (tela "Meu
+    // perfil") e a marca de tutorial visto. Nome, e-mail, papel e ativo
+    // ficam travados — só o administrador altera.
+    function soCamposDoPerfil() {
+      let mudou = request.resource.data.diff(resource.data).affectedKeys();
+      return mudou.hasOnly(['telefone', 'fotoUrl', 'tutorialConcluido', 'atualizadoEm'])
+          && (!('fotoUrl' in request.resource.data)
+              || request.resource.data.fotoUrl == null
+              || (request.resource.data.fotoUrl is string
+                  && request.resource.data.fotoUrl.size() < 300000))
+          && (!('telefone' in request.resource.data)
+              || (request.resource.data.telefone is string
+                  && request.resource.data.telefone.size() <= 20));
     }
 
     // ---------- usuarios ----------
@@ -58,8 +67,8 @@ service cloud.firestore {
                     || (ehAdmin()
                         && request.resource.data.papel in ['aluno', 'professor']);
 
-      // O aluno edita nome/telefone, mas não o próprio papel.
-      allow update: if (ehDono(usuarioId) && naoMudouCamposCriticos()) || ehAdmin();
+      // Cada um edita telefone e foto do próprio perfil; o resto, só o admin.
+      allow update: if (ehDono(usuarioId) && soCamposDoPerfil()) || ehAdmin();
 
       allow delete: if ehAdmin();
     }

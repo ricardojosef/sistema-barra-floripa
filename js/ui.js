@@ -4,6 +4,9 @@
  */
 
 import { ESCOLA } from './config.js';
+import { icone, iconeEl, temIcone, hidratarIcones } from './icones.js';
+
+export { icone, iconeEl, hidratarIcones };
 
 /* --------------------------------------------------------------------------
    Seleção e criação de elementos
@@ -136,6 +139,24 @@ export function iniciais(nome) {
   return (partes[0][0] + partes[partes.length - 1][0]).toUpperCase();
 }
 
+/**
+ * Avatar do usuário: a foto do perfil, se houver; senão as iniciais.
+ * `classeExtra` ajusta o tamanho (ex.: 'avatar-g').
+ */
+export function avatarHTML(usuario, classeExtra = '') {
+  const nome = usuario?.nome || '?';
+  if (usuario?.fotoUrl) {
+    return `<span class="avatar com-foto ${classeExtra}"><img src="${escapar(usuario.fotoUrl)}" alt="" loading="lazy"></span>`;
+  }
+  return `<span class="avatar ${classeExtra}">${escapar(iniciais(nome))}</span>`;
+}
+
+export function avatarEl(usuario, classeExtra = '') {
+  const tpl = document.createElement('template');
+  tpl.innerHTML = avatarHTML(usuario, classeExtra).trim();
+  return tpl.content.firstElementChild;
+}
+
 /** Primeiro nome. */
 export const primeiroNome = (nome) => String(nome || '').trim().split(/\s+/)[0] || '';
 
@@ -197,9 +218,9 @@ function containerToasts() {
 
 /** tipo: 'info' | 'sucesso' | 'erro' | 'aviso' */
 export function toast(mensagem, tipo = 'info', duracaoMs = 3800) {
-  const icones = { sucesso: '✓', erro: '✕', aviso: '!', info: 'i' };
+  const icones = { sucesso: 'check', erro: 'fechar', aviso: 'alerta', info: 'info' };
   const node = el('div', { class: `toast toast-${tipo}`, role: 'status' }, [
-    el('strong', { text: icones[tipo] || 'i' }),
+    el('strong', {}, [iconeEl(icones[tipo] || 'info')]),
     el('span', { class: 'cresce', text: mensagem }),
   ]);
   containerToasts().append(node);
@@ -307,10 +328,10 @@ export function botaoCarregando(btn, texto = 'Aguarde...') {
   };
 }
 
-/** Bloco de estado vazio. */
-export function vazio(mensagem, icone = '🌊', acao = null) {
+/** Bloco de estado vazio. `nomeIcone` é um nome de js/icones.js. */
+export function vazio(mensagem, nomeIcone = 'onda', acao = null) {
   const node = el('div', { class: 'vazio' }, [
-    el('span', { class: 'vazio-icone', text: icone }),
+    el('span', { class: 'vazio-icone' }, [temIcone(nomeIcone) ? iconeEl(nomeIcone) : nomeIcone]),
     el('p', { text: mensagem }),
   ]);
   if (acao) {
@@ -443,11 +464,11 @@ export function montarShellPainel({ usuario, paginaAtual, aoSair, chipCreditos =
         <div class="topo-acoes">
           ${chipCreditos ? `
             <a href="creditos.html" class="chip-creditos" id="chip-creditos" title="Seus créditos disponíveis">
-              <span>🎟️</span><span id="chip-creditos-valor">—</span> créditos
+              ${icone('creditos')}<span id="chip-creditos-valor">—</span> créditos
             </a>` : ''}
           <button class="usuario-chip" id="btn-usuario" aria-label="Menu do usuário">
             <span class="nome">${escapar(primeiroNome(usuario.nome))}</span>
-            <span class="avatar">${escapar(iniciais(usuario.nome))}</span>
+            ${avatarHTML(usuario)}
           </button>
         </div>
       </div>`;
@@ -458,7 +479,7 @@ export function montarShellPainel({ usuario, paginaAtual, aoSair, chipCreditos =
         titulo: 'Minha conta',
         corpo: `
           <div class="flex itens-centro gap-12 mb-16">
-            <span class="avatar" style="width:52px;height:52px;font-size:1.1rem">${escapar(iniciais(usuario.nome))}</span>
+            ${avatarHTML(usuario, 'avatar-g')}
             <div>
               <div class="negrito">${escapar(usuario.nome)}</div>
               <div class="texto-peq texto-cinza">${escapar(usuario.email)}</div>
@@ -466,6 +487,7 @@ export function montarShellPainel({ usuario, paginaAtual, aoSair, chipCreditos =
             </div>
           </div>`,
         botoes: [
+          { texto: 'Meu perfil', classe: 'btn-claro', onClick: () => { location.href = 'perfil.html'; } },
           // No celular a barra inferior não comporta o atalho do tutorial;
           // por isso ele também fica aqui, no modal da conta.
           ...(usuario.papel === 'aluno'
@@ -475,35 +497,39 @@ export function montarShellPainel({ usuario, paginaAtual, aoSair, chipCreditos =
               onClick: () => { location.href = 'dashboard.html?tutorial=1'; },
             }]
             : []),
-          { texto: 'Fechar', classe: 'btn-claro' },
           { texto: 'Sair', classe: 'btn-perigo', onClick: () => aoSair?.() },
         ],
       });
     });
   }
 
+  // `curto` é o rótulo da barra inferior do celular, onde cabe uma palavra.
   const itensPorPapel = {
     aluno: [
-      { id: 'inicio', href: 'dashboard.html', icone: '🏠', texto: 'Início' },
-      { id: 'agendar', href: 'agendar.html', icone: '📅', texto: 'Agendar Aula' },
-      { id: 'creditos', href: 'creditos.html', icone: '🎟️', texto: 'Meus Créditos' },
-      { id: 'historico', href: 'historico.html', icone: '📋', texto: 'Histórico' },
-      { id: 'mensagens', href: 'mensagens.html', icone: '💬', texto: 'Mensagens' },
+      { id: 'inicio', href: 'dashboard.html', icone: 'inicio', texto: 'Início' },
+      { id: 'agendar', href: 'agendar.html', icone: 'agenda', texto: 'Agendar aula', curto: 'Agendar' },
+      { id: 'creditos', href: 'creditos.html', icone: 'creditos', texto: 'Meus créditos', curto: 'Créditos' },
+      { id: 'historico', href: 'historico.html', icone: 'historico', texto: 'Histórico' },
+      { id: 'mensagens', href: 'mensagens.html', icone: 'mensagens', texto: 'Mensagens' },
       { separador: true },
-      { id: 'planos', href: 'checkout.html', icone: '💳', texto: 'Planos e Preços' },
-      { id: 'tutorial', href: 'dashboard.html?tutorial=1', icone: '❓', texto: 'Como agendar' },
+      { id: 'planos', href: 'checkout.html', icone: 'planos', texto: 'Planos e preços' },
+      { id: 'perfil', href: 'perfil.html', icone: 'perfil', texto: 'Meu perfil', curto: 'Perfil' },
+      { id: 'tutorial', href: 'dashboard.html?tutorial=1', icone: 'ajuda', texto: 'Como agendar' },
     ],
     professor: [
-      { id: 'turmas', href: 'professor.html#turmas', icone: '🏄', texto: 'Minhas Turmas' },
-      { id: 'disponibilidade', href: 'professor.html#disponibilidade', icone: '📅', texto: 'Disponibilidade' },
-      { id: 'mensagens', href: 'professor.html#mensagens', icone: '💬', texto: 'Mensagens' },
+      { id: 'turmas', href: 'professor.html#turmas', icone: 'prancha', texto: 'Minhas turmas', curto: 'Turmas' },
+      { id: 'disponibilidade', href: 'professor.html#disponibilidade', icone: 'agenda', texto: 'Disponibilidade', curto: 'Horários' },
+      { id: 'mensagens', href: 'professor.html#mensagens', icone: 'mensagens', texto: 'Mensagens' },
+      { separador: true },
+      { id: 'perfil', href: 'perfil.html', icone: 'perfil', texto: 'Meu perfil', curto: 'Perfil' },
     ],
     admin: [
-      { id: 'turmas', href: 'professor.html#turmas', icone: '🏄', texto: 'Turmas' },
-      { id: 'disponibilidade', href: 'professor.html#disponibilidade', icone: '📅', texto: 'Disponibilidade' },
-      { id: 'mensagens', href: 'professor.html#mensagens', icone: '💬', texto: 'Mensagens' },
+      { id: 'turmas', href: 'professor.html#turmas', icone: 'prancha', texto: 'Turmas' },
+      { id: 'disponibilidade', href: 'professor.html#disponibilidade', icone: 'agenda', texto: 'Disponibilidade', curto: 'Horários' },
+      { id: 'mensagens', href: 'professor.html#mensagens', icone: 'mensagens', texto: 'Mensagens' },
       { separador: true },
-      { id: 'admin', href: 'admin.html', icone: '⚙️', texto: 'Administração' },
+      { id: 'admin', href: 'admin.html', icone: 'ajustes', texto: 'Administração', curto: 'Admin' },
+      { id: 'perfil', href: 'perfil.html', icone: 'perfil', texto: 'Meu perfil', curto: 'Perfil' },
     ],
   };
 
@@ -514,10 +540,10 @@ export function montarShellPainel({ usuario, paginaAtual, aoSair, chipCreditos =
     lateral.innerHTML = itens.map((item) => item.separador
       ? '<div class="separador"></div>'
       : `<a href="${item.href}" class="${item.id === paginaAtual ? 'ativo' : ''}" data-item="${item.id}">
-           <span class="icone">${item.icone}</span><span>${item.texto}</span>
+           ${icone(item.icone)}<span>${item.texto}</span>
          </a>`).join('')
       + `<div class="empurra"></div>
-         <button id="btn-sair-lateral"><span class="icone">🚪</span><span>Sair</span></button>`;
+         <button id="btn-sair-lateral">${icone('sair')}<span>Sair</span></button>`;
     qs('#btn-sair-lateral', lateral)?.addEventListener('click', () => aoSair?.());
   }
 
@@ -526,11 +552,30 @@ export function montarShellPainel({ usuario, paginaAtual, aoSair, chipCreditos =
     inferior.className = 'nav-inferior';
     inferior.innerHTML = itens.filter((i) => !i.separador).slice(0, 5).map((item) => `
       <a href="${item.href}" class="${item.id === paginaAtual ? 'ativo' : ''}" data-item="${item.id}">
-        <span class="icone">${item.icone}</span><span>${item.texto.split(' ')[0]}</span>
+        ${icone(item.icone)}<span>${item.curto || item.texto}</span>
       </a>`).join('');
   }
 
+  // Ícones escritos direto no HTML da página (<span data-icone="...">).
+  hidratarIcones();
+  montarOndaCabecalho();
+
   if (usuario.papel === 'aluno') atualizarBadgeMensagens(usuario.id);
+}
+
+/**
+ * Onda laranja na base do cabeçalho com foto (.painel-cabecalho). Fica em
+ * SVG no próprio HTML para acompanhar a largura sem distorcer o traço.
+ */
+function montarOndaCabecalho() {
+  qsa('.painel-cabecalho').forEach((cab) => {
+    if (qs('.onda-cabecalho', cab)) return;
+    cab.insertAdjacentHTML('beforeend', `
+    <svg class="onda-cabecalho" viewBox="0 0 1200 46" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+      <path class="onda-frente" d="M0 18 C150 0 300 36 450 18 S750 0 900 18 S1100 34 1200 16 V46 H0Z"/>
+      <path class="onda-fundo" d="M0 30 C200 14 350 46 550 30 S900 14 1200 30 V46 H0Z"/>
+    </svg>`);
+  });
 }
 
 /** Marca o item ativo do menu sem remontá-lo (abas dentro da mesma página). */

@@ -6,8 +6,15 @@
  *     professorId,
  *     semana:    { '0': ['08:00', '10:00'], ..., '6': [...] }  // 0 = domingo
  *     locais:    { '0': 'local-barra', ... }                   // local de cada dia
+ *     dias:      { '2026-11-02': { horarios: ['08:00'], localId, motivo } }
  *     bloqueios: [ { data: '2026-11-02', horarios: [], motivo } ]  // [] = dia todo
  *   }
+ *
+ * `semana` é o padrão que se repete toda semana. `dias` são ajustes feitos no
+ * calendário para uma data específica e substituem o padrão naquela data —
+ * `horarios: []` é folga. `bloqueios` é o formato antigo (só tirava
+ * horários); continua valendo para documentos salvos antes do calendário,
+ * mas a tela converte tudo para `dias` ao salvar.
  *
  * Sem documento, o professor atende todos os horários da escola todos os
  * dias, no local padrão — exatamente o comportamento de antes desta tela
@@ -39,7 +46,7 @@ export function disponibilidadePadrao(professorId, config) {
     semana[dia] = [...config.horarios];
     locais[dia] = config.localPadraoId;
   }
-  return { professorId, semana, locais, bloqueios: [], padrao: true };
+  return { professorId, semana, locais, dias: {}, bloqueios: [], padrao: true };
 }
 
 /** Completa um documento salvo com o que faltar (dias novos, local). */
@@ -57,6 +64,7 @@ export function normalizarDisponibilidade(doc, professorId, config) {
     professorId,
     semana,
     locais,
+    dias: doc.dias && typeof doc.dias === 'object' ? doc.dias : {},
     bloqueios: Array.isArray(doc.bloqueios) ? doc.bloqueios : [],
     padrao: false,
   };
@@ -80,9 +88,11 @@ export async function mapaDisponibilidades(professores, config) {
  */
 export function horariosNoDia(disp, data, config) {
   const dia = String(dataDeISO(data).getDay());
-  const doDia = new Set(disp.semana[dia] || []);
+  const ajuste = disp.dias?.[data];
+  const doDia = new Set(ajuste ? ajuste.horarios || [] : disp.semana[dia] || []);
+  const localId = (ajuste && ajuste.localId) || disp.locais[dia] || config.localPadraoId;
 
-  const bloqueiosDoDia = disp.bloqueios.filter((b) => b.data === data);
+  const bloqueiosDoDia = (disp.bloqueios || []).filter((b) => b.data === data);
   if (bloqueiosDoDia.some((b) => !b.horarios || b.horarios.length === 0)) return [];
   const bloqueados = new Set(bloqueiosDoDia.flatMap((b) => b.horarios || []));
 
@@ -90,7 +100,25 @@ export function horariosNoDia(disp, data, config) {
   // grade, ele some de todas as agendas, mesmo que o professor o tivesse.
   return config.horarios
     .filter((h) => doDia.has(h) && !bloqueados.has(h))
-    .map((horario) => ({ horario, localId: disp.locais[dia] || config.localPadraoId }));
+    .map((horario) => ({ horario, localId }));
+}
+
+/**
+ * Converte os bloqueios do formato antigo em ajustes de dia, para a tela do
+ * calendário trabalhar com um formato só. Devolve uma cópia.
+ */
+export function bloqueiosComoDias(disp, config) {
+  const dias = structuredClone(disp.dias || {});
+  for (const b of disp.bloqueios || []) {
+    if (dias[b.data]) continue;
+    const efetivos = horariosNoDia(disp, b.data, config);
+    dias[b.data] = {
+      horarios: efetivos.map((s) => s.horario),
+      localId: efetivos[0]?.localId || disp.locais[String(dataDeISO(b.data).getDay())],
+      motivo: b.motivo || '',
+    };
+  }
+  return dias;
 }
 
 /* --------------------------------------------------------------------------
@@ -113,9 +141,9 @@ async function exigirPermissao(professorId) {
 }
 
 /** Valida e limpa os dados vindos da tela. */
-function sanitizar({ semana, locais, bloqueios }, config, locaisValidos) {
+function sanitizar({ semana, locais, dias, bloqueios }, config, locaisValidos) {
   const horariosValidos = new Set(config.horarios);
-  const limpa = { semana: {}, locais: {}, bloqueios: [] };
+  const limpa = { semana: {}, locais: {}, dias: {}, bloqueios: [] };
 
   for (const dia of DIAS) {
     limpa.semana[dia] = (semana?.[dia] || []).filter((h) => horariosValidos.has(h));
@@ -124,6 +152,15 @@ function sanitizar({ semana, locais, bloqueios }, config, locaisValidos) {
   }
 
   const hoje = hojeISO();
+  for (const [data, ajuste] of Object.entries(dias || {})) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(data) || data < hoje) continue;
+    limpa.dias[data] = {
+      horarios: (ajuste?.horarios || []).filter((h) => horariosValidos.has(h)),
+      localId: locaisValidos.has(ajuste?.localId) ? ajuste.localId : limpa.locais[String(dataDeISO(data).getDay())],
+      motivo: String(ajuste?.motivo || '').trim().slice(0, 120),
+    };
+  }
+
   for (const b of bloqueios || []) {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(String(b.data))) continue;
     if (b.data < hoje) continue; // bloqueio no passado não serve para nada

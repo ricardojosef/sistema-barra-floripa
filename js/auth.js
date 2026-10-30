@@ -9,7 +9,7 @@
  */
 
 import { CONFIG } from './config.js';
-import { inicializarStore, listar, criar, obter, driverAtual } from './store.js';
+import { inicializarStore, listar, criar, obter, atualizar, driverAtual } from './store.js';
 
 const CHAVE_SESSAO = 'bf_sessao';
 const DURACAO_SESSAO_MS = 1000 * 60 * 60 * 12; // 12 horas
@@ -301,6 +301,46 @@ export async function entrarComGoogle(dadosSimulados = null) {
 
   gravarSessao(usuario);
   usuarioCache = semSegredos(usuario);
+  emitirMudanca();
+  return usuarioCache;
+}
+
+/**
+ * Atualiza o próprio perfil. Só telefone e foto: nome e e-mail identificam a
+ * conta (login, recibos, lista de turmas) e só a escola altera. As regras do
+ * Firestore repetem essa restrição no servidor.
+ *
+ * `fotoUrl`: imagem já reduzida em data URL JPEG (ver js/pages/perfil.js),
+ * ou null para remover. `undefined` mantém a atual.
+ */
+export async function atualizarMeuPerfil({ telefone, fotoUrl } = {}) {
+  const usuario = usuarioCache;
+  if (!usuario) throw new ErroAuth('sem-sessao', 'Entre novamente para continuar.');
+
+  const campos = {};
+
+  if (telefone !== undefined) {
+    const digitos = String(telefone || '').replace(/\D/g, '');
+    if (digitos && (digitos.length < 10 || digitos.length > 11)) {
+      throw new ErroAuth('telefone', 'Informe o telefone com DDD, por exemplo (48) 99999-9999.');
+    }
+    campos.telefone = String(telefone || '').trim().slice(0, 20);
+  }
+
+  if (fotoUrl !== undefined) {
+    if (fotoUrl !== null && !/^data:image\/(jpeg|png|webp);base64,/.test(String(fotoUrl))) {
+      throw new ErroAuth('foto', 'Formato de foto não suportado.');
+    }
+    if (fotoUrl && fotoUrl.length > 290000) {
+      throw new ErroAuth('foto', 'A foto ficou grande demais. Tente outra imagem.');
+    }
+    campos.fotoUrl = fotoUrl;
+  }
+
+  if (!Object.keys(campos).length) return usuario;
+
+  await atualizar('usuarios', usuario.id, campos);
+  usuarioCache = { ...usuario, ...campos };
   emitirMudanca();
   return usuarioCache;
 }

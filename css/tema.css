@@ -1,0 +1,408 @@
+/* ==========================================================================
+   tema.css — visual do sistema de reservas (opção C: "Foto")
+
+   Carregado só nas telas do sistema (login, painéis, agendamento,
+   checkout, perfil). A página inicial não usa este arquivo e mantém o
+   visual do site.
+
+   - Fontes: Barlow Condensed nos títulos e números, Barlow no texto.
+   - Cabeçalho de cada tela com foto da Barra e uma onda laranja.
+   - Menu lateral claro; ao passar o mouse o item fica laranja sólido.
+   - Sem caixa alta espaçada nem maiúscula forçada em cada palavra.
+   ========================================================================== */
+
+body:not([data-page='landing']) {
+  --fonte-titulo: 'Barlow Condensed', 'Arial Narrow', system-ui, sans-serif;
+  --fonte-texto: 'Barlow', system-ui, -apple-system, sans-serif;
+  --fonte-rotulo: 'Barlow', system-ui, -apple-system, sans-serif;
+  --fundo-painel: #f7f3ee;
+  --foto-cabecalho: url('https://ivory-chough-425846.hostingersite.com/wp-content/uploads/2026/01/newpraiabarra-1.webp');
+  font-size: 16.5px;
+}
+
+body.painel { background: var(--fundo-painel); }
+
+/* ---------- Tipografia ---------- */
+
+body:not([data-page='landing']) :is(h1, h2, h3, h4, h5, h6) {
+  font-family: var(--fonte-titulo);
+  font-weight: 700;
+  letter-spacing: 0;
+  line-height: 1.15;
+}
+
+body:not([data-page='landing']) h3 { font-size: 1.35rem; }
+body:not([data-page='landing']) h4 { font-size: 1.12rem; }
+
+/*
+ * Caixa alta com letras espaçadas era usada em botões, abas, rótulos,
+ * badges e cabeçalhos de tabela. Aqui tudo volta para a escrita normal.
+ */
+/* O :not(#_) só serve para dar peso de id ao seletor e vencer as regras
+   antigas como `.card-stat .stat-rotulo`, sem espalhar !important. */
+body:not([data-page='landing']) *:not(#_) {
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+/* Exceções de propósito: o título do cabeçalho com foto e a assinatura do logo */
+body .painel-cabecalho h1:not(#_),
+body .painel-cabecalho h1:not(#_) * { text-transform: uppercase; }
+
+body .marca-sub:not(#_) { text-transform: uppercase; letter-spacing: 0.12em; }
+
+.mes-atual:not(#_)::first-letter,
+.tabela-semana tbody th:not(#_)::first-letter { text-transform: uppercase; }
+
+/* Números que mudam (créditos, horários, lotação) não "dançam" */
+body:not([data-page='landing']) :is(.stat-valor, .turma-hora, .dia-cel, .slot, .badge, .chip-horario, .faixa-dias, table) {
+  font-variant-numeric: tabular-nums;
+}
+
+
+/* ---------- Botões ---------- */
+
+body:not([data-page='landing']) .btn {
+  font-family: var(--fonte-texto);
+  font-weight: 600;
+  font-size: 0.98rem;
+  border-radius: 10px;
+}
+
+body:not([data-page='landing']) .btn-peq { font-size: 0.9rem; }
+
+/* ---------- Ícones (js/icones.js) ---------- */
+
+.icone {
+  width: 1.2em;
+  height: 1.2em;
+  flex: none;
+  vertical-align: -0.22em;
+}
+
+[data-icone] { display: inline-flex; align-items: center; }
+
+.vazio-icone {
+  display: inline-grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  margin-bottom: 4px;
+  border-radius: 50%;
+  background: var(--laranja-suave);
+  color: var(--laranja);
+  font-size: 1.6rem;
+}
+
+.vazio-icone .icone { width: 30px; height: 30px; }
+
+.toast strong { display: inline-grid; place-items: center; }
+.toast strong .icone { width: 18px; height: 18px; }
+
+/* ---------- Topo ---------- */
+
+.painel-topo { box-shadow: 0 1px 0 rgba(0, 0, 0, 0.06); }
+
+.chip-creditos .icone { width: 18px; height: 18px; }
+
+.chip-creditos {
+  font-family: var(--fonte-texto);
+  font-weight: 600;
+}
+
+.usuario-chip .nome { font-family: var(--fonte-texto); font-weight: 600; font-size: 0.92rem; }
+
+/* ---------- Avatar (iniciais ou foto) ---------- */
+
+.avatar {
+  font-family: var(--fonte-titulo);
+  font-weight: 700;
+  overflow: hidden;
+}
+
+.avatar.com-foto { background: var(--cinza-200); }
+
+.avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatar.avatar-g { width: 56px; height: 56px; font-size: 1.15rem; }
+.avatar.avatar-xg { width: 112px; height: 112px; font-size: 2.2rem; }
+
+/* ---------- Menu lateral ---------- */
+
+.barra-lateral { gap: 2px; box-shadow: inset -1px 0 0 var(--cinza-200); border-right: 0; }
+
+.barra-lateral a,
+.barra-lateral button {
+  position: relative;
+  gap: 12px;
+  padding: 10px 13px;
+  font-family: var(--fonte-texto);
+  font-weight: 500;
+  font-size: 0.98rem;
+  color: var(--cinza-900);
+}
+
+.barra-lateral .icone { width: 20px; height: 20px; }
+
+/* Item da página atual: fundo claro e uma barra laranja à esquerda */
+.barra-lateral a.ativo {
+  background: var(--laranja-suave);
+  color: var(--laranja-escuro);
+  font-weight: 600;
+  box-shadow: inset 3px 0 0 var(--laranja);
+  border-radius: 4px var(--raio) var(--raio) 4px;
+}
+
+/* Ao passar o mouse: laranja sólido, texto branco */
+.barra-lateral a:hover,
+.barra-lateral button:hover,
+.barra-lateral a.ativo:hover {
+  background: var(--laranja);
+  color: var(--branco);
+  box-shadow: none;
+  border-radius: var(--raio);
+}
+
+.barra-lateral a:hover .badge-menu { background: var(--branco); color: var(--laranja); }
+
+/* ---------- Barra inferior (celular) ---------- */
+
+.nav-inferior a {
+  font-family: var(--fonte-texto);
+  font-weight: 600;
+  font-size: 0.7rem;
+  gap: 3px;
+}
+
+.nav-inferior a .icone { width: 22px; height: 22px; }
+
+/* ---------- Cabeçalho de cada tela: foto + onda ---------- */
+
+.painel-cabecalho {
+  position: relative;
+  margin: -22px -16px 22px;
+  padding: 34px 16px 64px;
+  color: var(--branco);
+  background:
+    linear-gradient(90deg, rgba(17, 17, 17, 0.8) 0%, rgba(17, 17, 17, 0.35) 75%),
+    var(--foto-cabecalho) center 40% / cover,
+    #2c4a5a;
+  isolation: isolate;
+}
+
+@media (min-width: 900px) {
+  .painel-cabecalho { margin: -30px -30px 26px; padding: 44px 30px 74px; }
+}
+
+.painel-cabecalho h1 {
+  color: var(--branco);
+  font-size: 2.3rem;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+@media (min-width: 900px) {
+  .painel-cabecalho h1 { font-size: 2.9rem; }
+}
+
+.painel-cabecalho h1 .texto-laranja { color: var(--laranja-claro); }
+
+.painel-cabecalho p {
+  max-width: 640px;
+  margin-top: 8px;
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 1.02rem;
+}
+
+.painel-cabecalho a { color: rgba(255, 255, 255, 0.9); }
+.painel-cabecalho a:hover { color: var(--branco); }
+
+.onda-cabecalho {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  width: 100%;
+  height: 46px;
+  z-index: -1;
+  pointer-events: none;
+}
+
+.onda-cabecalho .onda-frente { fill: var(--laranja); }
+.onda-cabecalho .onda-fundo { fill: var(--fundo-painel); }
+
+/* Uma foto por tela */
+body[data-page='agendar'] { --foto-cabecalho: url('https://ivory-chough-425846.hostingersite.com/wp-content/uploads/2026/01/surf1-1.webp'); }
+body[data-page='creditos'] { --foto-cabecalho: url('https://ivory-chough-425846.hostingersite.com/wp-content/uploads/2026/01/foto4-surf-1.webp'); }
+body[data-page='historico'] { --foto-cabecalho: url('https://ivory-chough-425846.hostingersite.com/wp-content/uploads/2026/01/foto6surf-1.webp'); }
+body[data-page='mensagens'] { --foto-cabecalho: url('https://ivory-chough-425846.hostingersite.com/wp-content/uploads/2026/01/praiadabarra-pic-2.webp'); }
+body[data-page='checkout'] { --foto-cabecalho: url('https://ivory-chough-425846.hostingersite.com/wp-content/uploads/2026/01/surf2-1.webp'); }
+body[data-page='professor'] { --foto-cabecalho: url('https://ivory-chough-425846.hostingersite.com/wp-content/uploads/2026/01/barrafloripa-galera-1.webp'); }
+body[data-page='admin'] { --foto-cabecalho: url('https://ivory-chough-425846.hostingersite.com/wp-content/uploads/2026/01/bg-barra-02-1-1.webp'); }
+
+/* ---------- Cartões, estatísticas, abas ---------- */
+
+body:not([data-page='landing']) .card {
+  border-color: #ece6df;
+  box-shadow: none;
+}
+
+.card-stat .stat-rotulo {
+  font-family: var(--fonte-texto);
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.card-stat .stat-valor {
+  font-family: var(--fonte-titulo);
+  font-weight: 700;
+}
+
+body:not([data-page='landing']) .aba {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--fonte-texto);
+  font-weight: 600;
+  font-size: 0.98rem;
+}
+
+body:not([data-page='landing']) .badge {
+  font-family: var(--fonte-texto);
+  font-weight: 600;
+  font-size: 0.76rem;
+}
+
+body:not([data-page='landing']) label,
+body:not([data-page='landing']) table th {
+  font-family: var(--fonte-texto);
+  font-weight: 600;
+}
+
+body:not([data-page='landing']) table thead th { font-size: 0.85rem; color: var(--cinza-700); }
+
+.calendario-grade .cab-dia {
+  font-family: var(--fonte-texto);
+  font-weight: 600;
+  font-size: 0.78rem;
+}
+
+.dia-cel {
+  font-family: var(--fonte-titulo);
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.dia-pill .semana { font-family: var(--fonte-texto); font-weight: 600; }
+.dia-pill .num { font-family: var(--fonte-titulo); font-weight: 700; }
+
+.alerta > .icone,
+.alerta > [data-icone] { color: currentColor; flex: none; margin-top: 2px; }
+
+/* Ícone + texto lado a lado em rótulos, títulos e links */
+.com-icone {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.card-titulo h3.com-icone .icone { color: var(--laranja); }
+
+/* Onda discreta no rodapé dos cartões de destaque */
+.card-stat.laranja {
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 30' preserveAspectRatio='none'%3E%3Cpath d='M0 15 C30 5 60 25 100 15 S170 5 200 15 V30 H0Z' fill='rgba(255,255,255,0.14)'/%3E%3C/svg%3E") bottom / 100% 34px no-repeat,
+    var(--laranja);
+}
+
+/* ---------- Ícones nos lugares que eram emojis grandes ---------- */
+
+.acao-rapida .icone-acao,
+.cartao-perfil .icone-acao {
+  display: inline-grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  background: var(--laranja-suave);
+  color: var(--laranja);
+  transition: background var(--transicao), color var(--transicao);
+}
+
+.acao-rapida .icone-acao .icone,
+.cartao-perfil .icone-acao .icone { width: 24px; height: 24px; }
+
+.acao-rapida:hover .icone-acao,
+.cartao-perfil.ativo .icone-acao { background: var(--laranja); color: var(--branco); }
+
+.acao-rapida .titulo,
+.cartao-perfil .titulo {
+  font-family: var(--fonte-texto);
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.lista-check .num-passo .icone { width: 16px; height: 16px; stroke-width: 2.5; }
+
+.metodo-btn .icone-metodo-btn { color: var(--laranja); }
+.metodo-btn .icone-metodo-btn .icone { width: 26px; height: 26px; }
+
+.icone-metodo {
+  display: inline-grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--laranja-suave);
+  color: var(--laranja);
+}
+
+.icone-metodo .icone { width: 32px; height: 32px; }
+
+.sucesso-pagamento .icone-ok .icone { width: 38px; height: 38px; stroke-width: 2.5; }
+.modal-aviso .icone-aviso .icone { width: 30px; height: 30px; }
+
+.plano-condicoes li.com-icone { display: flex; gap: 6px; align-items: center; }
+.plano-condicoes li .icone { color: var(--laranja); width: 16px; height: 16px; }
+
+.linha-economia .icone { width: 16px; height: 16px; }
+
+.alerta > .icone { width: 20px; height: 20px; }
+
+.segmento-opcao,
+.aba { display: inline-flex; align-items: center; justify-content: center; gap: 7px; }
+
+.slot .local.com-icone .icone,
+.resumo-dia-rotulo .icone { width: 15px; height: 15px; color: var(--laranja); }
+
+.linha-contato .com-icone .icone { width: 15px; height: 15px; }
+
+h4.aviso-urgente .icone { color: var(--vermelho); }
+h4.aviso-aviso .icone { color: var(--amarelo); }
+h4.aviso-info .icone { color: var(--azul); }
+
+/* ---------- Meu perfil ---------- */
+
+.perfil-colunas { align-items: start; }
+
+@media (min-width: 1000px) {
+  .perfil-colunas { grid-template-columns: 300px 1fr; }
+}
+
+.perfil-foto { text-align: center; }
+
+.perfil-avatar { display: flex; justify-content: center; }
+
+.perfil-avatar .avatar-xg {
+  box-shadow: 0 0 0 4px var(--branco), 0 0 0 6px var(--laranja);
+}
+
+#form-perfil input:disabled {
+  background: var(--cinza-100);
+  color: var(--cinza-700);
+  cursor: not-allowed;
+}

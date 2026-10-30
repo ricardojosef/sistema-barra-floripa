@@ -7,11 +7,12 @@
   <link rel="icon" href="logomenor-barrafloripa.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/components.css">
   <link rel="stylesheet" href="css/layout.css">
   <link rel="stylesheet" href="css/pages.css">
+  <link rel="stylesheet" href="css/tema.css">
 </head>
 <body class="painel" data-page="checkout">
 
@@ -139,7 +140,7 @@
               <!-- MERCADO PAGO -->
               <div class="painel-metodo oculto" data-metodo="mercadopago">
                 <div class="texto-centro">
-                  <div style="font-size:3rem">🛒</div>
+                  <div class="icone-metodo" data-icone="carrinho"></div>
                   <h3 class="mt-8">Mercado Pago</h3>
                   <p class="texto-cinza texto-peq mt-8 mb-24">
                     Você será levado ao ambiente seguro do Mercado Pago, onde pode
@@ -155,7 +156,7 @@
               <!-- PAYPAL -->
               <div class="painel-metodo oculto" data-metodo="paypal">
                 <div class="texto-centro">
-                  <div style="font-size:3rem">🌐</div>
+                  <div class="icone-metodo" data-icone="globo"></div>
                   <h3 class="mt-8">PayPal</h3>
                   <p class="texto-cinza texto-peq mt-8 mb-24">
                     Pague com sua conta PayPal ou cartão internacional.
@@ -185,7 +186,7 @@
       <section id="etapa-sucesso" class="oculto">
         <div class="card">
           <div class="sucesso-pagamento">
-            <div class="icone-ok">✓</div>
+            <div class="icone-ok" data-icone="check"></div>
             <h1>Pagamento confirmado!</h1>
             <p class="texto-cinza mt-8" id="sucesso-detalhe">—</p>
             <div class="flex centro quebra gap-12 mt-24">

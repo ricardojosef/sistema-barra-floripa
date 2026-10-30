@@ -3,15 +3,16 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Meus Créditos — Barra Floripa Surf School</title>
+  <title>Meus créditos — Barra Floripa Surf School</title>
   <link rel="icon" href="logomenor-barrafloripa.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/components.css">
   <link rel="stylesheet" href="css/layout.css">
   <link rel="stylesheet" href="css/pages.css">
+  <link rel="stylesheet" href="css/tema.css">
 </head>
 <body class="painel" data-page="creditos">
 
@@ -22,7 +23,7 @@
 
     <main class="painel-conteudo">
       <div class="painel-cabecalho">
-        <h1>Meus Créditos</h1>
+        <h1>Meus créditos</h1>
         <p>Cada crédito vale uma aula de 1h30. Créditos voltam para você quando uma aula é cancelada.</p>
       </div>
 
@@ -46,18 +47,18 @@
 
       <div class="painel-colunas">
         <section class="card">
-          <div class="card-titulo"><h3>📋 Extrato de créditos</h3></div>
+          <div class="card-titulo"><h3 class="com-icone"><span data-icone="lista"></span>Extrato de créditos</h3></div>
           <div id="extrato" class="rolagem" style="max-height:560px"></div>
         </section>
 
         <section class="card">
           <div class="card-titulo">
-            <h3>🎟️ Créditos por pacote</h3>
+            <h3 class="com-icone"><span data-icone="creditos"></span>Créditos por pacote</h3>
             <a href="checkout.html" class="texto-peq">Comprar mais →</a>
           </div>
           <div id="por-origem"></div>
 
-          <div class="card-titulo mt-24"><h3>🧾 Minhas compras</h3></div>
+          <div class="card-titulo mt-24"><h3 class="com-icone"><span data-icone="recibo"></span>Minhas compras</h3></div>
           <div id="lista-compras"></div>
         </section>
       </div>

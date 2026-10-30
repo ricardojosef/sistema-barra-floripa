@@ -31,7 +31,7 @@ function cartaoAula(aula) {
     el('div', { class: 'info' }, [
       el('div', {
         class: 'titulo',
-        text: aula.tipo === 'individual' ? 'Aula Individual' : `Aula em Grupo — ${professor}`,
+        text: aula.tipo === 'individual' ? 'Aula particular' : `Aula em grupo — ${professor}`,
       }),
       el('div', {
         class: 'meta',
@@ -100,7 +100,7 @@ function renderizar() {
       realizado: 'Nenhuma aula realizada ainda.',
       cancelado: 'Nenhuma aula cancelada.',
     };
-    alvo.append(vazio(mensagens[filtroAtual], '🏄', { href: 'agendar.html', texto: 'Agendar aula' }));
+    alvo.append(vazio(mensagens[filtroAtual], 'prancha', { href: 'agendar.html', texto: 'Agendar aula' }));
     return;
   }
 

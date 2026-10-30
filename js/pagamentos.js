@@ -15,7 +15,7 @@ import { CONFIG } from './config.js';
 import { criar, transacao } from './store.js';
 import { obterPacote } from './precos.js';
 import { lancarCredito } from './creditos.js';
-import { esperar } from './ui.js';
+import { esperar, icone } from './ui.js';
 
 export class ErroPagamento extends Error {
   constructor(codigo, mensagem) {
@@ -26,10 +26,10 @@ export class ErroPagamento extends Error {
 }
 
 export const METODOS = [
-  { id: 'pix', nome: 'PIX', icone: '⚡', descricao: 'Aprovação na hora' },
-  { id: 'cartao', nome: 'Cartão', icone: '💳', descricao: 'Crédito em até 12x' },
-  { id: 'mercadopago', nome: 'Mercado Pago', icone: '🛒', descricao: 'Saldo, cartão ou boleto' },
-  { id: 'paypal', nome: 'PayPal', icone: '🌐', descricao: 'Conta PayPal' },
+  { id: 'pix', nome: 'PIX', icone: 'raio', descricao: 'Aprovação na hora' },
+  { id: 'cartao', nome: 'Cartão', icone: 'planos', descricao: 'Crédito em até 12x' },
+  { id: 'mercadopago', nome: 'Mercado Pago', icone: 'carrinho', descricao: 'Saldo, cartão ou boleto' },
+  { id: 'paypal', nome: 'PayPal', icone: 'globo', descricao: 'Conta PayPal' },
 ];
 
 export const nomeMetodo = (id) => METODOS.find((m) => m.id === id)?.nome || id;
@@ -256,7 +256,7 @@ export async function desenharQrCode(container, texto, tamanho = 200) {
     console.warn('[pagamentos] QR indisponível:', err.message);
     container.innerHTML = `
       <div class="vazio" style="padding:20px">
-        <span class="vazio-icone">📋</span>
+        <span class="vazio-icone">${icone('lista')}</span>
         <p class="texto-peq">Não foi possível carregar o QR Code agora.<br>
         Use o código <strong>copia e cola</strong> abaixo — ele funciona no app do seu banco.</p>
       </div>`;

@@ -14,7 +14,7 @@ import { carregarContexto, nomeLocal } from '../precos.js';
 import {
   qs, el, isoDeData, hojeISO, dataDeISO, formatarDataExtenso, faixaHorario,
   MESES, SEMANA_CURTO, montarShellPainel, toast, botaoCarregando, abrirModal, escapar,
-  paramUrl,
+  paramUrl, icone, iconeEl, vazio,
 } from '../ui.js';
 import { executarTour, passosAgendamento, marcarTutorialConcluido } from '../tutorial.js';
 
@@ -73,7 +73,7 @@ async function montarCalendario() {
     console.error('[agendar] falha ao carregar o calendário:', err);
     grade.querySelector('.vazio')?.remove();
     grade.append(el('div', { class: 'vazio', style: 'grid-column:1/-1' }, [
-      el('span', { class: 'vazio-icone', text: '⚠️' }),
+      el('span', { class: 'vazio-icone' }, [iconeEl('alerta')]),
       el('p', { text: 'Não foi possível carregar os horários. Verifique sua conexão e tente de novo.' }),
       el('button', {
         type: 'button', class: 'btn btn-secundario btn-peq mt-16', text: 'Tentar de novo',
@@ -181,11 +181,11 @@ function montarResumoDoDia(slots) {
 
   alvo.append(
     el('div', { class: 'resumo-dia-linha' }, [
-      el('span', { class: 'resumo-dia-rotulo', text: '🕗 Horários' }),
+      el('span', { class: 'resumo-dia-rotulo com-icone' }, [iconeEl('relogio'), 'Horários']),
       ...horarios.map((h) => el('span', { class: 'chip-info', text: h })),
     ]),
     el('div', { class: 'resumo-dia-linha' }, [
-      el('span', { class: 'resumo-dia-rotulo', text: '📍 Locais' }),
+      el('span', { class: 'resumo-dia-rotulo com-icone' }, [iconeEl('local'), 'Locais']),
       ...locais.map((l) => el('span', { class: 'chip-info', text: l })),
     ]),
   );
@@ -194,15 +194,15 @@ function montarResumoDoDia(slots) {
 /** Texto e estilo do selo de cada professor, conforme o tipo de aula. */
 function estadoDoSlot(slot) {
   if (tipoAula === 'individual') {
-    if (slot.particularLivre) return { texto: 'LIVRE', classe: 'badge-sucesso', pode: true, dica: 'Horário livre para aula particular' };
-    if (slot.individual) return { texto: 'RESERVADO', classe: 'badge-perigo', pode: false, dica: 'Já reservado para outra aula particular' };
+    if (slot.particularLivre) return { texto: 'Livre', classe: 'badge-sucesso', pode: true, dica: 'Horário livre para aula particular' };
+    if (slot.individual) return { texto: 'Reservado', classe: 'badge-perigo', pode: false, dica: 'Já reservado para outra aula particular' };
     return {
-      texto: 'TURMA', classe: 'badge-neutro', pode: false,
+      texto: 'Turma', classe: 'badge-neutro', pode: false,
       dica: `Já tem turma em grupo (${slot.ocupados}/${slot.capacidade}) — não cabe particular`,
     };
   }
-  if (slot.individual) return { texto: 'PARTICULAR', classe: 'badge-perigo', pode: false, dica: 'Reservado para aula particular' };
-  if (slot.grupoLotado) return { texto: 'LOTADO', classe: 'badge-perigo', pode: false, dica: 'Turma completa' };
+  if (slot.individual) return { texto: 'Particular', classe: 'badge-perigo', pode: false, dica: 'Reservado para aula particular' };
+  if (slot.grupoLotado) return { texto: 'Lotado', classe: 'badge-perigo', pode: false, dica: 'Turma completa' };
   const restam = slot.vagas;
   return {
     texto: `${slot.ocupados}/${slot.capacidade}`,
@@ -219,7 +219,8 @@ function montarSlots(slots) {
   const utilizaveis = slots.filter((s) => !s.jaPassou);
 
   if (!utilizaveis.length) {
-    alvo.innerHTML = '<div class="vazio"><span class="vazio-icone">🌙</span><p>Não há mais horários disponíveis neste dia.</p></div>';
+    alvo.innerHTML = '';
+    alvo.append(vazio('Não há mais horários disponíveis neste dia.', 'lua'));
     return;
   }
 
@@ -261,7 +262,7 @@ function montarSlots(slots) {
       }, [
         el('div', { class: 'detalhe' }, [
           el('div', { class: 'prof', text: `Prof. ${slot.professorNome}` }),
-          el('div', { class: 'local', text: `📍 ${nomeLocal(contexto.mapaLocais, slot.localId)} · ${estado.dica}` }),
+          el('div', { class: 'local com-icone' }, [iconeEl('local'), `${nomeLocal(contexto.mapaLocais, slot.localId)} · ${estado.dica}`]),
           el('div', { class: 'vagas-barra' }, [
             el('div', { class: `preenchido ${classeBarra}`, style: `width:${percentual}%` }),
           ]),
@@ -395,7 +396,7 @@ async function atualizarSaldo() {
   if (saldo < 1) {
     alerta.innerHTML = `
       <div class="alerta alerta-aviso">
-        <span>🎟️</span>
+        ${icone('creditos')}
         <span class="cresce">
           Você não tem créditos disponíveis. É possível ver os horários, mas
           para confirmar o agendamento é preciso comprar um pacote.
@@ -408,7 +409,7 @@ async function atualizarSaldo() {
   if (soFimDeSemana) {
     alerta.innerHTML = `
       <div class="alerta alerta-info">
-        <span>📅</span>
+        ${icone('agenda')}
         <span class="cresce">
           Seus créditos são do <strong>plano mensalista</strong>, válido
           apenas para <strong>sábado e domingo</strong>. Os demais dias
@@ -427,7 +428,7 @@ async function atualizarSaldo() {
     if (dias !== null && dias <= 7) {
       alerta.insertAdjacentHTML('beforeend', `
         <div class="alerta alerta-aviso">
-          <span>⏳</span>
+          ${icone('ampulheta')}
           <span class="cresce">
             ${proximo.restante} ${proximo.restante === 1 ? 'crédito vence' : 'créditos vencem'}
             em ${dias <= 0 ? 'breve' : `${dias} ${dias === 1 ? 'dia' : 'dias'}`}.

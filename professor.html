@@ -7,11 +7,12 @@
   <link rel="icon" href="logomenor-barrafloripa.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/components.css">
   <link rel="stylesheet" href="css/layout.css">
   <link rel="stylesheet" href="css/pages.css">
+  <link rel="stylesheet" href="css/tema.css">
 </head>
 <body class="painel" data-page="professor">
 
@@ -22,14 +23,14 @@
 
     <main class="painel-conteudo">
       <div class="painel-cabecalho">
-        <h1 id="titulo-painel">Minhas Turmas</h1>
+        <h1 id="titulo-painel">Minhas turmas</h1>
         <p id="subtitulo-painel">—</p>
       </div>
 
       <div class="abas" id="abas-professor" role="tablist">
-        <button class="aba ativa" data-aba="turmas" type="button" role="tab">🏄 Turmas</button>
-        <button class="aba" data-aba="disponibilidade" type="button" role="tab">📅 Disponibilidade</button>
-        <button class="aba" data-aba="mensagens" type="button" role="tab">💬 Mensagens</button>
+        <button class="aba ativa" data-aba="turmas" type="button" role="tab"><span data-icone="prancha"></span>Turmas</button>
+        <button class="aba" data-aba="disponibilidade" type="button" role="tab"><span data-icone="agenda"></span>Disponibilidade</button>
+        <button class="aba" data-aba="mensagens" type="button" role="tab"><span data-icone="mensagens"></span>Mensagens</button>
       </div>
 
       <!-- Filtro de professor (só administrador) — vale para as três abas -->
@@ -84,54 +85,70 @@
 
       <!-- ===================== ABA DISPONIBILIDADE ===================== -->
       <section class="painel-aba" data-painel="disponibilidade">
+        <p class="texto-peq texto-cinza mb-16" id="titulo-disponibilidade"></p>
+
+        <div class="painel-colunas mb-24">
+          <!-- Calendário: ajuste de datas específicas -->
+          <section class="card">
+            <div class="card-titulo">
+              <h3>Calendário</h3>
+            </div>
+            <p class="texto-peq texto-cinza mb-16">
+              Clique num dia para ver e mudar os horários só daquela data —
+              folga, horário extra ou outro local.
+            </p>
+            <div class="calendario-topo">
+              <button class="btn-mes" id="disp-mes-anterior" type="button" aria-label="Mês anterior">‹</button>
+              <span class="mes-atual" id="disp-mes-atual">—</span>
+              <button class="btn-mes" id="disp-mes-proximo" type="button" aria-label="Próximo mês">›</button>
+            </div>
+            <div class="calendario-grade calendario-prof" id="disp-calendario" role="grid"></div>
+            <div class="legenda-cal">
+              <span><i class="bolinha" style="background:var(--verde)"></i> Atende (semana padrão)</span>
+              <span><i class="bolinha" style="background:var(--laranja)"></i> Ajustado neste dia</span>
+              <span><i class="bolinha" style="background:var(--cinza-300)"></i> Folga</span>
+            </div>
+          </section>
+
+          <!-- Editor do dia escolhido -->
+          <section class="card" id="editor-dia">
+            <div class="card-titulo">
+              <h3 id="editor-dia-titulo">Escolha um dia</h3>
+            </div>
+            <div id="editor-dia-corpo">
+              <p class="texto-peq texto-cinza">
+                Selecione uma data no calendário para editar os horários dela.
+              </p>
+            </div>
+          </section>
+        </div>
+
         <div class="card mb-24">
           <div class="card-titulo">
-            <h3 id="titulo-disponibilidade">Minha semana</h3>
+            <h3>Semana padrão</h3>
           </div>
           <p class="texto-peq texto-cinza mb-16">
-            Marque os horários em que você atende em cada dia da semana e o
-            local de cada dia. Os alunos só conseguem agendar nos horários
-            marcados. Aulas já agendadas não são canceladas ao desmarcar um
-            horário — o painel avisa quantas ficariam de fora.
+            Vale para <strong>todas as semanas</strong>, daqui em diante — é o
+            que o calendário usa em qualquer dia que você não ajustou. Marque
+            os horários em que atende em cada dia da semana e o local. Aulas já
+            agendadas não são canceladas ao desmarcar um horário: o painel avisa
+            quantas ficariam de fora.
           </p>
           <div id="grade-semana" class="tabela-wrap"></div>
         </div>
 
-        <div class="card mb-24">
-          <div class="card-titulo">
-            <h3>Folgas e bloqueios</h3>
-          </div>
-          <p class="texto-peq texto-cinza mb-16">
-            Para um dia específico em que você não vai atender (folga, viagem,
-            campeonato). Deixe os horários em branco para bloquear o dia todo.
-          </p>
-          <form id="form-bloqueio" class="linha-campos tres" novalidate>
-            <div class="campo">
-              <label for="bloqueio-data">Data</label>
-              <input type="date" id="bloqueio-data">
-            </div>
-            <div class="campo">
-              <label>Horários <span class="dica">vazio = dia todo</span></label>
-              <div id="bloqueio-horarios" class="flex quebra gap-8"></div>
-            </div>
-            <div class="campo">
-              <label for="bloqueio-motivo">Motivo (opcional)</label>
-              <input type="text" id="bloqueio-motivo" maxlength="120" placeholder="Ex.: campeonato">
-            </div>
-          </form>
-          <button class="btn btn-secundario btn-peq" type="submit" form="form-bloqueio">+ Adicionar bloqueio</button>
-          <div id="lista-bloqueios" class="mt-16"></div>
+        <div class="barra-salvar">
+          <span class="texto-peq texto-cinza" id="status-rascunho">Nenhuma alteração.</span>
+          <button class="btn btn-primario" id="btn-salvar-disponibilidade" type="button">
+            Salvar disponibilidade
+          </button>
         </div>
-
-        <button class="btn btn-primario" id="btn-salvar-disponibilidade" type="button">
-          Salvar disponibilidade
-        </button>
       </section>
 
       <!-- ===================== ABA MENSAGENS ===================== -->
       <section class="painel-aba" data-painel="mensagens">
         <div class="alerta alerta-info">
-          <span>💬</span>
+          <span data-icone="mensagens"></span>
           <span>
             Para escrever, vá em <strong>Turmas</strong> e use
             <strong>Mensagem para a turma</strong> no cartão do horário, ou

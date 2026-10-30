@@ -10,7 +10,7 @@ import { inicializarStore, listar } from '../store.js';
 import { entrar, cadastrar, entrarComGoogle, carregarUsuario, painelDoPapel, ErroAuth } from '../auth.js';
 import {
   qs, qsa, el, escapar, paramUrl, toast, abrirModal, botaoCarregando,
-  montarTopoPublico, mascaraTelefone,
+  montarTopoPublico, mascaraTelefone, iconeEl, hidratarIcones,
 } from '../ui.js';
 
 let perfilSelecionado = 'aluno';
@@ -24,7 +24,7 @@ function mostrarAlerta(mensagem, tipo = 'perigo') {
   area.innerHTML = '';
   if (!mensagem) return;
   area.append(el('div', { class: `alerta alerta-${tipo}`, role: 'alert' }, [
-    el('span', { text: tipo === 'perigo' ? '⚠️' : 'ℹ️' }),
+    iconeEl(tipo === 'perigo' ? 'alerta' : 'info'),
     el('span', { text: mensagem }),
   ]));
 }
@@ -172,7 +172,7 @@ async function aoEnviarLogin(ev) {
 
     // Coerência entre o perfil escolhido e o papel real da conta.
     if (perfilSelecionado === 'professor' && usuario.papel === 'aluno') {
-      mostrarAlerta('Esta conta é de aluno. Use o card "Sou Aluno" para entrar.');
+      mostrarAlerta('Esta conta é de aluno. Use o card "Sou aluno" para entrar.');
       restaurar();
       return;
     }
@@ -215,7 +215,7 @@ async function aoEnviarCadastro(ev) {
 
   try {
     const usuario = await cadastrar({ nome, email, telefone, senha });
-    toast('Conta criada! Bem-vindo à Barra Floripa 🏄', 'sucesso', 1800);
+    toast('Conta criada! Boas-vindas à Barra Floripa.', 'sucesso', 1800);
     setTimeout(() => { location.href = painelDoPapel(usuario.papel); }, 600);
   } catch (err) {
     restaurar();
@@ -302,6 +302,7 @@ async function aoClicarGoogle() {
 
 async function iniciar() {
   montarTopoPublico(null);
+  hidratarIcones();
   qs('#link-whatsapp').href = `https://wa.me/${ESCOLA.whatsapp}`;
 
   await inicializarStore();

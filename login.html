@@ -8,11 +8,12 @@
   <link rel="icon" href="logomenor-barrafloripa.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/components.css">
   <link rel="stylesheet" href="css/layout.css">
   <link rel="stylesheet" href="css/pages.css">
+  <link rel="stylesheet" href="css/tema.css">
 </head>
 <body data-page="login">
 
@@ -27,9 +28,9 @@
         ver o histórico da sua evolução.
       </p>
       <ul class="lista-check mt-24">
-        <li><span class="num-passo">✓</span><span>Agende pelo calendário, sem precisar ligar</span></li>
-        <li><span class="num-passo">✓</span><span>Veja quantas vagas restam em cada turma</span></li>
-        <li><span class="num-passo">✓</span><span>Cancele e recupere seu crédito automaticamente</span></li>
+        <li><span class="num-passo" data-icone="check"></span><span>Agende pelo calendário, sem precisar ligar</span></li>
+        <li><span class="num-passo" data-icone="check"></span><span>Veja quantas vagas restam em cada turma</span></li>
+        <li><span class="num-passo" data-icone="check"></span><span>Cancele e recupere seu crédito automaticamente</span></li>
       </ul>
     </aside>
 
@@ -39,13 +40,13 @@
         <!-- Escolha de perfil -->
         <div class="escolha-perfil" id="escolha-perfil">
           <button type="button" class="cartao-perfil ativo" data-perfil="aluno">
-            <span class="icone">🏄</span>
-            <span class="titulo">Sou Aluno</span>
+            <span class="icone-acao" data-icone="prancha"></span>
+            <span class="titulo">Sou aluno</span>
             <span class="sub">Agendar aulas</span>
           </button>
           <button type="button" class="cartao-perfil" data-perfil="professor">
-            <span class="icone">🎓</span>
-            <span class="titulo">Sou Professor</span>
+            <span class="icone-acao" data-icone="grupo"></span>
+            <span class="titulo">Sou professor</span>
             <span class="sub">Acesso restrito</span>
           </button>
         </div>
@@ -92,7 +93,7 @@
 
             <!-- Contas prontas do modo demonstração -->
             <div class="contas-demo oculto" id="contas-demo">
-              <h4>🔑 Contas de demonstração</h4>
+              <h4 class="com-icone"><span data-icone="chave"></span>Contas de demonstração</h4>
               <p class="texto-min mb-8">Clique para preencher. Senha de todas: <strong>barra123</strong></p>
               <div id="lista-contas-demo"></div>
             </div>

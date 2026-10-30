@@ -65,7 +65,7 @@ function renderizar() {
       filtroAtual === 'nao-lidas'
         ? 'Nenhuma mensagem nova.'
         : 'Você ainda não recebeu mensagens. Quando um professor escrever para a sua turma, o recado aparece aqui.',
-      '💬',
+      'mensagens',
     ));
     return;
   }
@@ -123,7 +123,7 @@ async function iniciar() {
   } catch (err) {
     console.error('[mensagens] falha ao carregar:', err);
     qs('#lista-mensagens').innerHTML = '';
-    qs('#lista-mensagens').append(vazio('Não foi possível carregar as mensagens. Recarregue a página.', '⚠️'));
+    qs('#lista-mensagens').append(vazio('Não foi possível carregar as mensagens. Recarregue a página.', 'alerta'));
   }
 }
 

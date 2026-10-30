@@ -7,11 +7,12 @@
   <link rel="icon" href="logomenor-barrafloripa.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/components.css">
   <link rel="stylesheet" href="css/layout.css">
   <link rel="stylesheet" href="css/pages.css">
+  <link rel="stylesheet" href="css/tema.css">
 </head>
 <body class="painel" data-page="dashboard">
 
@@ -51,19 +52,19 @@
       <!-- Atalhos -->
       <div class="acoes-rapidas">
         <a href="agendar.html" class="acao-rapida">
-          <span class="icone">📅</span>
-          <span class="titulo">Agendar Aula</span>
+          <span class="icone-acao" data-icone="agenda"></span>
+          <span class="titulo">Agendar aula</span>
         </a>
         <a href="checkout.html" class="acao-rapida">
-          <span class="icone">💳</span>
-          <span class="titulo">Comprar Plano</span>
+          <span class="icone-acao" data-icone="planos"></span>
+          <span class="titulo">Comprar plano</span>
         </a>
         <a href="creditos.html" class="acao-rapida">
-          <span class="icone">🎟️</span>
-          <span class="titulo">Meus Créditos</span>
+          <span class="icone-acao" data-icone="creditos"></span>
+          <span class="titulo">Meus créditos</span>
         </a>
         <a href="historico.html" class="acao-rapida">
-          <span class="icone">📋</span>
+          <span class="icone-acao" data-icone="historico"></span>
           <span class="titulo">Histórico</span>
         </a>
       </div>
@@ -72,20 +73,20 @@
       <div class="painel-colunas">
         <section class="card">
           <div class="card-titulo">
-            <h3>📅 Próximas Aulas</h3>
+            <h3 class="com-icone"><span data-icone="agenda"></span>Próximas aulas</h3>
             <a href="historico.html" class="texto-peq">Ver todas →</a>
           </div>
           <div id="lista-proximas" class="rolagem" style="max-height:420px">
             <div class="vazio"><span class="spinner escuro"></span></div>
           </div>
           <a href="agendar.html" class="btn btn-primario btn-bloco mt-16">
-            📅 Agendar nova aula
+            Agendar nova aula
           </a>
         </section>
 
         <section class="card">
           <div class="card-titulo">
-            <h3>🎟️ Meus Créditos</h3>
+            <h3 class="com-icone"><span data-icone="creditos"></span>Meus créditos</h3>
             <a href="checkout.html" class="texto-peq">Comprar mais →</a>
           </div>
           <div id="lista-creditos"></div>

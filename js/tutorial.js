@@ -325,7 +325,7 @@ export function passosPainel(usuario) {
   return [
     {
       alvo: null,
-      titulo: `Bem-vindo${nome ? `, ${nome}` : ''}! 🏄`,
+      titulo: `Boas-vindas${nome ? `, ${nome}` : ''}!`,
       texto: `<p>Em menos de um minuto você vai saber agendar sua aula.</p>
               <p class="tour-dica">Use <kbd>→</kbd> e <kbd>←</kbd> para navegar, ou <kbd>Esc</kbd> para sair.</p>`,
     },
@@ -434,7 +434,7 @@ export function passosAgendamento(ganchos = {}) {
     {
       antes: ganchos.limparSelecao,
       alvo: null,
-      titulo: 'Tudo pronto! 🤙',
+      titulo: 'Tudo pronto!',
       texto: `<p>Agora é com você: escolha o dia, o horário e confirme.</p>
               <p>Para rever este passo a passo, use <strong>Como agendar</strong>
               no menu (no celular, toque na sua foto, no topo).</p>`,

@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Meu perfil — Barra Floripa Surf School</title>
+  <link rel="icon" href="logomenor-barrafloripa.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/pages.css">
+  <link rel="stylesheet" href="css/tema.css">
+</head>
+<body class="painel" data-page="perfil">
+
+  <header id="painel-topo"></header>
+
+  <div class="painel-shell">
+    <nav id="barra-lateral" aria-label="Menu"></nav>
+
+    <main class="painel-conteudo">
+      <div class="painel-cabecalho">
+        <h1>Meu perfil</h1>
+        <p>Sua foto e seu telefone. É por esse número que os professores falam com você sobre as aulas.</p>
+      </div>
+
+      <div class="painel-colunas perfil-colunas">
+        <!-- Foto -->
+        <section class="card perfil-foto">
+          <div id="perfil-avatar" class="perfil-avatar"></div>
+          <div class="negrito mt-16" id="perfil-nome-topo">—</div>
+          <span class="badge badge-laranja mt-8" id="perfil-papel">—</span>
+
+          <input type="file" id="input-foto" accept="image/jpeg,image/png,image/webp" class="oculto">
+          <div class="flex centro quebra gap-8 mt-24">
+            <button class="btn btn-secundario btn-peq com-icone" id="btn-trocar-foto" type="button">
+              <span data-icone="camera"></span>Trocar foto
+            </button>
+            <button class="btn btn-fantasma btn-peq oculto" id="btn-remover-foto" type="button">Remover foto</button>
+          </div>
+          <p class="texto-min texto-cinza mt-16">
+            JPG, PNG ou WebP. A foto é recortada em quadrado e reduzida
+            automaticamente.
+          </p>
+        </section>
+
+        <!-- Dados -->
+        <section class="card">
+          <div class="card-titulo"><h3>Dados pessoais</h3></div>
+
+          <form id="form-perfil" novalidate>
+            <div class="campo">
+              <label for="perfil-nome">Nome</label>
+              <input type="text" id="perfil-nome" disabled>
+            </div>
+            <div class="campo">
+              <label for="perfil-email">E-mail</label>
+              <input type="email" id="perfil-email" disabled>
+            </div>
+            <div class="campo">
+              <label for="perfil-telefone">Telefone (WhatsApp)</label>
+              <input type="tel" id="perfil-telefone" inputmode="tel" autocomplete="tel"
+                placeholder="(48) 99999-9999" maxlength="16">
+              <span class="erro-msg">Informe o telefone com DDD.</span>
+            </div>
+
+            <div class="alerta alerta-info texto-peq">
+              <span data-icone="info"></span>
+              <span>
+                Nome e e-mail identificam a sua conta e não podem ser alterados
+                por aqui. Se precisar corrigir, <a href="#" id="link-escola">fale com a escola</a>.
+              </span>
+            </div>
+
+            <div class="flex entre itens-centro quebra gap-12 mt-24">
+              <span class="texto-peq texto-cinza" id="status-perfil"></span>
+              <button class="btn btn-primario" id="btn-salvar-perfil" type="submit">Salvar alterações</button>
+            </div>
+          </form>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <nav id="nav-inferior" aria-label="Menu rápido"></nav>
+
+  <script type="module" src="js/pages/perfil.js"></script>
+</body>
+</html>

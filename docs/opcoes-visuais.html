@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Opções visuais — Barra Floripa</title>
+  <link rel="icon" href="../logomenor-barrafloripa.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wdth,wght@62..125,400..800&family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600;700&family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --laranja: #fd711d;
+      --laranja-claro: #fb8d42;
+      --laranja-escuro: #d95a0c;
+      --preto: #111111;
+      --creme: #fff8f2;
+      --cinza: #6b6b6b;
+      --linha: #ece6df;
+      --verde: #23864b;
+      --vermelho: #c93636;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Barlow', system-ui, sans-serif;
+      color: var(--preto);
+      background: #f4f1ed;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+    img { display: block; max-width: 100%; }
+    .icone { width: 18px; height: 18px; flex: none; stroke: currentColor; fill: none; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; }
+
+    /* ---------- Documento ---------- */
+    .doc { max-width: 1180px; margin: 0 auto; padding: 48px 16px 96px; }
+    .doc-topo { display: flex; align-items: center; gap: 14px; margin-bottom: 28px; }
+    .doc-topo img { width: 44px; }
+    .doc h1 { font-family: 'Anton', sans-serif; font-weight: 400; font-size: clamp(2rem, 5vw, 3.2rem); line-height: 1; letter-spacing: 0.01em; text-transform: uppercase; }
+    .doc h2 { font-family: 'Anton', sans-serif; font-weight: 400; font-size: 1.9rem; text-transform: uppercase; line-height: 1.05; }
+    .doc .lead { max-width: 720px; font-size: 1.08rem; color: #3b3b3b; margin-bottom: 40px; }
+    .secao { margin-top: 72px; }
+    .secao > p { max-width: 760px; color: #3b3b3b; margin: 10px 0 24px; }
+    .rotulo-op { display: inline-flex; align-items: center; gap: 8px; margin-bottom: 8px; font-weight: 700; color: var(--laranja-escuro); font-size: 0.95rem; }
+    .rotulo-op b { display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--laranja); color: #fff; font-size: 0.9rem; }
+
+    .diagnostico { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); }
+    .diag { background: #fff; border-radius: 14px; padding: 18px; border: 1px solid var(--linha); }
+    .diag h3 { font-size: 1rem; font-weight: 700; margin-bottom: 10px; }
+    .diag p { font-size: 0.92rem; color: #4a4a4a; }
+    .antes-depois { display: flex; flex-wrap: wrap; gap: 10px; margin: 12px 0; align-items: center; }
+    .antes { font-family: 'Poppins', sans-serif; }
+    .chip-a { display: inline-flex; align-items: center; gap: 8px; padding: 7px 12px; border-radius: 9px; background: #f6f2ee; font-size: 0.88rem; font-weight: 600; }
+    .chip-a.ruim { font-family: 'Poppins', sans-serif; }
+    .seta { color: var(--laranja); font-weight: 700; }
+    .btn-ruim { font-family: 'Poppins', sans-serif; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; padding: 8px 14px; border: 1px solid #ddd; border-radius: 9px; background: #fff; }
+    .btn-bom { font-family: 'Barlow', sans-serif; font-size: 0.95rem; font-weight: 600; padding: 8px 16px; border-radius: 9px; background: var(--laranja); color: #fff; border: 0; }
+
+    .fontes { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+    .fonte { background: #fff; border: 1px solid var(--linha); border-radius: 14px; padding: 20px; }
+    .fonte small { display: block; color: var(--cinza); font-size: 0.8rem; margin-bottom: 8px; }
+    .fonte .t { font-size: 1.9rem; line-height: 1.05; margin-bottom: 8px; }
+    .fonte .c { font-size: 0.98rem; color: #333; }
+
+    .comum { background: #fff; border: 1px solid var(--linha); border-radius: 14px; padding: 20px 22px; }
+    .comum ul { padding-left: 18px; display: grid; gap: 6px; }
+
+    /* ---------- Maquete do painel (base comum) ---------- */
+    .mock {
+      --m-bg: var(--creme);
+      --m-side-bg: #fff;
+      --m-side-fg: #333;
+      --m-side-ativo-bg: #fff1e6;
+      --m-side-ativo-fg: var(--laranja-escuro);
+      --m-card-bg: #fff;
+      --m-card-borda: var(--linha);
+      --m-card-sombra: none;
+      --m-card-blur: none;
+      --m-texto: var(--preto);
+      --m-suave: var(--cinza);
+      --m-titulo: 'Anton', sans-serif;
+      --m-corpo: 'Barlow', sans-serif;
+      position: relative;
+      display: grid;
+      grid-template-columns: 220px 1fr;
+      min-height: 640px;
+      border-radius: 20px;
+      overflow: hidden;
+      background: var(--m-bg);
+      color: var(--m-texto);
+      font-family: var(--m-corpo);
+      box-shadow: 0 24px 60px -30px rgba(0, 0, 0, 0.45);
+      isolation: isolate;
+    }
+
+    .m-side {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      padding: 20px 14px;
+      background: var(--m-side-bg);
+      color: var(--m-side-fg);
+      backdrop-filter: var(--m-card-blur);
+      -webkit-backdrop-filter: var(--m-card-blur);
+      border-right: 1px solid var(--m-card-borda);
+    }
+    .m-logo { display: flex; align-items: center; gap: 10px; margin: 0 6px 22px; }
+    .m-logo img { width: 36px; }
+    .m-logo strong { display: block; font-size: 1rem; line-height: 1.05; }
+    .m-logo span { font-size: 0.68rem; letter-spacing: 0.12em; color: var(--laranja); font-weight: 700; }
+    .m-item { display: flex; align-items: center; gap: 11px; padding: 9px 11px; border-radius: 10px; font-size: 0.93rem; font-weight: 500; }
+    .m-item.ativo { background: var(--m-side-ativo-bg); color: var(--m-side-ativo-fg); font-weight: 600; }
+    .m-item .contador { margin-left: auto; min-width: 19px; height: 19px; padding: 0 5px; border-radius: 10px; background: var(--laranja); color: #fff; font-size: 0.7rem; font-weight: 700; display: grid; place-items: center; }
+    .m-sep { height: 1px; background: var(--m-card-borda); margin: 10px 6px; }
+    .m-side .empurra { flex: 1; }
+
+    .m-main { position: relative; z-index: 1; min-width: 0; }
+    .m-hero { position: relative; padding: 30px 30px 54px; }
+    .m-hero h3 { font-family: var(--m-titulo); font-weight: 400; font-size: 2.3rem; line-height: 1; text-transform: uppercase; letter-spacing: 0.01em; }
+    .m-hero p { margin-top: 8px; display: flex; align-items: center; gap: 8px; font-size: 0.98rem; opacity: 0.9; }
+    .m-onda { position: absolute; left: 0; right: 0; bottom: -1px; width: 100%; height: 46px; }
+
+    .m-conteudo { padding: 0 30px 30px; display: grid; gap: 16px; margin-top: -14px; position: relative; }
+    .m-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+    .m-card {
+      background: var(--m-card-bg);
+      border: 1px solid var(--m-card-borda);
+      border-radius: 14px;
+      box-shadow: var(--m-card-sombra);
+      backdrop-filter: var(--m-card-blur);
+      -webkit-backdrop-filter: var(--m-card-blur);
+      padding: 16px 18px;
+    }
+    .m-stat .topo { display: flex; align-items: center; gap: 8px; color: var(--m-suave); font-size: 0.85rem; font-weight: 500; }
+    .m-stat .topo .icone { color: var(--laranja); }
+    .m-stat .valor { font-family: var(--m-titulo); font-size: 2rem; line-height: 1.1; margin-top: 6px; font-variant-numeric: tabular-nums; }
+    .m-stat .extra { font-size: 0.85rem; color: var(--m-suave); }
+    .m-stat.destaque { background: var(--laranja); border-color: var(--laranja); color: #fff; }
+    .m-stat.destaque .topo, .m-stat.destaque .extra, .m-stat.destaque .topo .icone { color: rgba(255, 255, 255, 0.9); }
+
+    .m-card-titulo { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+    .m-card-titulo h4 { font-size: 1.05rem; font-weight: 700; }
+    .m-card-titulo a { font-size: 0.88rem; color: var(--laranja); font-weight: 600; text-decoration: none; }
+
+    .m-slot { display: grid; grid-template-columns: 58px 1fr auto; align-items: center; gap: 14px; padding: 11px 0; border-top: 1px solid var(--m-card-borda); }
+    .m-slot:first-of-type { border-top: 0; }
+    .m-slot .hora { font-family: var(--m-titulo); font-size: 1.25rem; font-variant-numeric: tabular-nums; }
+    .m-slot .quem { font-weight: 600; font-size: 0.95rem; }
+    .m-slot .onde { display: flex; align-items: center; gap: 5px; font-size: 0.82rem; color: var(--m-suave); }
+    .m-slot .onde .icone { width: 14px; height: 14px; }
+    .m-barra { height: 5px; border-radius: 3px; background: rgba(127, 127, 127, 0.18); margin-top: 7px; overflow: hidden; }
+    .m-barra i { display: block; height: 100%; background: var(--verde); border-radius: 3px; }
+    .m-barra i.quase { background: var(--laranja); }
+    .m-barra i.cheio { background: var(--vermelho); }
+    .m-btn { font: inherit; font-weight: 600; font-size: 0.88rem; padding: 8px 14px; border-radius: 9px; border: 0; background: var(--laranja); color: #fff; display: inline-flex; align-items: center; gap: 6px; }
+    .m-btn.off { background: rgba(127, 127, 127, 0.16); color: var(--m-suave); }
+    .m-lot { font-size: 0.8rem; font-weight: 600; color: var(--m-suave); margin-right: 10px; font-variant-numeric: tabular-nums; }
+
+    /* ---------- A · Maré: sólido, faixa laranja com ondas ---------- */
+    .op-a { --m-side-bg: var(--preto); --m-side-fg: #e8e8e8; --m-side-ativo-bg: var(--laranja); --m-side-ativo-fg: #fff; --m-card-borda: #efe7de; }
+    .op-a .m-side { border-right: 0; }
+    .op-a .m-sep { background: rgba(255, 255, 255, 0.12); }
+    .op-a .m-logo strong { color: #fff; }
+    .op-a .m-hero { background: var(--laranja); color: #fff; }
+    .op-a .m-onda path:nth-child(1) { fill: var(--laranja-claro); }
+    .op-a .m-onda path:nth-child(2) { fill: var(--creme); }
+
+    /* ---------- B · Vidro: pôr do sol laranja com ondas e glassmorphism ---------- */
+    .op-b {
+      --m-bg: linear-gradient(160deg, #fd711d 0%, #fb8d42 45%, #ffc08f 100%);
+      --m-side-bg: rgba(255, 255, 255, 0.16);
+      --m-side-fg: #fff;
+      --m-side-ativo-bg: rgba(255, 255, 255, 0.92);
+      --m-side-ativo-fg: var(--laranja-escuro);
+      --m-card-bg: rgba(255, 255, 255, 0.62);
+      --m-card-borda: rgba(255, 255, 255, 0.55);
+      --m-card-sombra: 0 10px 30px -18px rgba(120, 40, 0, 0.5);
+      --m-card-blur: blur(16px) saturate(140%);
+      --m-suave: #5f4a3c;
+      --m-titulo: 'Archivo', sans-serif;
+      --m-corpo: 'Archivo', sans-serif;
+    }
+    .op-b .m-logo strong { color: #fff; }
+    .op-b .m-logo span { color: #fff3e6; }
+    .op-b .m-hero { color: #fff; }
+    .op-b .m-hero h3 { font-weight: 800; font-stretch: 118%; text-transform: none; letter-spacing: -0.02em; font-size: 2.1rem; }
+    .op-b .m-stat .valor, .op-b .m-slot .hora { font-weight: 800; font-stretch: 112%; }
+    .op-b .m-onda { display: none; }
+    .ondas-fundo { display: none; }
+    .op-b .ondas-fundo { display: block; position: absolute; inset: auto 0 0 0; width: 100%; height: 70%; z-index: 0; pointer-events: none; }
+    .op-b .m-stat.destaque { background: rgba(17, 17, 17, 0.78); border-color: rgba(255, 255, 255, 0.2); }
+
+    /* ---------- C · Foto: cabeçalho com foto da Barra e onda laranja ---------- */
+    .op-c { --m-bg: #f7f3ee; --m-side-ativo-bg: #fff1e6; --m-titulo: 'Barlow Condensed', sans-serif; }
+    .op-c .m-side { box-shadow: inset -1px 0 0 var(--linha); border-right: 0; }
+    .op-c .m-item.ativo { box-shadow: inset 3px 0 0 var(--laranja); border-radius: 4px 10px 10px 4px; }
+    .op-c .m-hero {
+      color: #fff;
+      padding-top: 46px;
+      padding-bottom: 72px;
+      background:
+        linear-gradient(90deg, rgba(17, 17, 17, 0.78) 0%, rgba(17, 17, 17, 0.25) 70%),
+        url('https://ivory-chough-425846.hostingersite.com/wp-content/uploads/2026/01/newpraiabarra-1.webp') center 40% / cover,
+        #2c4a5a;
+    }
+    .op-c .m-hero h3 { font-weight: 700; font-size: 2.8rem; letter-spacing: 0; }
+    .op-c .m-stat .valor, .op-c .m-slot .hora { font-weight: 700; }
+    .op-c .m-onda path:nth-child(1) { fill: var(--laranja); }
+    .op-c .m-onda path:nth-child(2) { fill: #f7f3ee; }
+
+    /* ---------- D · Foto + vidro: praia ao fundo, painéis de vidro escuro ---------- */
+    .op-d {
+      --m-bg:
+        linear-gradient(180deg, rgba(17, 17, 17, 0.35), rgba(120, 45, 5, 0.55)),
+        url('https://ivory-chough-425846.hostingersite.com/wp-content/uploads/2026/01/bg-barra-02-1-1.webp') center / cover,
+        #24323a;
+      --m-side-bg: rgba(17, 17, 17, 0.5);
+      --m-side-fg: #f1f1f1;
+      --m-side-ativo-bg: var(--laranja);
+      --m-side-ativo-fg: #fff;
+      --m-card-bg: rgba(17, 17, 17, 0.48);
+      --m-card-borda: rgba(255, 255, 255, 0.14);
+      --m-card-blur: blur(14px) saturate(130%);
+      --m-texto: #fff;
+      --m-suave: rgba(255, 255, 255, 0.72);
+    }
+    .op-d .m-logo strong { color: #fff; }
+    .op-d .m-hero { color: #fff; }
+    .op-d .m-onda path:nth-child(1) { fill: rgba(253, 113, 29, 0.85); }
+    .op-d .m-onda path:nth-child(2) { fill: rgba(253, 113, 29, 0.35); }
+    .op-d .m-stat .topo .icone { color: var(--laranja-claro); }
+    .op-d .m-btn.off { background: rgba(255, 255, 255, 0.12); }
+
+    .op-legenda { display: grid; gap: 4px 24px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); margin-top: 16px; font-size: 0.92rem; color: #444; }
+    .op-legenda strong { color: var(--preto); }
+
+    /* ---------- Celular ---------- */
+    @media (max-width: 820px) {
+      .mock { grid-template-columns: 1fr; min-height: 0; }
+      .m-side { display: none; }
+      .m-hero { padding: 24px 18px 48px; }
+      .m-hero h3 { font-size: 1.8rem; }
+      .m-conteudo { padding: 0 14px 18px; }
+      .m-stats { grid-template-columns: 1fr; }
+      .m-slot { grid-template-columns: 50px 1fr; }
+      .m-slot > :last-child { grid-column: 1 / -1; justify-self: end; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Ícones de traço (desenhados para o projeto, sem dependência externa) -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="i-inicio" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5.5 9v11a1 1 0 0 0 1 1H10v-6h4v6h3.5a1 1 0 0 0 1-1V9"/></symbol>
+    <symbol id="i-agenda" viewBox="0 0 24 24"><rect x="3" y="4.5" width="18" height="16.5" rx="2.5"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/><path d="M8 14h3"/></symbol>
+    <symbol id="i-creditos" viewBox="0 0 24 24"><path d="M2.5 9V7a2 2 0 0 1 2-2h15a2 2 0 0 1 2 2v2a3 3 0 0 0 0 6v2a2 2 0 0 1-2 2h-15a2 2 0 0 1-2-2v-2a3 3 0 0 0 0-6Z"/><path d="M14.5 5v2.5M14.5 10.75v2.5M14.5 16.5V19"/></symbol>
+    <symbol id="i-historico" viewBox="0 0 24 24"><path d="M3.5 12a8.5 8.5 0 1 0 2.5-6"/><path d="M3 4v4h4"/><path d="M12 8v4.5l3 1.8"/></symbol>
+    <symbol id="i-mensagens" viewBox="0 0 24 24"><path d="M20.5 12a8.5 8.5 0 0 1-12.4 7.55L3.5 20.5l1-4.4A8.5 8.5 0 1 1 20.5 12Z"/></symbol>
+    <symbol id="i-planos" viewBox="0 0 24 24"><rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M2.5 10h19M6.5 15h4"/></symbol>
+    <symbol id="i-ajuda" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.4a2.5 2.5 0 1 1 3.4 2.4c-.6.3-1 .8-1 1.5v.6"/><path d="M12 17.2h.01"/></symbol>
+    <symbol id="i-sair" viewBox="0 0 24 24"><path d="M9.5 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h3.5"/><path d="M15.5 16.5 20 12l-4.5-4.5M20 12H9.5"/></symbol>
+    <symbol id="i-local" viewBox="0 0 24 24"><path d="M12 21s-7-6.1-7-11.5a7 7 0 0 1 14 0C19 14.9 12 21 12 21Z"/><circle cx="12" cy="9.5" r="2.5"/></symbol>
+    <symbol id="i-onda" viewBox="0 0 24 24"><path d="M2 8c2.2 0 2.2-2 4.5-2S8.8 8 11 8s2.2-2 4.5-2S17.8 8 20 8s2-1.2 2-1.2"/><path d="M2 13c2.2 0 2.2-2 4.5-2s2.3 2 4.5 2 2.2-2 4.5-2 2.3 2 4.5 2 2-1.2 2-1.2"/><path d="M2 18c2.2 0 2.2-2 4.5-2s2.3 2 4.5 2 2.2-2 4.5-2 2.3 2 4.5 2 2-1.2 2-1.2"/></symbol>
+    <symbol id="i-prancha" viewBox="0 0 24 24"><path d="M19.8 4.2c-2.6-1.3-8.1.6-11.9 5.3S3 18.6 4.4 19.6c1.4 1.3 6.5-.2 10.3-4.6s6.3-9.5 5.1-10.8Z"/><path d="M8.5 15.5 13 11"/></symbol>
+    <symbol id="i-seta" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+    <symbol id="i-sol" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M4.6 4.6 6 6M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4 6 18M18 6l1.4-1.4"/></symbol>
+  </svg>
+
+  <div class="doc">
+    <div class="doc-topo">
+      <img src="../logomenor-barrafloripa.png" alt="">
+      <h1>Opções visuais do painel</h1>
+    </div>
+    <p class="lead">
+      Quatro direções para o painel de alunos e professores. As quatro já trazem
+      as correções que tiram o "ar de IA" — muda só a superfície: cor sólida,
+      vidro, foto ou foto com vidro. Escolha uma letra (ou peça uma mistura,
+      tipo "C com o menu da A") e eu aplico em todas as telas.
+    </p>
+
+    <!-- ===================== DIAGNÓSTICO ===================== -->
+    <section class="secao">
+      <h2>O que passa o ar de IA hoje</h2>
+      <p>Não é uma coisa só: é a soma de escolhas "padrão" que aparecem em todo sistema gerado automaticamente.</p>
+
+      <div class="diagnostico">
+        <div class="diag">
+          <h3>1. Emojis no lugar de ícones</h3>
+          <p>Cada sistema operacional desenha de um jeito, as cores brigam com o laranja e a leitura fica infantil. Troco por ícones de traço desenhados para o projeto, sem biblioteca externa.</p>
+          <div class="antes-depois">
+            <span class="chip-a ruim">🏠 Início</span><span class="chip-a ruim">🎟️ Créditos</span>
+            <span class="seta">→</span>
+            <span class="chip-a"><svg class="icone"><use href="#i-inicio"/></svg>Início</span>
+            <span class="chip-a"><svg class="icone"><use href="#i-creditos"/></svg>Créditos</span>
+          </div>
+        </div>
+        <div class="diag">
+          <h3>2. Botões em caixa alta espaçada</h3>
+          <p>"MARCAR TUDO", "SALVAR DISPONIBILIDADE": letras maiúsculas com espaçamento largo são a marca registrada de template. Botão com texto normal soa como gente falando.</p>
+          <div class="antes-depois">
+            <button class="btn-ruim" type="button">Salvar disponibilidade</button>
+            <span class="seta">→</span>
+            <button class="btn-bom" type="button">Salvar disponibilidade</button>
+          </div>
+        </div>
+        <div class="diag">
+          <h3>3. Poppins em tudo</h3>
+          <p>A Poppins é a fonte mais usada por geradores de site. Sozinha, em todos os pesos (até o 800 nos títulos), deixa tudo com a mesma cara "redondinha". O site da escola usa Anton nos títulos — o painel deveria conversar com ele.</p>
+        </div>
+        <div class="diag">
+          <h3>4. Maiúscula em toda palavra</h3>
+          <p>"Novembro De 2026", "Segunda-Feira": o português não capitaliza assim. É um <code>text-transform</code> que entrega que ninguém revisou. Fica "novembro de 2026", "segunda-feira".</p>
+        </div>
+        <div class="diag">
+          <h3>5. Tudo do mesmo jeito</h3>
+          <p>Todo cartão com a mesma borda arredondada, a mesma sombra e o mesmo cinza. Falta um elemento da marca — o laranja forte, a onda, a praia — dando personalidade e hierarquia.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== FONTES ===================== -->
+    <section class="secao">
+      <h2>Fontes</h2>
+      <p>Proposta: um par com contraste — uma fonte de títulos com cara de surf/esporte e uma de texto mais "humana" que a Poppins. Cada opção abaixo usa um dos pares.</p>
+      <div class="fontes">
+        <div class="fonte">
+          <small>Hoje — Poppins em tudo</small>
+          <div class="t" style="font-family:'Poppins';font-weight:800">Agendar Aula</div>
+          <div class="c" style="font-family:'Poppins'">Escolha o dia e o horário. Cada aula dura 1h30 e consome 1 crédito.</div>
+        </div>
+        <div class="fonte">
+          <small>Anton + Barlow — opções A e D (mesma fonte do site)</small>
+          <div class="t" style="font-family:'Anton';text-transform:uppercase">Agendar aula</div>
+          <div class="c" style="font-family:'Barlow'">Escolha o dia e o horário. Cada aula dura 1h30 e consome 1 crédito.</div>
+        </div>
+        <div class="fonte">
+          <small>Archivo larga — opção B</small>
+          <div class="t" style="font-family:'Archivo';font-weight:800;font-stretch:118%;letter-spacing:-0.02em">Agendar aula</div>
+          <div class="c" style="font-family:'Archivo'">Escolha o dia e o horário. Cada aula dura 1h30 e consome 1 crédito.</div>
+        </div>
+        <div class="fonte">
+          <small>Barlow Condensed + Barlow — opção C</small>
+          <div class="t" style="font-family:'Barlow Condensed';font-weight:700;text-transform:uppercase">Agendar aula</div>
+          <div class="c" style="font-family:'Barlow'">Escolha o dia e o horário. Cada aula dura 1h30 e consome 1 crédito.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== OPÇÕES ===================== -->
+    <section class="secao">
+      <div class="rotulo-op"><b>A</b> Maré</div>
+      <h2>Sólido, laranja e ondas</h2>
+      <p>Menu preto com o item ativo em laranja, faixa laranja no topo terminando em ondas, cartões brancos sem sombra. É a mais limpa e a mais rápida de carregar.</p>
+      <div class="mock op-a" data-mock></div>
+      <div class="op-legenda">
+        <span><strong>Fontes:</strong> Anton + Barlow</span>
+        <span><strong>Laranja:</strong> topo, menu ativo, destaques</span>
+        <span><strong>Celular:</strong> ótimo, nada pesado</span>
+      </div>
+    </section>
+
+    <section class="secao">
+      <div class="rotulo-op"><b>B</b> Vidro</div>
+      <h2>Pôr do sol com glassmorphism</h2>
+      <p>Fundo em degradê laranja com ondas desenhadas, menu e cartões de vidro fosco. Tem mais presença de marca; o vidro claro garante leitura.</p>
+      <div class="mock op-b" data-mock></div>
+      <div class="op-legenda">
+        <span><strong>Fontes:</strong> Archivo (títulos largos)</span>
+        <span><strong>Laranja:</strong> o fundo inteiro</span>
+        <span><strong>Celular:</strong> bom; o desfoque pesa um pouco em aparelhos antigos</span>
+      </div>
+    </section>
+
+    <section class="secao">
+      <div class="rotulo-op"><b>C</b> Foto</div>
+      <h2>Cabeçalho com a praia da Barra</h2>
+      <p>Foto real no topo de cada tela, com uma onda laranja fazendo a passagem para o conteúdo. O resto continua sólido e fácil de ler. A foto pode mudar por tela (agenda, créditos, turmas).</p>
+      <div class="mock op-c" data-mock></div>
+      <div class="op-legenda">
+        <span><strong>Fontes:</strong> Barlow Condensed + Barlow</span>
+        <span><strong>Laranja:</strong> onda, menu ativo, botões</span>
+        <span><strong>Celular:</strong> ótimo; foto otimizada só no topo</span>
+      </div>
+    </section>
+
+    <section class="secao">
+      <div class="rotulo-op"><b>D</b> Foto + vidro</div>
+      <h2>Praia ao fundo, painéis de vidro escuro</h2>
+      <p>A foto ocupa a tela inteira com um filtro quente; menu e cartões são vidro escuro com texto branco. É a mais marcante — parece app de surf —, mas a mais carregada para usar todo dia.</p>
+      <div class="mock op-d" data-mock></div>
+      <div class="op-legenda">
+        <span><strong>Fontes:</strong> Anton + Barlow</span>
+        <span><strong>Laranja:</strong> filtro da foto, ondas, ações</span>
+        <span><strong>Celular:</strong> bom; exige foto bem comprimida</span>
+      </div>
+    </section>
+
+    <!-- ===================== COMUM ===================== -->
+    <section class="secao">
+      <h2>Vale para qualquer escolha</h2>
+      <div class="comum">
+        <ul>
+          <li>Todos os emojis do painel (menu, avisos, botões, estados vazios) viram ícones de traço como os acima.</li>
+          <li>Botões e rótulos em letra normal; sem maiúsculas forçadas em meses e dias da semana.</li>
+          <li>Números (créditos, horários, lotação) em largura fixa, para não "dançarem" quando mudam.</li>
+          <li>Onda como assinatura: no topo das telas, no calendário vazio e na tela de carregamento.</li>
+          <li>Login e checkout seguem a mesma linha; a página inicial (index.html) não muda.</li>
+        </ul>
+      </div>
+    </section>
+  </div>
+
+  <!-- A mesma maquete nas quatro opções: muda só o estilo -->
+  <template id="tpl-mock">
+    <svg class="ondas-fundo" viewBox="0 0 1200 400" preserveAspectRatio="none" aria-hidden="true">
+      <path d="M0 120 C200 60 400 180 600 120 S1000 60 1200 120 V400 H0Z" fill="rgba(255,255,255,0.14)"/>
+      <path d="M0 200 C200 140 400 260 600 200 S1000 140 1200 200 V400 H0Z" fill="rgba(255,255,255,0.12)"/>
+      <path d="M0 290 C200 230 400 350 600 290 S1000 230 1200 290 V400 H0Z" fill="rgba(255,255,255,0.12)"/>
+    </svg>
+    <aside class="m-side">
+      <div class="m-logo">
+        <img src="../logomenor-barrafloripa.png" alt="">
+        <div><strong>Barra Floripa</strong><span>SURF SCHOOL</span></div>
+      </div>
+      <a class="m-item ativo"><svg class="icone"><use href="#i-inicio"/></svg>Início</a>
+      <a class="m-item"><svg class="icone"><use href="#i-agenda"/></svg>Agendar aula</a>
+      <a class="m-item"><svg class="icone"><use href="#i-creditos"/></svg>Meus créditos</a>
+      <a class="m-item"><svg class="icone"><use href="#i-historico"/></svg>Histórico</a>
+      <a class="m-item"><svg class="icone"><use href="#i-mensagens"/></svg>Mensagens<span class="contador">1</span></a>
+      <div class="m-sep"></div>
+      <a class="m-item"><svg class="icone"><use href="#i-planos"/></svg>Planos e preços</a>
+      <a class="m-item"><svg class="icone"><use href="#i-ajuda"/></svg>Como agendar</a>
+      <div class="empurra"></div>
+      <a class="m-item"><svg class="icone"><use href="#i-sair"/></svg>Sair</a>
+    </aside>
+    <main class="m-main">
+      <header class="m-hero">
+        <h3>Bom dia, Ricardo</h3>
+        <p><svg class="icone"><use href="#i-onda"/></svg>Sábado, 31 de outubro · ondas de 1 m, vento terral</p>
+        <svg class="m-onda" viewBox="0 0 1200 46" preserveAspectRatio="none" aria-hidden="true">
+          <path d="M0 18 C150 0 300 36 450 18 S750 0 900 18 S1100 34 1200 16 V46 H0Z"/>
+          <path d="M0 30 C200 14 350 46 550 30 S900 14 1200 30 V46 H0Z"/>
+        </svg>
+      </header>
+      <div class="m-conteudo">
+        <div class="m-stats">
+          <div class="m-card m-stat destaque">
+            <div class="topo"><svg class="icone"><use href="#i-creditos"/></svg>Seus créditos</div>
+            <div class="valor">2</div>
+            <div class="extra">1 vence em 4 dias</div>
+          </div>
+          <div class="m-card m-stat">
+            <div class="topo"><svg class="icone"><use href="#i-prancha"/></svg>Próxima aula</div>
+            <div class="valor">Dom 08:00</div>
+            <div class="extra">Prof. Igor · Praia da Barra</div>
+          </div>
+          <div class="m-card m-stat">
+            <div class="topo"><svg class="icone"><use href="#i-mensagens"/></svg>Mensagens</div>
+            <div class="valor">1 nova</div>
+            <div class="extra">Prof. Igor, há 2 horas</div>
+          </div>
+        </div>
+        <section class="m-card">
+          <div class="m-card-titulo">
+            <h4>Turmas de amanhã</h4>
+            <a href="#" onclick="return false">Ver calendário</a>
+          </div>
+          <div class="m-slot">
+            <span class="hora">08:00</span>
+            <div>
+              <div class="quem">Prof. Igor</div>
+              <div class="onde"><svg class="icone"><use href="#i-local"/></svg>Praia da Barra da Lagoa · turma completa</div>
+              <div class="m-barra"><i class="cheio" style="width:100%"></i></div>
+            </div>
+            <div><span class="m-lot">5/5</span><button class="m-btn off" type="button">Lotado</button></div>
+          </div>
+          <div class="m-slot">
+            <span class="hora">10:00</span>
+            <div>
+              <div class="quem">Prof. Pedro</div>
+              <div class="onde"><svg class="icone"><use href="#i-local"/></svg>Praia da Barra da Lagoa · resta 1 vaga</div>
+              <div class="m-barra"><i class="quase" style="width:80%"></i></div>
+            </div>
+            <div><span class="m-lot">4/5</span><button class="m-btn" type="button">Agendar<svg class="icone"><use href="#i-seta"/></svg></button></div>
+          </div>
+          <div class="m-slot">
+            <span class="hora">14:00</span>
+            <div>
+              <div class="quem">Prof. Gabrieli</div>
+              <div class="onde"><svg class="icone"><use href="#i-local"/></svg>Praia Mole · 3 vagas</div>
+              <div class="m-barra"><i style="width:40%"></i></div>
+            </div>
+            <div><span class="m-lot">2/5</span><button class="m-btn" type="button">Agendar<svg class="icone"><use href="#i-seta"/></svg></button></div>
+          </div>
+        </section>
+      </div>
+    </main>
+  </template>
+
+  <script>
+    const modelo = document.getElementById('tpl-mock');
+    document.querySelectorAll('[data-mock]').forEach((alvo) => alvo.append(modelo.content.cloneNode(true)));
+  </script>
+</body>
+</html>
