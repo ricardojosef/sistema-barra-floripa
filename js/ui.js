@@ -488,16 +488,20 @@ export function montarShellPainel({ usuario, paginaAtual, aoSair, chipCreditos =
       { id: 'agendar', href: 'agendar.html', icone: '📅', texto: 'Agendar Aula' },
       { id: 'creditos', href: 'creditos.html', icone: '🎟️', texto: 'Meus Créditos' },
       { id: 'historico', href: 'historico.html', icone: '📋', texto: 'Histórico' },
+      { id: 'mensagens', href: 'mensagens.html', icone: '💬', texto: 'Mensagens' },
       { separador: true },
       { id: 'planos', href: 'checkout.html', icone: '💳', texto: 'Planos e Preços' },
       { id: 'tutorial', href: 'dashboard.html?tutorial=1', icone: '❓', texto: 'Como agendar' },
     ],
     professor: [
-      { id: 'turmas', href: 'professor.html', icone: '🏄', texto: 'Minhas Turmas' },
-      { id: 'agenda', href: 'professor.html#agenda', icone: '📅', texto: 'Agenda' },
+      { id: 'turmas', href: 'professor.html#turmas', icone: '🏄', texto: 'Minhas Turmas' },
+      { id: 'disponibilidade', href: 'professor.html#disponibilidade', icone: '📅', texto: 'Disponibilidade' },
+      { id: 'mensagens', href: 'professor.html#mensagens', icone: '💬', texto: 'Mensagens' },
     ],
     admin: [
-      { id: 'turmas', href: 'professor.html', icone: '🏄', texto: 'Turmas' },
+      { id: 'turmas', href: 'professor.html#turmas', icone: '🏄', texto: 'Turmas' },
+      { id: 'disponibilidade', href: 'professor.html#disponibilidade', icone: '📅', texto: 'Disponibilidade' },
+      { id: 'mensagens', href: 'professor.html#mensagens', icone: '💬', texto: 'Mensagens' },
       { separador: true },
       { id: 'admin', href: 'admin.html', icone: '⚙️', texto: 'Administração' },
     ],
@@ -509,7 +513,7 @@ export function montarShellPainel({ usuario, paginaAtual, aoSair, chipCreditos =
     lateral.className = 'barra-lateral';
     lateral.innerHTML = itens.map((item) => item.separador
       ? '<div class="separador"></div>'
-      : `<a href="${item.href}" class="${item.id === paginaAtual ? 'ativo' : ''}">
+      : `<a href="${item.href}" class="${item.id === paginaAtual ? 'ativo' : ''}" data-item="${item.id}">
            <span class="icone">${item.icone}</span><span>${item.texto}</span>
          </a>`).join('')
       + `<div class="empurra"></div>
@@ -521,9 +525,36 @@ export function montarShellPainel({ usuario, paginaAtual, aoSair, chipCreditos =
   if (inferior) {
     inferior.className = 'nav-inferior';
     inferior.innerHTML = itens.filter((i) => !i.separador).slice(0, 5).map((item) => `
-      <a href="${item.href}" class="${item.id === paginaAtual ? 'ativo' : ''}">
+      <a href="${item.href}" class="${item.id === paginaAtual ? 'ativo' : ''}" data-item="${item.id}">
         <span class="icone">${item.icone}</span><span>${item.texto.split(' ')[0]}</span>
       </a>`).join('');
+  }
+
+  if (usuario.papel === 'aluno') atualizarBadgeMensagens(usuario.id);
+}
+
+/** Marca o item ativo do menu sem remontá-lo (abas dentro da mesma página). */
+export function marcarItemMenu(id) {
+  qsa('#barra-lateral a[data-item], #nav-inferior a[data-item]').forEach((a) => {
+    a.classList.toggle('ativo', a.dataset.item === id);
+  });
+}
+
+/**
+ * Contador de mensagens não lidas no item "Mensagens" do menu do aluno.
+ * Import dinâmico: as páginas públicas, que também usam este arquivo, não
+ * precisam carregar o módulo de mensagens.
+ */
+export async function atualizarBadgeMensagens(alunoId) {
+  try {
+    const { contarNaoLidas } = await import('./mensagens.js');
+    const total = await contarNaoLidas(alunoId);
+    qsa('a[data-item="mensagens"]').forEach((a) => {
+      a.querySelector('.badge-menu')?.remove();
+      if (total > 0) a.append(el('span', { class: 'badge-menu', text: total > 9 ? '9+' : String(total) }));
+    });
+  } catch (err) {
+    console.warn('[ui] não foi possível contar as mensagens não lidas:', err);
   }
 }
 

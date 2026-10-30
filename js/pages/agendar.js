@@ -61,11 +61,27 @@ async function montarCalendario() {
     html: '<span class="spinner escuro"></span>',
   }));
 
-  resumosDoMes = await resumoDoPeriodo(
-    isoDeData(primeiroDia),
-    isoDeData(ultimoDia),
-    { tipo: tipoAula },
-  );
+  try {
+    resumosDoMes = await resumoDoPeriodo(
+      isoDeData(primeiroDia),
+      isoDeData(ultimoDia),
+      { tipo: tipoAula },
+    );
+  } catch (err) {
+    // Sem isto, uma falha de rede ou de permissão deixava o carregamento
+    // girando para sempre, sem o aluno saber o que fazer.
+    console.error('[agendar] falha ao carregar o calendário:', err);
+    grade.querySelector('.vazio')?.remove();
+    grade.append(el('div', { class: 'vazio', style: 'grid-column:1/-1' }, [
+      el('span', { class: 'vazio-icone', text: '⚠️' }),
+      el('p', { text: 'Não foi possível carregar os horários. Verifique sua conexão e tente de novo.' }),
+      el('button', {
+        type: 'button', class: 'btn btn-secundario btn-peq mt-16', text: 'Tentar de novo',
+        onclick: () => montarCalendario(),
+      }),
+    ]));
+    return;
+  }
 
   // Redesenha já com os dados.
   grade.innerHTML = '';
@@ -100,7 +116,12 @@ async function montarCalendario() {
         !passou && semVagas ? 'lotado-total' : '',
       ].filter(Boolean).join(' '),
       disabled: indisponivel,
-      title: bloqueadoPorPlano ? 'Seu plano é válido apenas aos sábados e domingos' : '',
+      // Ao passar o mouse: horários e locais abertos naquele dia.
+      title: bloqueadoPorPlano
+        ? 'Seu plano é válido apenas aos sábados e domingos'
+        : (!indisponivel && resumo
+          ? `${resumo.horarios.join(' · ')} — ${resumo.locais.map((l) => nomeLocal(contexto.mapaLocais, l)).join(', ')}`
+          : ''),
       'aria-label': `${dia} de ${MESES[mes]}${
         bloqueadoPorPlano ? ' — indisponível: seu plano vale só no fim de semana'
           : indisponivel ? ' — indisponível'
@@ -139,11 +160,56 @@ async function selecionarDia(iso) {
 
   try {
     const slots = await horariosDoDia(iso, { tipo: tipoAula });
+    montarResumoDoDia(slots);
     montarSlots(slots);
   } catch (err) {
     console.error('[agendar] falha ao carregar horários:', err);
-    alvo.innerHTML = '<div class="vazio">Não foi possível carregar os horários.</div>';
+    qs('#resumo-dia').innerHTML = '';
+    alvo.innerHTML = '<div class="vazio">Não foi possível carregar os horários. Tente de novo.</div>';
   }
+}
+
+/** Faixa com os horários e locais abertos no dia escolhido. */
+function montarResumoDoDia(slots) {
+  const alvo = qs('#resumo-dia');
+  alvo.innerHTML = '';
+  const futuros = slots.filter((s) => !s.jaPassou);
+  if (!futuros.length) return;
+
+  const horarios = [...new Set(futuros.map((s) => s.horario))];
+  const locais = [...new Set(futuros.map((s) => nomeLocal(contexto.mapaLocais, s.localId)))];
+
+  alvo.append(
+    el('div', { class: 'resumo-dia-linha' }, [
+      el('span', { class: 'resumo-dia-rotulo', text: '🕗 Horários' }),
+      ...horarios.map((h) => el('span', { class: 'chip-info', text: h })),
+    ]),
+    el('div', { class: 'resumo-dia-linha' }, [
+      el('span', { class: 'resumo-dia-rotulo', text: '📍 Locais' }),
+      ...locais.map((l) => el('span', { class: 'chip-info', text: l })),
+    ]),
+  );
+}
+
+/** Texto e estilo do selo de cada professor, conforme o tipo de aula. */
+function estadoDoSlot(slot) {
+  if (tipoAula === 'individual') {
+    if (slot.particularLivre) return { texto: 'LIVRE', classe: 'badge-sucesso', pode: true, dica: 'Horário livre para aula particular' };
+    if (slot.individual) return { texto: 'RESERVADO', classe: 'badge-perigo', pode: false, dica: 'Já reservado para outra aula particular' };
+    return {
+      texto: 'TURMA', classe: 'badge-neutro', pode: false,
+      dica: `Já tem turma em grupo (${slot.ocupados}/${slot.capacidade}) — não cabe particular`,
+    };
+  }
+  if (slot.individual) return { texto: 'PARTICULAR', classe: 'badge-perigo', pode: false, dica: 'Reservado para aula particular' };
+  if (slot.grupoLotado) return { texto: 'LOTADO', classe: 'badge-perigo', pode: false, dica: 'Turma completa' };
+  const restam = slot.vagas;
+  return {
+    texto: `${slot.ocupados}/${slot.capacidade}`,
+    classe: restam <= 2 ? 'badge-aviso' : 'badge-sucesso',
+    pode: true,
+    dica: restam === 1 ? 'Resta 1 vaga' : `Restam ${restam} vagas`,
+  };
 }
 
 function montarSlots(slots) {
@@ -157,7 +223,7 @@ function montarSlots(slots) {
     return;
   }
 
-  // Agrupa por horário para a lista ficar cronológica.
+  // Um bloco por horário; dentro dele, uma linha por professor.
   const porHorario = new Map();
   for (const slot of utilizaveis) {
     if (!porHorario.has(slot.horario)) porHorario.set(slot.horario, []);
@@ -165,45 +231,49 @@ function montarSlots(slots) {
   }
 
   for (const [horario, doHorario] of porHorario) {
+    const abertos = doHorario.filter((s) => estadoDoSlot(s).pode).length;
+    const grupo = el('section', { class: 'grupo-horario', 'aria-label': `Horário ${horario}` }, [
+      el('header', { class: 'grupo-horario-topo' }, [
+        el('span', { class: 'grupo-horario-hora', text: faixaHorario(horario, contexto.config.duracaoMin) }),
+        el('span', {
+          class: 'texto-min texto-cinza',
+          text: abertos
+            ? `${abertos} ${abertos === 1 ? 'professor disponível' : 'professores disponíveis'}`
+            : 'sem vagas',
+        }),
+      ]),
+    ]);
+
     for (const slot of doHorario) {
-      const local = nomeLocal(contexto.mapaLocais, contexto.config.localPadraoId);
-      const percentual = (slot.ocupados / slot.capacidade) * 100;
-      const classeBarra = slot.cheio ? 'cheio' : percentual >= 60 ? 'medio' : '';
+      const estado = estadoDoSlot(slot);
+      const percentual = tipoAula === 'individual'
+        ? (slot.ocupados > 0 ? 100 : 0)
+        : Math.min(100, (slot.ocupados / slot.capacidade) * 100);
+      const classeBarra = !estado.pode ? 'cheio' : percentual >= 60 ? 'medio' : '';
 
       const botao = el('button', {
         type: 'button',
-        class: `slot ${slot.cheio ? 'lotado' : ''}`,
-        disabled: slot.cheio,
+        class: `slot ${estado.pode ? '' : 'lotado'}`,
+        disabled: !estado.pode,
+        title: estado.dica,
+        'aria-label': `${horario}, professor ${slot.professorNome}, ${nomeLocal(contexto.mapaLocais, slot.localId)}: ${estado.dica}`,
         dataset: { professor: slot.professorId, horario },
       }, [
-        el('span', { class: 'hora', text: horario }),
         el('div', { class: 'detalhe' }, [
           el('div', { class: 'prof', text: `Prof. ${slot.professorNome}` }),
-          el('div', {
-            class: 'local',
-            text: `${faixaHorario(horario, contexto.config.duracaoMin)} · ${local}`,
-          }),
+          el('div', { class: 'local', text: `📍 ${nomeLocal(contexto.mapaLocais, slot.localId)} · ${estado.dica}` }),
           el('div', { class: 'vagas-barra' }, [
-            el('div', {
-              class: `preenchido ${classeBarra}`,
-              style: `width:${Math.min(100, percentual)}%`,
-            }),
+            el('div', { class: `preenchido ${classeBarra}`, style: `width:${percentual}%` }),
           ]),
         ]),
-        el('span', {
-          class: `badge ${slot.cheio ? 'badge-perigo' : slot.vagas <= 2 ? 'badge-aviso' : 'badge-sucesso'}`,
-          text: slot.cheio
-            ? 'LOTADO'
-            : tipoAula === 'individual' ? 'LIVRE' : `${slot.ocupados}/${slot.capacidade}`,
-        }),
+        el('span', { class: `badge ${estado.classe}`, text: estado.texto }),
       ]);
 
-      if (!slot.cheio) {
-        botao.addEventListener('click', () => selecionarSlot(slot, botao));
-      }
-
-      alvo.append(botao);
+      if (estado.pode) botao.addEventListener('click', () => selecionarSlot(slot, botao));
+      grupo.append(botao);
     }
+
+    alvo.append(grupo);
   }
 }
 
@@ -241,7 +311,6 @@ async function confirmarAgendamento() {
       data: diaSelecionado,
       horario: slotSelecionado.horario,
       tipo: tipoAula,
-      localId: contexto.config.localPadraoId,
     });
 
     location.href = 'dashboard.html?agendado=ok';
@@ -396,12 +465,26 @@ async function iniciar() {
     await montarCalendario();
   });
 
-  qs('#tipo-aula').addEventListener('change', async (ev) => {
-    tipoAula = ev.target.value;
+  // O tipo pode ser trocado pelo campo "Tipo de aula" ou pelo seletor ao
+  // lado dos horários — os dois ficam sempre em sincronia.
+  const trocarTipo = async (novo) => {
+    if (novo === tipoAula) return;
+    tipoAula = novo;
+    qs('#tipo-aula').value = novo;
+    document.querySelectorAll('.segmento-opcao').forEach((b) => {
+      b.classList.toggle('ativo', b.dataset.tipo === novo);
+      b.setAttribute('aria-pressed', String(b.dataset.tipo === novo));
+    });
     slotSelecionado = null;
     qs('#area-confirmacao').classList.add('oculto');
     await montarCalendario();
     if (diaSelecionado) await selecionarDia(diaSelecionado);
+  };
+
+  qs('#tipo-aula').addEventListener('change', (ev) => trocarTipo(ev.target.value));
+  document.querySelectorAll('.segmento-opcao').forEach((b) => {
+    b.setAttribute('aria-pressed', String(b.dataset.tipo === tipoAula));
+    b.addEventListener('click', () => trocarTipo(b.dataset.tipo));
   });
 
   qs('#btn-confirmar').addEventListener('click', confirmarAgendamento);

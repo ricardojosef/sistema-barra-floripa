@@ -137,6 +137,77 @@ service cloud.firestore {
       allow delete: if ehAdmin();
     }
 
+    // ---------- vagas (lotação pública das turmas) ----------
+    //
+    // Só números: { data, professorId, horario, ocupados, individual }.
+    // Qualquer usuário logado lê — é o que o calendário do aluno mostra —,
+    // sem expor quem são os outros alunos (isso fica em `agendamentos`).
+    //
+    // Um aluno só altera a contagem em +1 junto com a criação de uma aula
+    // própria, ou em −1 junto com o cancelamento de uma aula própria, e
+    // nunca acima da capacidade. A conferência usa getAfter(): olha o
+    // agendamento como ele fica no fim da mesma transação.
+    match /vagas/{vagaId} {
+      allow read: if autenticado();
+
+      allow create: if ehEquipe() || (autenticado() && vagaAlteradaPeloAluno(vagaId, 0));
+      allow update: if ehEquipe()
+                    || (autenticado() && vagaAlteradaPeloAluno(vagaId, resource.data.ocupados));
+      allow delete: if ehAdmin();
+    }
+
+    function capacidadeGrupo() {
+      return exists(/databases/$(database)/documents/config/app)
+        ? get(/databases/$(database)/documents/config/app).data.capacidadeGrupo
+        : 5;
+    }
+
+    function vagaAlteradaPeloAluno(vagaId, ocupadosAntes) {
+      let novo = request.resource.data;
+      let aula = getAfter(/databases/$(database)/documents/agendamentos/$(novo.ultimoAgendamento)).data;
+      let delta = novo.ocupados - ocupadosAntes;
+      return novo.ultimoAgendamento is string
+        && aula.alunoId == request.auth.uid
+        // A vaga alterada tem de ser exatamente a turma daquela aula.
+        && vagaId == aula.data + '_' + aula.professorId + '_' + aula.horario.replace(':', '')
+        && ((delta == 1 && aula.status == 'confirmado')
+            || (delta == -1 && aula.status == 'cancelado'))
+        && novo.ocupados >= 0
+        && novo.ocupados <= capacidadeGrupo();
+    }
+
+    // ---------- disponibilidade dos professores ----------
+    match /disponibilidade/{professorId} {
+      // Pública para quem está logado: o calendário do aluno depende dela.
+      allow read: if autenticado();
+      // O próprio professor edita a dele; o administrador edita a de todos.
+      allow write: if ehAdmin()
+                   || (ehEquipe()
+                       && get(/databases/$(database)/documents/professores/$(professorId)).data.usuarioId
+                          == request.auth.uid);
+    }
+
+    // ---------- mensagens da equipe para os alunos ----------
+    // Um documento por aluno destinatário (ver js/mensagens.js).
+    match /mensagens/{mensagemId} {
+      allow read: if autenticado()
+                  && (resource.data.destinatarioId == request.auth.uid
+                      || resource.data.remetenteId == request.auth.uid
+                      || ehAdmin());
+
+      // Só a equipe envia, e sempre em nome de quem está logado.
+      allow create: if ehEquipe() && request.resource.data.remetenteId == request.auth.uid;
+
+      // O aluno só pode marcar a própria mensagem como lida.
+      allow update: if (ehDono(resource.data.destinatarioId)
+                        && request.resource.data.diff(resource.data).affectedKeys()
+                             .hasOnly(['lidaEm', 'atualizadoEm']))
+                    || ehAdmin();
+
+      allow delete: if ehAdmin()
+                    || (ehEquipe() && resource.data.remetenteId == request.auth.uid);
+    }
+
     // ---------- avisos ----------
     match /avisos/{avisoId} {
       allow read: if autenticado();

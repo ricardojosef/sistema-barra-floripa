@@ -65,9 +65,17 @@
           <div class="card-titulo">
             <h3>2. Escolha o horário</h3>
           </div>
-          <p class="texto-peq texto-cinza mb-16" id="dia-selecionado">
+          <p class="texto-peq texto-cinza mb-8" id="dia-selecionado">
             Selecione um dia no calendário ao lado.
           </p>
+          <div id="resumo-dia" class="resumo-dia"></div>
+
+          <!-- Mesmo controle do "Tipo de aula", à vista ao lado dos horários -->
+          <div class="segmento mb-16" role="group" aria-label="Ver lotação de">
+            <button type="button" class="segmento-opcao ativo" data-tipo="grupo">👥 Em grupo</button>
+            <button type="button" class="segmento-opcao" data-tipo="individual">🧑 Particular</button>
+          </div>
+
           <div id="lista-slots"></div>
 
           <div id="area-confirmacao" class="oculto">

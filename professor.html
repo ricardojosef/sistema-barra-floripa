@@ -26,6 +26,26 @@
         <p id="subtitulo-painel">—</p>
       </div>
 
+      <div class="abas" id="abas-professor" role="tablist">
+        <button class="aba ativa" data-aba="turmas" type="button" role="tab">🏄 Turmas</button>
+        <button class="aba" data-aba="disponibilidade" type="button" role="tab">📅 Disponibilidade</button>
+        <button class="aba" data-aba="mensagens" type="button" role="tab">💬 Mensagens</button>
+      </div>
+
+      <!-- Filtro de professor (só administrador) — vale para as três abas -->
+      <div id="filtro-professor-area" class="card mb-24 oculto">
+        <div class="campo" style="margin-bottom:0;max-width:320px">
+          <label for="filtro-professor">Professor</label>
+          <select id="filtro-professor">
+            <option value="">Todos os professores</option>
+          </select>
+          <span class="dica" id="dica-filtro">Em Disponibilidade, escolha um professor para editar.</span>
+        </div>
+      </div>
+
+      <!-- ===================== ABA TURMAS ===================== -->
+      <section class="painel-aba ativo" data-painel="turmas">
+
       <!-- Estatísticas do dia -->
       <div class="grade grade-4 mb-24">
         <div class="card-stat laranja">
@@ -50,28 +70,80 @@
         </div>
       </div>
 
-      <!-- Filtros -->
+      <!-- Dia -->
       <div class="card mb-24">
-        <div class="flex quebra gap-16 itens-centro entre">
-          <div class="cresce">
-            <h4 class="mb-8">Dia</h4>
-            <div class="faixa-dias" id="faixa-dias"></div>
-          </div>
-          <div id="filtro-professor-area" class="oculto">
-            <div class="campo" style="margin-bottom:0;min-width:200px">
-              <label for="filtro-professor">Professor</label>
-              <select id="filtro-professor">
-                <option value="">Todos os professores</option>
-              </select>
-            </div>
-          </div>
-        </div>
+        <h4 class="mb-8">Dia</h4>
+        <div class="faixa-dias" id="faixa-dias"></div>
       </div>
 
       <!-- Turmas -->
       <div class="grade-turmas" id="grade-turmas">
         <div class="vazio"><span class="spinner escuro"></span></div>
       </div>
+      </section>
+
+      <!-- ===================== ABA DISPONIBILIDADE ===================== -->
+      <section class="painel-aba" data-painel="disponibilidade">
+        <div class="card mb-24">
+          <div class="card-titulo">
+            <h3 id="titulo-disponibilidade">Minha semana</h3>
+          </div>
+          <p class="texto-peq texto-cinza mb-16">
+            Marque os horários em que você atende em cada dia da semana e o
+            local de cada dia. Os alunos só conseguem agendar nos horários
+            marcados. Aulas já agendadas não são canceladas ao desmarcar um
+            horário — o painel avisa quantas ficariam de fora.
+          </p>
+          <div id="grade-semana" class="tabela-wrap"></div>
+        </div>
+
+        <div class="card mb-24">
+          <div class="card-titulo">
+            <h3>Folgas e bloqueios</h3>
+          </div>
+          <p class="texto-peq texto-cinza mb-16">
+            Para um dia específico em que você não vai atender (folga, viagem,
+            campeonato). Deixe os horários em branco para bloquear o dia todo.
+          </p>
+          <form id="form-bloqueio" class="linha-campos tres" novalidate>
+            <div class="campo">
+              <label for="bloqueio-data">Data</label>
+              <input type="date" id="bloqueio-data">
+            </div>
+            <div class="campo">
+              <label>Horários <span class="dica">vazio = dia todo</span></label>
+              <div id="bloqueio-horarios" class="flex quebra gap-8"></div>
+            </div>
+            <div class="campo">
+              <label for="bloqueio-motivo">Motivo (opcional)</label>
+              <input type="text" id="bloqueio-motivo" maxlength="120" placeholder="Ex.: campeonato">
+            </div>
+          </form>
+          <button class="btn btn-secundario btn-peq" type="submit" form="form-bloqueio">+ Adicionar bloqueio</button>
+          <div id="lista-bloqueios" class="mt-16"></div>
+        </div>
+
+        <button class="btn btn-primario" id="btn-salvar-disponibilidade" type="button">
+          Salvar disponibilidade
+        </button>
+      </section>
+
+      <!-- ===================== ABA MENSAGENS ===================== -->
+      <section class="painel-aba" data-painel="mensagens">
+        <div class="alerta alerta-info">
+          <span>💬</span>
+          <span>
+            Para escrever, vá em <strong>Turmas</strong> e use
+            <strong>Mensagem para a turma</strong> no cartão do horário, ou
+            <strong>Mensagem</strong> nos dados de um aluno. As mensagens
+            aparecem na aba Mensagens do aluno.
+          </span>
+        </div>
+        <div class="card">
+          <div class="card-titulo"><h3>Mensagens enviadas</h3></div>
+          <div id="lista-enviadas"></div>
+        </div>
+      </section>
     </main>
   </div>
 

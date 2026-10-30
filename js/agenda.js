@@ -1,22 +1,31 @@
 /**
  * agenda.js — disponibilidade de horários, agendamento e cancelamento.
  *
- * Regras de negócio implementadas aqui:
+ * Regras de negócio:
  *  - cada professor atende no máximo 5 alunos por horário (aula em grupo);
- *  - aula individual ocupa o slot inteiro do professor;
+ *  - aula particular ocupa o horário inteiro do professor;
+ *  - só se agenda em horários da disponibilidade do professor;
  *  - o aluno não pode ter duas aulas no mesmo dia e horário;
  *  - agendar consome 1 crédito; cancelar devolve 1 crédito (uma vez só);
- *  - o aluno só cancela sozinho com antecedência mínima; professor e
- *    administrador cancelam a qualquer momento.
+ *  - o aluno só cancela sozinho com antecedência mínima; a equipe sempre.
  *
- * Toda escrita passa por `transacao()` para que a checagem de vaga e a
- * gravação não sejam separadas por uma janela onde outro aluno entre.
+ * LOTAÇÃO PÚBLICA, AGENDAMENTOS PRIVADOS
+ * O aluno precisa ver quantas vagas restam em cada turma, mas não pode ler
+ * os agendamentos dos colegas (nome, horários). Por isso a lotação vive num
+ * documento à parte por turma — coleção `vagas`, id `data_professor_hora` —
+ * que guarda só números. O calendário do aluno lê `vagas`; a lista de
+ * alunos de cada turma (agendamentos) continua visível apenas à equipe.
+ *
+ * O documento de vaga é atualizado na mesma transação do agendamento ou do
+ * cancelamento. No Firebase a transação é real: se dois alunos disputam a
+ * última vaga, o Firestore refaz a operação de um deles com o valor novo.
  */
 
 import { listar, transacao } from './store.js';
 import { obterConfig, obterProfessores } from './precos.js';
 import { lancarCredito, avaliarUsoNaData } from './creditos.js';
-import { dataHoraDe, hojeISO, isoDeData } from './ui.js';
+import { mapaDisponibilidades, horariosNoDia, normalizarDisponibilidade } from './disponibilidade.js';
+import { dataHoraDe, hojeISO, isoDeData, dataDeISO } from './ui.js';
 
 /* --------------------------------------------------------------------------
    Erros de negócio
@@ -31,132 +40,126 @@ export class ErroAgenda extends Error {
 }
 
 /* --------------------------------------------------------------------------
-   Consulta de disponibilidade
+   Documento de vaga (lotação de uma turma)
    -------------------------------------------------------------------------- */
 
-/** Agendamentos confirmados de um dia. */
-export async function agendamentosDoDia(data) {
-  const doDia = await listar('agendamentos', { data });
-  return doDia.filter((a) => a.status === 'confirmado');
+/** '2026-10-30', 'prof-igor', '08:00' -> '2026-10-30_prof-igor_0800' */
+export const idVaga = (data, professorId, horario) =>
+  `${data}_${professorId}_${String(horario).replace(':', '')}`;
+
+/** Cria ou atualiza o documento de vaga dentro de uma transação. */
+function gravarVaga(ops, existente, id, campos) {
+  return existente
+    ? ops.atualizar('vagas', id, campos)
+    : ops.criar('vagas', { id, ...campos });
 }
+
+/* --------------------------------------------------------------------------
+   Montagem dos horários (visão do aluno)
+   -------------------------------------------------------------------------- */
 
 /**
- * Monta a grade de um dia: cada professor ativo × cada horário.
- * Devolve uma lista de slots com a ocupação já calculada.
+ * Estado de uma turma para quem vai agendar. Traz as duas leituras ao mesmo
+ * tempo — em grupo e particular — para a tela mostrar o que o aluno pediu.
  */
-export async function horariosDoDia(data, { tipo = 'grupo' } = {}) {
-  const [config, professores, ocupacao] = await Promise.all([
-    obterConfig(),
-    obterProfessores(),
-    agendamentosDoDia(data),
-  ]);
+function montarSlot({ data, professor, horario, localId, vaga, capacidade, agora }) {
+  const ocupados = Number(vaga?.ocupados) || 0;
+  const individual = vaga?.individual === true && ocupados > 0;
+  const jaPassou = dataHoraDe(data, horario) <= agora;
+  const grupoLotado = individual || ocupados >= capacidade;
+  const particularLivre = ocupados === 0;
 
-  const agora = new Date();
-  const slots = [];
-
-  for (const horario of config.horarios) {
-    for (const professor of professores) {
-      const noSlot = ocupacao.filter(
-        (a) => a.professorId === professor.id && a.horario === horario,
-      );
-      const temIndividual = noSlot.some((a) => a.tipo === 'individual');
-      const ocupados = noSlot.length;
-      const capacidade = config.capacidadeGrupo;
-      const jaPassou = dataHoraDe(data, horario) <= agora;
-
-      // Um slot com aula individual está bloqueado para qualquer outra pessoa.
-      // Para marcar individual, o slot precisa estar completamente livre.
-      const cheio = temIndividual || (tipo === 'individual' ? ocupados > 0 : ocupados >= capacidade);
-
-      slots.push({
-        professorId: professor.id,
-        professorNome: professor.nome,
-        horario,
-        data,
-        ocupados,
-        capacidade,
-        vagas: Math.max(0, capacidade - ocupados),
-        temIndividual,
-        cheio,
-        jaPassou,
-        disponivel: !cheio && !jaPassou,
-        alunos: noSlot,
-      });
-    }
-  }
-
-  return slots;
-}
-
-/** Resumo de um dia, para pintar a célula do calendário. */
-export async function resumoDoDia(data, { tipo = 'grupo' } = {}) {
-  const slots = await horariosDoDia(data, { tipo });
-  const disponiveis = slots.filter((s) => s.disponivel);
   return {
     data,
-    totalSlots: slots.length,
-    slotsDisponiveis: disponiveis.length,
-    vagasTotais: disponiveis.reduce((t, s) => t + s.vagas, 0),
-    temVaga: disponiveis.length > 0,
-    todosPassaram: slots.every((s) => s.jaPassou),
+    horario,
+    localId,
+    professorId: professor.id,
+    professorNome: professor.nome,
+    ocupados,
+    capacidade,
+    vagas: individual ? 0 : Math.max(0, capacidade - ocupados),
+    individual,
+    jaPassou,
+    grupoLotado,
+    particularLivre,
+    disponivelGrupo: !jaPassou && !grupoLotado,
+    disponivelParticular: !jaPassou && particularLivre,
   };
 }
 
+/** Professores ativos, configuração e disponibilidades — tudo que é público. */
+async function carregarBase() {
+  const [config, professores] = await Promise.all([obterConfig(), obterProfessores()]);
+  const disponibilidades = await mapaDisponibilidades(professores, config);
+  return { config, professores, disponibilidades };
+}
+
+/** Documentos de vaga de um intervalo de datas: Map id -> vaga. */
+async function vagasDoPeriodo(dataInicio, dataFim) {
+  const docs = await listar('vagas', { data: { op: '>=', valor: dataInicio } });
+  return new Map(docs.filter((v) => v.data <= dataFim).map((v) => [v.id, v]));
+}
+
+function slotsDaData(data, base, vagas, agora) {
+  const slots = [];
+  for (const professor of base.professores) {
+    const disp = base.disponibilidades.get(professor.id);
+    for (const { horario, localId } of horariosNoDia(disp, data, base.config)) {
+      slots.push(montarSlot({
+        data,
+        professor,
+        horario,
+        localId,
+        vaga: vagas.get(idVaga(data, professor.id, horario)),
+        capacidade: base.config.capacidadeGrupo,
+        agora,
+      }));
+    }
+  }
+  return slots.sort((a, b) => (a.horario === b.horario
+    ? a.professorNome.localeCompare(b.professorNome)
+    : a.horario.localeCompare(b.horario)));
+}
+
 /**
- * Resumo de vários dias de uma vez (usado ao pintar o mês inteiro).
- * Faz uma única leitura da coleção e distribui por data, em vez de
- * N consultas — o calendário renderiza bem mais rápido.
+ * Horários de um dia, por professor, com a lotação de cada turma.
+ * Seguro para o aluno: lê apenas `vagas`, nunca os agendamentos alheios.
+ * `tipo` define o que conta como disponível em `disponivel`/`cheio`.
+ */
+export async function horariosDoDia(data, { tipo = 'grupo' } = {}) {
+  const [base, vagas] = await Promise.all([carregarBase(), vagasDoPeriodo(data, data)]);
+  return slotsDaData(data, base, vagas, new Date()).map((s) => ({
+    ...s,
+    disponivel: tipo === 'individual' ? s.disponivelParticular : s.disponivelGrupo,
+    cheio: tipo === 'individual' ? !s.particularLivre : s.grupoLotado,
+  }));
+}
+
+/**
+ * Resumo de cada dia do intervalo, para pintar o calendário: se há vaga,
+ * quantas, e quais horários e locais estão abertos.
  */
 export async function resumoDoPeriodo(dataInicio, dataFim, { tipo = 'grupo' } = {}) {
-  const [config, professores, todos] = await Promise.all([
-    obterConfig(),
-    obterProfessores(),
-    listar('agendamentos', { data: { op: '>=', valor: dataInicio } }),
-  ]);
-
-  const confirmados = todos.filter((a) => a.status === 'confirmado' && a.data <= dataFim);
-
-  // Índice: 'data|professorId|horario' -> agendamentos
-  const indice = new Map();
-  for (const ag of confirmados) {
-    const chave = `${ag.data}|${ag.professorId}|${ag.horario}`;
-    if (!indice.has(chave)) indice.set(chave, []);
-    indice.get(chave).push(ag);
-  }
-
+  const [base, vagas] = await Promise.all([carregarBase(), vagasDoPeriodo(dataInicio, dataFim)]);
   const agora = new Date();
   const resumos = new Map();
 
-  const cursor = new Date(dataInicio.slice(0, 4), Number(dataInicio.slice(5, 7)) - 1, dataInicio.slice(8, 10));
-  const fim = new Date(dataFim.slice(0, 4), Number(dataFim.slice(5, 7)) - 1, dataFim.slice(8, 10));
+  const cursor = dataDeISO(dataInicio);
+  const fim = dataDeISO(dataFim);
 
   while (cursor <= fim) {
     const data = isoDeData(cursor);
-    let slotsDisponiveis = 0;
-    let vagasTotais = 0;
-    let slotsFuturos = 0;
-
-    for (const horario of config.horarios) {
-      const passou = dataHoraDe(data, horario) <= agora;
-      if (!passou) slotsFuturos += 1;
-      for (const professor of professores) {
-        const noSlot = indice.get(`${data}|${professor.id}|${horario}`) || [];
-        const temIndividual = noSlot.some((a) => a.tipo === 'individual');
-        const cheio = temIndividual
-          || (tipo === 'individual' ? noSlot.length > 0 : noSlot.length >= config.capacidadeGrupo);
-        if (!cheio && !passou) {
-          slotsDisponiveis += 1;
-          vagasTotais += Math.max(0, config.capacidadeGrupo - noSlot.length);
-        }
-      }
-    }
+    const slots = slotsDaData(data, base, vagas, agora);
+    const abertos = slots.filter((s) => (tipo === 'individual' ? s.disponivelParticular : s.disponivelGrupo));
 
     resumos.set(data, {
       data,
-      slotsDisponiveis,
-      vagasTotais,
-      temVaga: slotsDisponiveis > 0,
-      todosPassaram: slotsFuturos === 0,
+      slotsDisponiveis: abertos.length,
+      vagasTotais: abertos.reduce((t, s) => t + (tipo === 'individual' ? 1 : s.vagas), 0),
+      temVaga: abertos.length > 0,
+      todosPassaram: slots.length > 0 && slots.every((s) => s.jaPassou),
+      horarios: [...new Set(abertos.map((s) => s.horario))],
+      locais: [...new Set(abertos.map((s) => s.localId))],
     });
     cursor.setDate(cursor.getDate() + 1);
   }
@@ -169,15 +172,16 @@ export async function resumoDoPeriodo(dataInicio, dataFim, { tipo = 'grupo' } = 
    -------------------------------------------------------------------------- */
 
 /**
- * Marca uma aula. Roda inteiramente dentro de uma transação:
- * valida data, capacidade, duplicidade e saldo; só então grava o
- * agendamento e debita o crédito.
+ * Marca uma aula numa transação: valida data, disponibilidade do professor,
+ * lotação, duplicidade e saldo; só então grava a aula, atualiza a vaga e
+ * debita o crédito. Todas as leituras vêm antes de qualquer escrita, como o
+ * Firestore exige.
  */
-export async function agendar({ alunoId, alunoNome, professorId, data, horario, tipo = 'grupo', localId = null }) {
+export async function agendar({ alunoId, alunoNome, professorId, data, horario, tipo = 'grupo' }) {
   const config = await obterConfig();
 
   return transacao(async (ops) => {
-    // 1. Validações de entrada
+    // 1. Data e horário
     if (!config.horarios.includes(horario)) {
       throw new ErroAgenda('HORARIO_INVALIDO', 'Este horário não está mais disponível na grade da escola.');
     }
@@ -188,34 +192,42 @@ export async function agendar({ alunoId, alunoNome, professorId, data, horario, 
       throw new ErroAgenda('HORARIO_PASSADO', 'Este horário já passou. Escolha outro.');
     }
 
-    // 2. Capacidade do slot
-    const doDia = await ops.listar('agendamentos', { data });
-    const noSlot = doDia.filter(
-      (a) => a.status === 'confirmado' && a.professorId === professorId && a.horario === horario,
-    );
+    // 2. Professor ativo e atendendo nesse dia e horário
+    const professor = await ops.obter('professores', professorId);
+    if (!professor || professor.ativo === false || professor.removido) {
+      throw new ErroAgenda('PROFESSOR_INDISPONIVEL', 'Este professor não está atendendo no momento.');
+    }
+    const disp = normalizarDisponibilidade(await ops.obter('disponibilidade', professorId), professorId, config);
+    const slot = horariosNoDia(disp, data, config).find((s) => s.horario === horario);
+    if (!slot) {
+      throw new ErroAgenda('FORA_DA_DISPONIBILIDADE', 'O professor não atende neste dia e horário. Escolha outro.');
+    }
 
-    if (noSlot.some((a) => a.tipo === 'individual')) {
+    // 3. Lotação — lida pela transação
+    const idDaVaga = idVaga(data, professorId, horario);
+    const vaga = await ops.obter('vagas', idDaVaga);
+    const ocupados = Number(vaga?.ocupados) || 0;
+    const temIndividual = vaga?.individual === true && ocupados > 0;
+
+    if (temIndividual) {
       throw new ErroAgenda('SLOT_INDIVIDUAL', 'Este horário está reservado para uma aula particular.');
     }
-    if (tipo === 'individual' && noSlot.length > 0) {
-      throw new ErroAgenda('SLOT_OCUPADO', 'A aula individual exige o horário livre, e este já tem alunos. Escolha outro.');
+    if (tipo === 'individual' && ocupados > 0) {
+      throw new ErroAgenda('SLOT_OCUPADO', 'A aula particular exige o horário livre, e este já tem alunos. Escolha outro.');
     }
-    if (tipo !== 'individual' && noSlot.length >= config.capacidadeGrupo) {
+    if (tipo !== 'individual' && ocupados >= config.capacidadeGrupo) {
       throw new ErroAgenda('SLOT_LOTADO', `Esta turma já atingiu o limite de ${config.capacidadeGrupo} alunos. Escolha outro horário.`);
     }
 
-    // 3. O aluno não pode estar em dois lugares ao mesmo tempo
-    const conflito = doDia.find(
-      (a) => a.status === 'confirmado' && a.alunoId === alunoId && a.horario === horario,
-    );
-    if (conflito) {
+    // 4. O aluno não pode estar em dois lugares ao mesmo tempo
+    const minhasNoDia = await ops.listar('agendamentos', { alunoId, data });
+    if (minhasNoDia.some((a) => a.status === 'confirmado' && a.horario === horario)) {
       throw new ErroAgenda('SLOT_DUPLICADO', 'Você já tem uma aula marcada neste dia e horário.');
     }
 
-    // 4. Saldo e regras do crédito disponível
+    // 5. Saldo e regras do crédito
     const lancamentos = await ops.listar('creditos', { alunoId });
     const avaliacao = avaliarUsoNaData(lancamentos, data);
-
     if (!avaliacao.pode) {
       if (avaliacao.motivo === 'APENAS_FIM_DE_SEMANA') {
         throw new ErroAgenda(
@@ -225,12 +237,9 @@ export async function agendar({ alunoId, alunoNome, professorId, data, horario, 
       }
       throw new ErroAgenda('SEM_CREDITOS', 'Você não tem créditos disponíveis. Compre um pacote para agendar.');
     }
-
     const lote = avaliacao.lote;
 
-    // 5. Grava o agendamento e debita o crédito.
-    // As condições do lote ficam registradas na aula para que um eventual
-    // cancelamento devolva o crédito exatamente como estava.
+    // 6. Escritas
     const agendamento = await ops.criar('agendamentos', {
       alunoId,
       alunoNome,
@@ -239,7 +248,7 @@ export async function agendar({ alunoId, alunoNome, professorId, data, horario, 
       horario,
       duracaoMin: config.duracaoMin,
       tipo,
-      localId: localId || config.localPadraoId,
+      localId: slot.localId,
       status: 'confirmado',
       canceladoPor: null,
       motivoCancelamento: null,
@@ -248,6 +257,17 @@ export async function agendar({ alunoId, alunoNome, professorId, data, horario, 
       loteExpiraEm: lote.expiraEm || null,
       loteApenasFimDeSemana: lote.apenasFimDeSemana === true,
       criadoEm: new Date().toISOString(),
+    });
+
+    await gravarVaga(ops, vaga, idDaVaga, {
+      data,
+      professorId,
+      horario,
+      ocupados: ocupados + 1,
+      individual: tipo === 'individual',
+      // As regras do Firestore conferem este agendamento para aceitar a
+      // alteração feita por um aluno (veja firestore.rules, coleção vagas).
+      ultimoAgendamento: agendamento.id,
     });
 
     await lancarCredito(ops, {
@@ -266,11 +286,8 @@ export async function agendar({ alunoId, alunoNome, professorId, data, horario, 
    -------------------------------------------------------------------------- */
 
 /**
- * Cancela uma aula e devolve o crédito.
- *
- * É idempotente: se a aula já estiver cancelada, não estorna de novo —
- * evita que dois cliques (ou duas abas) gerem crédito duplicado.
- *
+ * Cancela uma aula, libera a vaga e devolve o crédito.
+ * Idempotente: aula já cancelada não gera um segundo estorno.
  * `porQuem` = { id, nome, papel }
  */
 export async function cancelar(agendamentoId, porQuem, motivo = null) {
@@ -278,20 +295,15 @@ export async function cancelar(agendamentoId, porQuem, motivo = null) {
 
   return transacao(async (ops) => {
     const agendamento = await ops.obter('agendamentos', agendamentoId);
-    if (!agendamento) {
-      throw new ErroAgenda('NAO_ENCONTRADO', 'Aula não encontrada.');
-    }
+    if (!agendamento) throw new ErroAgenda('NAO_ENCONTRADO', 'Aula não encontrada.');
     if (agendamento.status !== 'confirmado') {
       throw new ErroAgenda('JA_CANCELADA', 'Esta aula já foi cancelada ou concluída.');
     }
 
     const ehDono = agendamento.alunoId === porQuem.id;
     const ehEquipe = porQuem.papel === 'professor' || porQuem.papel === 'admin';
-    if (!ehDono && !ehEquipe) {
-      throw new ErroAgenda('SEM_PERMISSAO', 'Você não pode cancelar esta aula.');
-    }
+    if (!ehDono && !ehEquipe) throw new ErroAgenda('SEM_PERMISSAO', 'Você não pode cancelar esta aula.');
 
-    // O aluno precisa respeitar a antecedência mínima; a equipe não.
     if (ehDono && !ehEquipe) {
       const horasAte = (dataHoraDe(agendamento.data, agendamento.horario) - Date.now()) / 3600000;
       if (horasAte < config.horasMinimasCancelamento) {
@@ -302,6 +314,10 @@ export async function cancelar(agendamentoId, porQuem, motivo = null) {
       }
     }
 
+    const idDaVaga = idVaga(agendamento.data, agendamento.professorId, agendamento.horario);
+    const vaga = await ops.obter('vagas', idDaVaga);
+
+    // --- escritas ---
     await ops.atualizar('agendamentos', agendamentoId, {
       status: 'cancelado',
       canceladoPor: porQuem.id,
@@ -311,10 +327,19 @@ export async function cancelar(agendamentoId, porQuem, motivo = null) {
       canceladoEm: new Date().toISOString(),
     });
 
-    // O crédito volta com as MESMAS condições do lote que foi usado: se o
-    // pacote tinha prazo ou era restrito a fim de semana, o estorno mantém
-    // isso. Sem esse cuidado, cancelar viraria uma forma de converter um
-    // crédito com validade em um crédito eterno e irrestrito.
+    // Sem documento de vaga (aula anterior a este controle) não há o que
+    // descontar; com contagem já zerada, também não.
+    if (vaga && Number(vaga.ocupados) > 0) {
+      const restantes = Number(vaga.ocupados) - 1;
+      await gravarVaga(ops, vaga, idDaVaga, {
+        ocupados: restantes,
+        individual: restantes > 0 && vaga.individual === true && agendamento.tipo !== 'individual',
+        ultimoAgendamento: agendamentoId,
+      });
+    }
+
+    // O crédito volta com as MESMAS condições do lote usado (prazo e
+    // restrição de dia): cancelar não pode virar um jeito de "renovar" crédito.
     await lancarCredito(ops, {
       alunoId: agendamento.alunoId,
       delta: 1,
@@ -332,10 +357,7 @@ export async function cancelar(agendamentoId, porQuem, motivo = null) {
   });
 }
 
-/**
- * Cancela todas as aulas confirmadas de um slot (professor + data + horário).
- * Usado quando o professor cancela a turma inteira por condição do mar.
- */
+/** Cancela todas as aulas de uma turma (ex.: mar sem condições). Só a equipe. */
 export async function cancelarTurma({ professorId, data, horario }, porQuem, motivo = null) {
   const doDia = await listar('agendamentos', { data });
   const doSlot = doDia.filter(
@@ -358,7 +380,6 @@ export async function cancelarTurma({ professorId, data, horario }, porQuem, mot
    Consultas por pessoa
    -------------------------------------------------------------------------- */
 
-/** Próximas aulas confirmadas do aluno, da mais próxima para a mais distante. */
 export async function proximasAulasDoAluno(alunoId, limite = null) {
   const todas = await listar('agendamentos', { alunoId, status: 'confirmado' });
   const hoje = hojeISO();
@@ -368,7 +389,6 @@ export async function proximasAulasDoAluno(alunoId, limite = null) {
   return limite ? futuras.slice(0, limite) : futuras;
 }
 
-/** Histórico completo do aluno, do mais recente para o mais antigo. */
 export async function historicoDoAluno(alunoId) {
   const todas = await listar('agendamentos', { alunoId });
   return todas.sort((a, b) => (a.data === b.data
@@ -376,17 +396,100 @@ export async function historicoDoAluno(alunoId) {
     : b.data.localeCompare(a.data)));
 }
 
+/* --------------------------------------------------------------------------
+   Visão da equipe
+   -------------------------------------------------------------------------- */
+
 /**
- * Turmas de um dia agrupadas por horário e professor — a visão que o
- * painel do professor usa.
+ * Turmas de um dia com a lista de alunos — só para a equipe (lê os
+ * agendamentos). Inclui horários fora da disponibilidade que tenham aula
+ * marcada, sinalizados, para nenhum aluno "sumir" da agenda do professor.
  * `professorId` null mostra todos (visão do administrador).
  */
 export async function turmasDoDia(data, professorId = null) {
-  const slots = await horariosDoDia(data);
-  const filtrados = professorId ? slots.filter((s) => s.professorId === professorId) : slots;
-  return filtrados.sort((a, b) => (a.horario === b.horario
+  const [base, doDia] = await Promise.all([carregarBase(), listar('agendamentos', { data })]);
+  const confirmados = doDia.filter((a) => a.status === 'confirmado');
+  const agora = new Date();
+  const capacidade = base.config.capacidadeGrupo;
+  const professores = professorId ? base.professores.filter((p) => p.id === professorId) : base.professores;
+
+  const turmas = [];
+  for (const professor of professores) {
+    const disponiveis = horariosNoDia(base.disponibilidades.get(professor.id), data, base.config);
+    const daAgenda = confirmados.filter((a) => a.professorId === professor.id);
+    const horarios = new Set([...disponiveis.map((s) => s.horario), ...daAgenda.map((a) => a.horario)]);
+
+    for (const horario of [...horarios].sort()) {
+      const alunos = daAgenda.filter((a) => a.horario === horario);
+      const noHorario = disponiveis.find((s) => s.horario === horario);
+      const individual = alunos.some((a) => a.tipo === 'individual');
+      turmas.push({
+        data,
+        horario,
+        professorId: professor.id,
+        professorNome: professor.nome,
+        localId: noHorario?.localId || alunos[0]?.localId || base.config.localPadraoId,
+        alunos,
+        ocupados: alunos.length,
+        capacidade,
+        vagas: individual ? 0 : Math.max(0, capacidade - alunos.length),
+        individual,
+        cheio: individual || alunos.length >= capacidade,
+        jaPassou: dataHoraDe(data, horario) <= agora,
+        foraDaDisponibilidade: !noHorario,
+      });
+    }
+  }
+
+  return turmas.sort((a, b) => (a.horario === b.horario
     ? a.professorNome.localeCompare(b.professorNome)
     : a.horario.localeCompare(b.horario)));
+}
+
+/**
+ * Recalcula a coleção `vagas` a partir dos agendamentos confirmados de hoje
+ * em diante. Necessário uma vez no site já publicado (as aulas marcadas
+ * antes deste controle não têm contagem) e útil se algo sair do lugar.
+ * Só a equipe pode rodar — o aluno não lê os agendamentos alheios.
+ */
+export async function recalcularVagas() {
+  const hoje = hojeISO();
+  const [confirmados, existentes] = await Promise.all([
+    listar('agendamentos', { status: 'confirmado' }),
+    listar('vagas', { data: { op: '>=', valor: hoje } }),
+  ]);
+
+  const contagem = new Map();
+  for (const a of confirmados) {
+    if (a.data < hoje) continue;
+    const id = idVaga(a.data, a.professorId, a.horario);
+    const atual = contagem.get(id) || {
+      data: a.data, professorId: a.professorId, horario: a.horario, ocupados: 0, individual: false,
+    };
+    atual.ocupados += 1;
+    if (a.tipo === 'individual') atual.individual = true;
+    contagem.set(id, atual);
+  }
+
+  const porId = new Map(existentes.map((v) => [v.id, v]));
+  let corrigidas = 0;
+
+  await transacao(async (ops) => {
+    for (const [id, campos] of contagem) {
+      const atual = porId.get(id);
+      if (atual && atual.ocupados === campos.ocupados && atual.individual === campos.individual) continue;
+      await gravarVaga(ops, atual, id, { ...campos, ultimoAgendamento: null });
+      corrigidas += 1;
+    }
+    // Vagas que ainda marcam alunos, mas já não têm nenhuma aula confirmada.
+    for (const [id, atual] of porId) {
+      if (contagem.has(id) || !Number(atual.ocupados)) continue;
+      await ops.atualizar('vagas', id, { ocupados: 0, individual: false, ultimoAgendamento: null });
+      corrigidas += 1;
+    }
+  });
+
+  return { turmas: contagem.size, corrigidas };
 }
 
 /** Marca como realizadas as aulas confirmadas cujo horário já passou. */

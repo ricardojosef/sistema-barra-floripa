@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mensagens — Barra Floripa Surf School</title>
+  <link rel="icon" href="logomenor-barrafloripa.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/pages.css">
+</head>
+<body class="painel" data-page="mensagens">
+
+  <header id="painel-topo"></header>
+
+  <div class="painel-shell">
+    <nav id="barra-lateral" aria-label="Menu"></nav>
+
+    <main class="painel-conteudo">
+      <div class="painel-cabecalho">
+        <h1>Mensagens</h1>
+        <p>Recados dos professores sobre as suas aulas — mudanças de horário, condições do mar, ponto de encontro.</p>
+      </div>
+
+      <div class="abas" id="abas-mensagens">
+        <button class="aba ativa" data-filtro="todas" type="button">Todas</button>
+        <button class="aba" data-filtro="nao-lidas" type="button">Não lidas</button>
+      </div>
+
+      <div class="card">
+        <div class="flex entre itens-centro gap-8 quebra mb-8">
+          <span class="texto-peq texto-cinza" id="resumo-mensagens">—</span>
+          <button class="btn btn-claro btn-peq oculto" id="btn-marcar-todas" type="button">Marcar todas como lidas</button>
+        </div>
+        <div id="lista-mensagens">
+          <div class="vazio"><span class="spinner escuro"></span></div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <nav id="nav-inferior" aria-label="Menu rápido"></nav>
+
+  <script type="module" src="js/pages/mensagens.js"></script>
+</body>
+</html>

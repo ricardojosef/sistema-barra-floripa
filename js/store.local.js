@@ -16,11 +16,12 @@ import { aplicarFiltros, aplicarOrdenacao } from './store.js';
 
 const PREFIXO = 'bf_';
 const CHAVE_VERSAO = `${PREFIXO}versao_seed`;
-const VERSAO_SEED = 5;
+const VERSAO_SEED = 6;
 
 const COLECOES = [
   'usuarios', 'professores', 'pacotes', 'compras', 'creditos',
   'agendamentos', 'locais', 'avisos', 'avisosLidos', 'config',
+  'vagas', 'disponibilidade', 'mensagens',
 ];
 
 /* --------------------------------------------------------------------------
@@ -300,6 +301,65 @@ async function semear() {
   marcar(7, 'prof-pedro', 6, '08:00');
   marcar(1, 'prof-gabrieli', 7, '14:00');
 
+  // --- Lotação pública (espelho dos agendamentos confirmados) ---
+  const vagas = new Map();
+  for (const a of agendamentos) {
+    const id = `${a.data}_${a.professorId}_${a.horario.replace(':', '')}`;
+    const v = vagas.get(id) || {
+      id, data: a.data, professorId: a.professorId, horario: a.horario,
+      ocupados: 0, individual: false, ultimoAgendamento: a.id, criadoEm: agora(),
+    };
+    v.ocupados += 1;
+    if (a.tipo === 'individual') v.individual = true;
+    vagas.set(id, v);
+  }
+
+  // --- Disponibilidade de exemplo ---
+  // Pedro só atende de manhã; Gabrieli dá a aula do dia +3 na Praia Mole;
+  // Laudinei está de folga no dia +4. Igor fica sem documento (padrão: tudo).
+  const semanaToda = (horarios) => Object.fromEntries(['0', '1', '2', '3', '4', '5', '6'].map((d) => [d, [...horarios]]));
+  const localTodaSemana = (localId) => Object.fromEntries(['0', '1', '2', '3', '4', '5', '6'].map((d) => [d, localId]));
+  const diaSemanaDe = (offset) => String(new Date(`${diaRelativo(offset)}T12:00:00`).getDay());
+
+  const locaisGabrieli = localTodaSemana('local-barra');
+  locaisGabrieli[diaSemanaDe(3)] = 'local-mole';
+
+  const disponibilidade = [
+    {
+      id: 'prof-pedro', professorId: 'prof-pedro',
+      semana: semanaToda(['08:00', '10:00']), locais: localTodaSemana('local-barra'), bloqueios: [],
+      criadoEm: agora(),
+    },
+    {
+      id: 'prof-gabrieli', professorId: 'prof-gabrieli',
+      semana: semanaToda(DEFAULTS.horarios), locais: locaisGabrieli, bloqueios: [],
+      criadoEm: agora(),
+    },
+    {
+      id: 'prof-laudinei', professorId: 'prof-laudinei',
+      semana: semanaToda(DEFAULTS.horarios), locais: localTodaSemana('local-barra'),
+      bloqueios: [{ data: diaRelativo(4), horarios: [], motivo: 'Campeonato' }],
+      criadoEm: agora(),
+    },
+  ];
+
+  // --- Mensagem de exemplo: Igor escreve para a turma lotada de amanhã ---
+  const turmaIgor = { data: diaRelativo(1), horario: '08:00', professorId: 'prof-igor' };
+  const mensagens = [0, 1, 2, 3, 4].map((idx) => ({
+    id: `msg-demo-${idx + 1}`,
+    envioId: 'env-demo-1',
+    remetenteId: 'usr-prof-igor',
+    remetenteNome: 'Igor',
+    destinatarioId: alunos[idx].id,
+    destinatarioNome: alunos[idx].nome,
+    texto: 'Bom dia, galera! Amanhã o mar deve estar com ondulação de 1 metro, perfeito pra aula. '
+      + 'Encontro às 7h45 na frente da escola. Tragam protetor solar e água.',
+    turma: turmaIgor,
+    // Um dos alunos já leu; os demais têm uma mensagem nova esperando.
+    lidaEm: idx === 1 ? agora() : null,
+    criadoEm: agora(),
+  }));
+
   // --- Aviso de exemplo ---
   const inicio = new Date();
   inicio.setDate(inicio.getDate() - 1);
@@ -336,6 +396,9 @@ async function semear() {
   escrever('compras', compras);
   escrever('creditos', creditos);
   escrever('agendamentos', agendamentos);
+  escrever('vagas', [...vagas.values()]);
+  escrever('disponibilidade', disponibilidade);
+  escrever('mensagens', mensagens);
   escrever('avisos', avisos);
   escrever('avisosLidos', []);
   escrever('config', config);

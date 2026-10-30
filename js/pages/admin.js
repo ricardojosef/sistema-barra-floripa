@@ -13,6 +13,7 @@ import {
   listarEquipe, adicionarProfessor, removerProfessor, aulasFuturasDoProfessor, ErroEquipe,
 } from '../equipe.js';
 import { listarAvisos, criarAviso, alternarAviso, removerAviso, contarLeituras, descreverJanela } from '../avisos.js';
+import { recalcularVagas } from '../agenda.js';
 import {
   qs, qsa, el, formatarBRL, escapar, hojeISO, montarShellPainel,
   toast, confirmar, botaoCarregando, vazio,
@@ -573,6 +574,25 @@ async function salvarHorarios(btn) {
   }
 }
 
+async function recalcularVagasUI(btn) {
+  const restaurar = botaoCarregando(btn, 'Recontando...');
+  try {
+    const { turmas, corrigidas } = await recalcularVagas();
+    toast(
+      corrigidas
+        ? `Lotação recontada: ${corrigidas} de ${turmas} turma(s) futura(s) corrigida(s).`
+        : `Tudo certo: as ${turmas} turma(s) futura(s) já estavam com a lotação correta.`,
+      'sucesso',
+      6000,
+    );
+  } catch (err) {
+    console.error('[admin] erro ao recalcular vagas:', err);
+    toast('Não foi possível recalcular as vagas. Confira se as regras novas do Firestore foram publicadas.', 'erro', 7000);
+  } finally {
+    restaurar();
+  }
+}
+
 async function reiniciarDemo() {
   const confirmou = await confirmar({
     titulo: 'Reiniciar dados de demonstração',
@@ -622,6 +642,7 @@ async function iniciar() {
   qs('#form-local').addEventListener('submit', adicionarLocal);
   qs('#form-aviso').addEventListener('submit', publicarAviso);
   qs('#btn-reiniciar').addEventListener('click', reiniciarDemo);
+  qs('#btn-recalcular-vagas').addEventListener('click', (ev) => recalcularVagasUI(ev.currentTarget));
 
   qs('#btn-add-horario').addEventListener('click', () => {
     const input = qs('#novo-horario');

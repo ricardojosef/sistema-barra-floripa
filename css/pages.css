@@ -1039,3 +1039,319 @@ body[data-page='login'] { background: var(--creme); }
   color: var(--cinza-500);
   margin-top: 10px;
 }
+
+/* --------------------------------------------------------------------------
+   Agendamento — resumo do dia, seletor de tipo e blocos por horário
+   -------------------------------------------------------------------------- */
+
+.resumo-dia {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.resumo-dia:empty { display: none; }
+
+.resumo-dia-linha {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.resumo-dia-rotulo {
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--cinza-700);
+  min-width: 82px;
+}
+
+.chip-info {
+  padding: 3px 10px;
+  border-radius: 100px;
+  background: var(--cinza-100);
+  border: 1px solid var(--cinza-200);
+  font-size: 0.74rem;
+  font-weight: 500;
+  color: var(--cinza-900);
+}
+
+/* Controle segmentado (Em grupo | Particular) */
+.segmento {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 4px;
+  border-radius: var(--raio);
+  background: var(--cinza-100);
+}
+
+.segmento-opcao {
+  padding: 8px 10px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--cinza-700);
+  transition: all var(--transicao);
+}
+
+.segmento-opcao:hover { color: var(--preto); }
+
+.segmento-opcao.ativo {
+  background: var(--branco);
+  color: var(--laranja-escuro);
+  box-shadow: var(--sombra);
+}
+
+/* Um bloco por horário, com uma linha por professor */
+.grupo-horario {
+  margin-bottom: 16px;
+}
+
+.grupo-horario-topo {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 0 2px 6px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--cinza-200);
+}
+
+.grupo-horario-hora {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--preto);
+}
+
+.grupo-horario .slot { margin-bottom: 8px; }
+
+/* --------------------------------------------------------------------------
+   Painel do professor — alunos, ficha, disponibilidade e mensagens
+   -------------------------------------------------------------------------- */
+
+/* O nome do aluno é um botão que abre a ficha com os contatos */
+.lista-alunos .aluno-link {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  background: none;
+  border: none;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.lista-alunos .aluno-link .cresce {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+}
+
+.lista-alunos .aluno-nome {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lista-alunos .aluno-link:hover .aluno-nome {
+  color: var(--laranja);
+  text-decoration: underline;
+}
+
+.cartao-turma-prof .aviso-fora {
+  margin: 0 0 10px;
+  padding: 8px 10px;
+  border-radius: var(--raio);
+  background: var(--amarelo-suave);
+  color: #7a5c00;
+  font-size: 0.78rem;
+}
+
+.cartao-turma-prof .turma-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--cinza-100);
+}
+
+.cartao-turma-prof .turma-acoes > span:first-child { flex: 1 1 100%; }
+
+/* Ficha do aluno (modal) */
+.ficha-topo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.avatar.avatar-g { width: 52px; height: 52px; font-size: 1.05rem; }
+
+.ficha-secao {
+  margin: 18px 0 8px;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--cinza-500);
+}
+
+.ficha-contatos {
+  display: grid;
+  gap: 10px;
+}
+
+.linha-contato {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  word-break: break-word;
+}
+
+.linha-contato a { color: var(--laranja); font-weight: 500; }
+
+.ficha-contatos .btn { justify-self: start; }
+
+.ficha-numeros {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.ficha-numero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 10px 6px;
+  border-radius: var(--raio);
+  background: var(--creme);
+  text-align: center;
+}
+
+.ficha-numero strong { font-size: 1.3rem; color: var(--preto); }
+.ficha-numero span { font-size: 0.72rem; color: var(--cinza-500); }
+
+.ficha-proximas {
+  margin-top: 12px;
+  font-size: 0.85rem;
+}
+
+.ficha-proximas li {
+  padding: 6px 0;
+  border-bottom: 1px solid var(--cinza-100);
+}
+
+.ficha-proximas li:last-child { border-bottom: none; }
+
+.ficha-rodape {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 20px;
+}
+
+/* Grade semanal de disponibilidade */
+.tabela-semana th,
+.tabela-semana td { padding: 8px 6px; }
+
+.tabela-semana tbody th {
+  text-transform: capitalize;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.tabela-semana input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--laranja);
+  cursor: pointer;
+}
+
+.tabela-semana select { min-width: 150px; }
+
+#bloqueio-horarios { gap: 6px 14px; padding-top: 10px; }
+
+#bloqueio-horarios .checkbox-linha {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+}
+
+.linha-bloqueio {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--cinza-100);
+}
+
+.linha-bloqueio strong { text-transform: capitalize; }
+
+/* Mensagens enviadas (professor) e recebidas (aluno) */
+.mensagem-enviada,
+.mensagem-recebida {
+  padding: 14px 0;
+  border-bottom: 1px solid var(--cinza-100);
+}
+
+.mensagem-enviada:last-child,
+.mensagem-recebida:last-child { border-bottom: none; }
+
+.mensagem-texto {
+  margin: 8px 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.55;
+}
+
+.mensagem-recebida {
+  display: flex;
+  gap: 12px;
+}
+
+.mensagem-recebida.nao-lida {
+  margin: 0 -12px;
+  padding: 14px 12px;
+  background: var(--laranja-suave);
+  border-radius: var(--raio);
+  border-bottom-color: transparent;
+}
+
+.mensagem-recebida .cresce { flex: 1; min-width: 0; }
+
+.badge-menu {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  margin-left: auto;
+  border-radius: 9px;
+  background: var(--laranja);
+  color: var(--branco);
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* Na barra inferior do celular o contador fica sobre o ícone */
+.nav-inferior a { position: relative; }
+
+.nav-inferior .badge-menu {
+  position: absolute;
+  top: 4px;
+  left: calc(50% + 6px);
+  margin-left: 0;
+}

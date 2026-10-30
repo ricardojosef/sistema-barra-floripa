@@ -9,6 +9,7 @@
  */
 
 import { CONFIG } from './config.js';
+import { aplicarOrdenacao } from './store.js';
 
 const VERSAO_SDK = '10.14.1';
 const BASE_SDK = `https://www.gstatic.com/firebasejs/${VERSAO_SDK}`;
@@ -47,11 +48,11 @@ function montarConsulta(colecao, filtros = {}, opcoes = {}) {
     }
   }
 
-  if (opcoes.ordenarPor) {
-    partes.push(fs.orderBy(opcoes.ordenarPor, opcoes.direcao === 'desc' ? 'desc' : 'asc'));
-  }
-  if (opcoes.limite) partes.push(fs.limit(opcoes.limite));
-
+  // Ordenação e limite NÃO vão para o Firestore: combinar `where` num campo
+  // com `orderBy` em outro exige um índice composto criado à mão no Console,
+  // e sem ele a consulta inteira falha. Para o volume de uma escola, ordenar
+  // no navegador (aplicarOrdenacao, em listar) é simples e não quebra.
+  void opcoes;
   return fs.query(fs.collection(db, colecao), ...partes);
 }
 
@@ -89,8 +90,8 @@ export function criarDriver() {
     /* --- Leitura --- */
 
     async listar(colecao, filtros = {}, opcoes = {}) {
-      const snap = await fs.getDocs(montarConsulta(colecao, filtros, opcoes));
-      return snap.docs.map(comId);
+      const snap = await fs.getDocs(montarConsulta(colecao, filtros));
+      return aplicarOrdenacao(snap.docs.map(comId), opcoes);
     },
 
     async obter(colecao, id) {
@@ -139,54 +140,60 @@ export function criarDriver() {
      * (documento `slots/{data_professor_horario}` com o campo `ocupados`),
      * incrementado dentro da transação. O guia explica como fazer.
      */
+    /**
+     * Transação real do Firestore (runTransaction).
+     *
+     * `obter` lê PELA transação: se outro aluno alterar o mesmo documento
+     * (por exemplo, a contagem de vagas da turma) antes do commit, o
+     * Firestore descarta tudo e roda `fn` de novo com os dados novos. É o
+     * que impede dois alunos de ocuparem juntos a última vaga.
+     *
+     * `listar` (consultas) não pode participar de transações no SDK web;
+     * roda fora dela. Por isso a regra de capacidade se apoia num documento
+     * único por turma (coleção `vagas`), lido com `obter`.
+     *
+     * Regra do Firestore: todas as leituras antes de qualquer escrita. As
+     * funções de agenda.js e pagamentos.js já seguem essa ordem.
+     */
     async transacao(fn) {
-      const escritas = [];
-
-      const ops = {
-        listar: async (colecao, filtros, opcoes) => {
-          const snap = await fs.getDocs(montarConsulta(colecao, filtros, opcoes));
-          return snap.docs.map(comId);
-        },
-        obter: async (colecao, id) => {
-          const snap = await fs.getDoc(fs.doc(db, colecao, id));
-          return snap.exists() ? comId(snap) : null;
-        },
-        criar: async (colecao, dados) => {
-          const registro = {
-            ...dados,
-            id: dados.id || fs.doc(fs.collection(db, colecao)).id,
-            criadoEm: dados.criadoEm || new Date().toISOString(),
-          };
-          const { id, ...campos } = registro;
-          escritas.push((lote) => lote.set(fs.doc(db, colecao, id), campos));
-          return registro;
-        },
-        atualizar: async (colecao, id, campos) => {
-          const dados = { ...campos, atualizadoEm: new Date().toISOString() };
-          escritas.push((lote) => lote.update(fs.doc(db, colecao, id), dados));
-          return { id, ...dados };
-        },
-        remover: async (colecao, id) => {
-          escritas.push((lote) => lote.delete(fs.doc(db, colecao, id)));
-          return true;
-        },
-      };
-
-      const resultado = await fn(ops);
-
-      if (escritas.length) {
-        const lote = fs.writeBatch(db);
-        escritas.forEach((aplicar) => aplicar(lote));
-        await lote.commit();
-      }
-
-      return resultado;
+      return fs.runTransaction(db, async (tx) => {
+        const ops = {
+          listar: async (colecao, filtros, opcoes) => {
+            const snap = await fs.getDocs(montarConsulta(colecao, filtros));
+            return aplicarOrdenacao(snap.docs.map(comId), opcoes);
+          },
+          obter: async (colecao, id) => {
+            const snap = await tx.get(fs.doc(db, colecao, id));
+            return snap.exists() ? comId(snap) : null;
+          },
+          criar: async (colecao, dados) => {
+            const registro = {
+              ...dados,
+              id: dados.id || fs.doc(fs.collection(db, colecao)).id,
+              criadoEm: dados.criadoEm || new Date().toISOString(),
+            };
+            const { id, ...campos } = registro;
+            tx.set(fs.doc(db, colecao, id), campos);
+            return registro;
+          },
+          atualizar: async (colecao, id, campos) => {
+            const dados = { ...campos, atualizadoEm: new Date().toISOString() };
+            tx.update(fs.doc(db, colecao, id), dados);
+            return { id, ...dados };
+          },
+          remover: async (colecao, id) => {
+            tx.delete(fs.doc(db, colecao, id));
+            return true;
+          },
+        };
+        return fn(ops);
+      });
     },
 
     observar(colecao, filtros, cb, opcoes = {}) {
       return fs.onSnapshot(
-        montarConsulta(colecao, filtros, opcoes),
-        (snap) => cb(snap.docs.map(comId)),
+        montarConsulta(colecao, filtros),
+        (snap) => cb(aplicarOrdenacao(snap.docs.map(comId), opcoes)),
         (err) => console.error(`[store.firebase] falha ao observar "${colecao}":`, err),
       );
     },

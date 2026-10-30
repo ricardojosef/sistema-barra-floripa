@@ -169,6 +169,65 @@ tempo resultam em 5 aceitos e 1 recusado.
 
 **Aula individual** ocupa o horário inteiro do professor — ninguém mais entra.
 
+**De onde vem a lotação que o aluno vê.** Por privacidade, um aluno não pode
+ler os agendamentos dos colegas (as regras do Firestore bloqueiam). Por isso
+existe a coleção `vagas`: um contador por turma (`dia + professor + horário`)
+que guarda **só números** — quantos alunos e se virou aula particular. O
+contador é atualizado na mesma transação que cria ou cancela a aula, e as
+regras conferem que o aluno só soma 1 ao marcar uma aula dele e só tira 1 ao
+cancelar uma aula dele.
+
+Se a lotação mostrada ao aluno parecer diferente da lista de alunos que o
+professor vê, use **Administração → Horários → Recalcular vagas**, que
+reconta tudo a partir das aulas marcadas.
+
+### 3.5.1 O que o aluno vê ao agendar
+
+- No **calendário**, cada dia mostra se tem vaga; passando o mouse aparecem
+  os horários e os locais do dia.
+- Ao **clicar num dia**, aparece o resumo (horários e locais) e a lista de
+  turmas agrupada por horário, **uma linha por professor**, com o local e a
+  lotação (`3/5`, `LOTADO`).
+- O seletor **Em grupo / Particular** troca a leitura: em particular, só
+  aparecem livres os professores que ainda não têm nenhum aluno naquele
+  horário.
+- O aluno vê os números, **nunca os nomes** dos colegas.
+
+### 3.5.2 Disponibilidade dos professores
+
+Cada professor configura em **Painel → Disponibilidade**:
+
+- em quais horários atende em **cada dia da semana**, e em qual **local**;
+- **folgas e bloqueios** em datas específicas (o dia todo ou só alguns
+  horários), com um motivo opcional.
+
+O aluno só consegue agendar dentro da disponibilidade. Professor que nunca
+salvou a disponibilidade atende todos os horários, todos os dias, no local
+padrão — o comportamento de antes.
+
+Desmarcar um horário **não cancela** aulas já marcadas nele: o painel avisa
+quantas ficariam de fora, e essas turmas aparecem na aba Turmas com o aviso
+"Fora da sua disponibilidade". Se o professor não for dar a aula, cancela por
+ali e o crédito volta ao aluno.
+
+O administrador edita a disponibilidade de qualquer professor escolhendo o
+nome no filtro do topo.
+
+### 3.5.3 Dados dos alunos e mensagens
+
+- Na aba **Turmas**, clicar no nome de um aluno abre a ficha dele: e-mail,
+  telefone (com botão para abrir o **WhatsApp**), aulas realizadas e
+  agendadas e saldo de créditos.
+- **Mensagem para a turma** (no cartão do horário) ou **Enviar mensagem**
+  (na ficha) manda um recado pelo próprio sistema. Ao cancelar uma turma
+  inteira, o motivo pode ir como mensagem para os alunos automaticamente.
+- O aluno recebe em **Mensagens** (menu lateral e barra inferior no
+  celular), com um contador de não lidas. Clicar na mensagem marca como lida.
+- A aba **Mensagens** do professor mostra o que foi enviado e quantos alunos
+  já leram.
+- Só a equipe envia; o aluno lê e não responde pelo sistema (o contato de
+  volta é pelo WhatsApp ou e-mail).
+
 ### 3.6 Cancelamento e devolução
 
 - O **aluno** cancela pelo site até **12 horas** antes da aula (configurável
@@ -346,6 +405,19 @@ await criar('creditos', {
     - ✅ A vaga abre (`4/5`) e o crédito volta para aquele aluno.
 16. Teste **"Cancelar turma"** em outro horário — escolha um motivo.
     - ✅ Todos os alunos daquele horário recebem o crédito de volta.
+16a. Clique no nome de um aluno da turma lotada.
+    - ✅ A ficha mostra e-mail, telefone e o botão do WhatsApp.
+16b. Clique em **Mensagem para a turma**, escreva e envie.
+    - ✅ Na aba **Mensagens** do painel o envio aparece com "0/5 leram".
+    - ✅ Entrando como `aluno@teste.com`, o item **Mensagens** do menu tem um
+      contador; ao abrir e clicar na mensagem, o contador some.
+16c. Na aba **Disponibilidade**, desmarque o horário das 16:00 em todos os
+    dias e salve.
+    - ✅ O painel avisa que há aula marcada nesse horário (ela não é cancelada).
+    - ✅ No calendário do aluno, o Igor deixa de aparecer às 16:00.
+16d. Nos dados de exemplo, o **Pedro** só atende de manhã e o **Laudinei**
+    está de folga daqui a 4 dias.
+    - ✅ No calendário do aluno, eles não aparecem nesses horários.
 
 ### Teste 8 — Painel administrativo
 
@@ -470,6 +542,14 @@ Essas regras garantem, no servidor, que:
 - um aluno só lê os próprios dados;
 - ninguém consegue se promover a administrador editando o JavaScript;
 - só o administrador altera preços, professores e avisos.
+
+> 🔁 **Atualizou o sistema?** Sempre que o arquivo `firestore.rules` mudar,
+> cole e publique de novo. A versão com disponibilidade e mensagens
+> acrescentou as coleções `vagas`, `disponibilidade` e `mensagens` — sem a
+> regra nova, o calendário do aluno não carrega os horários. Depois de
+> publicar, entre como administrador e clique uma vez em
+> **Administração → Horários → Recalcular vagas**, para contar as aulas que
+> já estavam marcadas.
 
 ### Passo 7 — Criar as contas da equipe
 
@@ -762,7 +842,7 @@ Não na versão atual. Como cancelar devolve o crédito na hora, o efeito práti
 
 ```
 index.html · login.html · dashboard.html · agendar.html
-checkout.html · creditos.html · historico.html
+checkout.html · creditos.html · historico.html · mensagens.html
 professor.html · admin.html
 
 css/
@@ -778,6 +858,8 @@ js/
   store.firebase.js driver Firestore
   auth.js           login, sessão, proteção de páginas
   agenda.js         vagas, agendamento, cancelamento
+  disponibilidade.js horários e locais de cada professor, folgas
+  mensagens.js      recados da equipe para os alunos
   creditos.js       saldo e extrato
   pagamentos.js     PIX, cartão, gateways
   precos.js         preços e configuração efetivos
