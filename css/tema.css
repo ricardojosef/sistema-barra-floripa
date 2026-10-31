@@ -82,12 +82,16 @@ body:not([data-page='landing']) .btn-peq { font-size: 0.9rem; }
 
 [data-icone] { display: inline-flex; align-items: center; }
 
+/* `.vazio .vazio-icone` tem o mesmo peso da regra antiga de
+   components.css (display: block), que deixava o círculo encostado à
+   esquerda. Bloco com margem automática centraliza. */
+.vazio .vazio-icone,
 .vazio-icone {
-  display: inline-grid;
+  display: grid;
   place-items: center;
   width: 64px;
   height: 64px;
-  margin-bottom: 4px;
+  margin: 0 auto 10px;
   border-radius: 50%;
   background: var(--laranja-suave);
   color: var(--laranja);
