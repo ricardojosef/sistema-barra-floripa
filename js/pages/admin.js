@@ -3,7 +3,8 @@
  *
  * Tudo que é editado aqui grava nas coleções `professores`, `pacotes`,
  * `locais`, `avisos` e `config`. Como as telas leem esses dados por
- * precos.js, qualquer alteração propaga sozinha.
+ * precos.js, qualquer alteração propaga sozinha. A aba Alunos só cria
+ * lançamentos de ajuste em `creditos` — o extrato nunca é editado.
  */
 
 import { exigirAuth, sair } from '../auth.js';
@@ -14,8 +15,9 @@ import {
 } from '../equipe.js';
 import { listarAvisos, criarAviso, alternarAviso, removerAviso, contarLeituras, descreverJanela } from '../avisos.js';
 import { recalcularVagas } from '../agenda.js';
+import { lotesVigentes, lancarCreditoAvulso, rotuloMotivo } from '../creditos.js';
 import {
-  qs, qsa, el, formatarBRL, escapar, hojeISO, montarShellPainel,
+  qs, qsa, el, formatarBRL, formatarData, isoDeData, escapar, hojeISO, montarShellPainel,
   toast, confirmar, botaoCarregando, vazio, iconeEl,
 } from '../ui.js';
 
@@ -184,6 +186,228 @@ async function salvarProfessores(btn) {
   } finally {
     restaurar();
   }
+}
+
+/* --------------------------------------------------------------------------
+   Alunos e ajuste de créditos
+   -------------------------------------------------------------------------- */
+
+let alunos = [];
+let lancamentosPorAluno = new Map();
+let alunoSelecionado = null;
+
+const somaLotes = (lotes) => lotes.reduce((t, l) => t + l.restante, 0);
+const saldoDe = (alunoId) => somaLotes(lotesVigentes(lancamentosPorAluno.get(alunoId) || []));
+const textoCreditos = (n) => `${n} ${Math.abs(n) === 1 ? 'crédito' : 'créditos'}`;
+
+/** Lê alunos e lançamentos uma vez só; o saldo de cada um sai daqui. */
+async function carregarAlunos() {
+  const [usuarios, lancamentos] = await Promise.all([listar('usuarios'), listar('creditos')]);
+
+  alunos = usuarios
+    .filter((u) => u.papel === 'aluno')
+    .sort((a, b) => String(a.nome || '').localeCompare(String(b.nome || ''), 'pt-BR'));
+
+  lancamentosPorAluno = new Map();
+  for (const lancamento of lancamentos) {
+    if (!lancamentosPorAluno.has(lancamento.alunoId)) lancamentosPorAluno.set(lancamento.alunoId, []);
+    lancamentosPorAluno.get(lancamento.alunoId).push(lancamento);
+  }
+
+  if (alunoSelecionado) alunoSelecionado = alunos.find((a) => a.id === alunoSelecionado.id) || null;
+}
+
+function renderizarAlunos() {
+  const alvo = qs('#lista-alunos');
+  const termo = qs('#busca-aluno').value.trim().toLowerCase();
+  const filtrados = alunos.filter((a) => !termo
+    || String(a.nome || '').toLowerCase().includes(termo)
+    || String(a.email || '').toLowerCase().includes(termo));
+
+  alvo.innerHTML = '';
+  if (!filtrados.length) {
+    alvo.append(vazio(termo ? 'Nenhum aluno encontrado.' : 'Nenhum aluno cadastrado ainda.', 'grupo'));
+    return;
+  }
+
+  for (const aluno of filtrados) {
+    const saldo = saldoDe(aluno.id);
+    alvo.append(el('div', { class: 'mini-pacote' }, [
+      el('div', {}, [
+        el('div', { class: 'negrito texto-peq', text: aluno.nome || '(sem nome)' }),
+        el('div', { class: 'texto-min texto-cinza', text: aluno.email || '' }),
+      ]),
+      el('div', { class: 'flex gap-8 itens-centro' }, [
+        el('span', { class: `badge ${saldo > 0 ? 'badge-sucesso' : 'badge-neutro'}`, text: textoCreditos(saldo) }),
+        el('button', {
+          type: 'button',
+          class: `btn ${aluno.id === alunoSelecionado?.id ? 'btn-primario' : 'btn-claro'} btn-peq`,
+          text: 'Gerenciar',
+          onclick: () => selecionarAluno(aluno.id),
+        }),
+      ]),
+    ]));
+  }
+}
+
+function renderizarDetalheAluno() {
+  const alvo = qs('#aluno-detalhe');
+  const form = qs('#form-ajuste');
+  alvo.innerHTML = '';
+
+  if (!alunoSelecionado) {
+    qs('#aluno-titulo').textContent = 'Créditos do aluno';
+    form.classList.add('oculto');
+    alvo.append(vazio('Escolha um aluno na lista para ver e ajustar os créditos.', 'creditos'));
+    return;
+  }
+
+  const lancamentos = lancamentosPorAluno.get(alunoSelecionado.id) || [];
+  const lotes = lotesVigentes(lancamentos);
+
+  qs('#aluno-titulo').textContent = alunoSelecionado.nome || 'Aluno';
+  form.classList.remove('oculto');
+
+  alvo.append(el('p', { class: 'mb-16' }, [
+    'Saldo disponível: ',
+    el('strong', { text: textoCreditos(somaLotes(lotes)) }),
+  ]));
+
+  if (lotes.length) {
+    alvo.append(el('h4', { class: 'mb-8', text: 'Créditos em aberto' }));
+    for (const lote of lotes) {
+      const condicoes = [
+        lote.tipo === 'individual' ? 'Particular' : 'Grupo',
+        lote.expiraEm ? `vence em ${formatarData(isoDeData(new Date(lote.expiraEm)))}` : 'sem prazo',
+        lote.apenasFimDeSemana ? 'só sábado e domingo' : null,
+      ].filter(Boolean).join(' · ');
+
+      alvo.append(el('div', { class: 'mini-pacote' }, [
+        el('div', {}, [
+          el('div', { class: 'negrito texto-peq', text: lote.nomePacote || 'Crédito avulso' }),
+          el('div', { class: 'texto-min texto-cinza', text: condicoes }),
+        ]),
+        el('span', { class: 'negrito', text: String(lote.restante) }),
+      ]));
+    }
+  }
+
+  const recentes = [...lancamentos]
+    .sort((a, b) => String(b.criadoEm).localeCompare(String(a.criadoEm)))
+    .slice(0, 10);
+
+  alvo.append(el('h4', { class: 'mt-24 mb-8', text: 'Últimas movimentações' }));
+  if (!recentes.length) {
+    alvo.append(el('p', { class: 'texto-peq texto-cinza', text: 'Nenhuma movimentação ainda.' }));
+    return;
+  }
+  for (const lancamento of recentes) {
+    const delta = Number(lancamento.delta) || 0;
+    alvo.append(el('div', { class: 'mini-pacote' }, [
+      el('div', {}, [
+        el('div', { class: 'texto-peq', text: rotuloMotivo(lancamento.motivo) }),
+        el('div', {
+          class: 'texto-min texto-cinza',
+          text: [
+            formatarData(String(lancamento.criadoEm).slice(0, 10)),
+            lancamento.observacao || lancamento.nomePacote,
+          ].filter(Boolean).join(' · '),
+        }),
+      ]),
+      el('span', { class: delta > 0 ? 'negrito texto-sucesso' : 'negrito', text: `${delta > 0 ? '+' : ''}${delta}` }),
+    ]));
+  }
+}
+
+function selecionarAluno(id) {
+  alunoSelecionado = alunos.find((a) => a.id === id) || null;
+  renderizarAlunos();
+  renderizarDetalheAluno();
+  qs('#card-aluno').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+/** Fim do dia, `dias` dias a partir de hoje — mesma regra da compra. */
+function fimDoPrazo(dias) {
+  if (!dias) return null;
+  const limite = new Date();
+  limite.setDate(limite.getDate() + dias);
+  limite.setHours(23, 59, 59, 999);
+  return limite.toISOString();
+}
+
+async function lancarAjuste(ev) {
+  ev.preventDefault();
+  if (!alunoSelecionado) return;
+
+  const retirar = qs('#ajuste-operacao').value === 'retirar';
+  const quantidade = Number(qs('#ajuste-quantidade').value);
+  const motivo = qs('#ajuste-motivo').value.trim();
+  const validadeDias = Number(qs('#ajuste-validade').value) || null;
+  const saldo = saldoDe(alunoSelecionado.id);
+
+  if (!Number.isInteger(quantidade) || quantidade < 1 || quantidade > 50) {
+    toast('A quantidade precisa ser um número inteiro de 1 a 50.', 'erro');
+    return;
+  }
+  if (motivo.length < 3) {
+    toast('Escreva o motivo do ajuste. Ele aparece no extrato do aluno.', 'aviso');
+    return;
+  }
+  // Um débito maior que o saldo ficaria "pendurado" e comeria a próxima
+  // compra do aluno, já que o saldo é a soma de todos os lançamentos.
+  if (retirar && quantidade > saldo) {
+    toast(`${alunoSelecionado.nome} tem só ${textoCreditos(saldo)} disponível(is) para retirar.`, 'erro', 5000);
+    return;
+  }
+
+  const confirmou = await confirmar({
+    titulo: retirar ? 'Retirar créditos' : 'Adicionar créditos',
+    mensagem: `${retirar ? 'Retirar' : 'Adicionar'} ${textoCreditos(quantidade)} ${retirar ? 'de' : 'para'} ${alunoSelecionado.nome}? Motivo: "${motivo}". O lançamento fica no extrato e não pode ser apagado.`,
+    textoOk: retirar ? 'Retirar' : 'Adicionar',
+    perigo: retirar,
+  });
+  if (!confirmou) return;
+
+  const dados = {
+    alunoId: alunoSelecionado.id,
+    delta: retirar ? -quantidade : quantidade,
+    motivo: 'ajuste',
+    observacao: motivo,
+    criadoPor: usuario.id,
+  };
+  if (!retirar) {
+    // Uma entrada vira um lote próprio, com tipo, prazo e restrição de dia.
+    Object.assign(dados, {
+      nomePacote: 'Crédito da escola',
+      tipoPacote: qs('#ajuste-tipo').value === 'individual' ? 'individual' : 'grupo',
+      apenasFimDeSemana: qs('#ajuste-fds').checked,
+      expiraEm: fimDoPrazo(validadeDias),
+    });
+  }
+
+  const btn = qs('#btn-ajustar');
+  const restaurar = botaoCarregando(btn, 'Lançando...');
+  try {
+    await lancarCreditoAvulso(dados);
+    toast(`Ajuste lançado: ${retirar ? '-' : '+'}${textoCreditos(quantidade)} para ${alunoSelecionado.nome}.`, 'sucesso', 4500);
+    qs('#ajuste-quantidade').value = '1';
+    qs('#ajuste-motivo').value = '';
+    await carregarAlunos();
+    renderizarAlunos();
+    renderizarDetalheAluno();
+    await montarEstatisticas();
+  } catch (err) {
+    console.error('[admin] erro ao lançar ajuste:', err);
+    toast('Não foi possível lançar o ajuste.', 'erro');
+  } finally {
+    restaurar();
+  }
+}
+
+async function montarAlunos() {
+  await carregarAlunos();
+  renderizarAlunos();
+  renderizarDetalheAluno();
 }
 
 /* --------------------------------------------------------------------------
@@ -643,6 +867,12 @@ async function iniciar() {
   qs('#form-aviso').addEventListener('submit', publicarAviso);
   qs('#btn-reiniciar').addEventListener('click', reiniciarDemo);
   qs('#btn-recalcular-vagas').addEventListener('click', (ev) => recalcularVagasUI(ev.currentTarget));
+  qs('#form-ajuste').addEventListener('submit', lancarAjuste);
+  qs('#busca-aluno').addEventListener('input', renderizarAlunos);
+  qs('#ajuste-operacao').addEventListener('change', (ev) => {
+    // Prazo, tipo e restrição só fazem sentido para créditos que entram.
+    qs('#ajuste-opcoes-entrada').classList.toggle('oculto', ev.target.value === 'retirar');
+  });
 
   qs('#btn-add-horario').addEventListener('click', () => {
     const input = qs('#novo-horario');
@@ -664,6 +894,7 @@ async function iniciar() {
     await Promise.all([
       montarEstatisticas(),
       montarProfessores(),
+      montarAlunos(),
       montarPrecos(),
       montarLocais(),
       montarAvisos(),

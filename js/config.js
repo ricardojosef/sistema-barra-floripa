@@ -20,7 +20,7 @@ export const CONFIG = {
    * 'real' -> usa os SDKs reais. Exige as chaves abaixo E um backend que crie
    *           as preferências/ordens. Veja docs/GUIA.md, seção "Pagamentos".
    */
-  MODO_PAGAMENTO: 'mock',
+  MODO_PAGAMENTO: 'real',
 
   // Preencha ao migrar para Firebase (Console > Configurações do projeto).
   firebaseConfig: {

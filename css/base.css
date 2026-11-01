@@ -157,6 +157,7 @@ button { cursor: pointer; }
 
 .texto-laranja { color: var(--laranja); }
 .texto-perigo { color: var(--vermelho) !important; }
+.texto-sucesso { color: var(--verde) !important; }
 .texto-branco { color: var(--branco); }
 .texto-cinza { color: var(--cinza-700); }
 .texto-centro { text-align: center; }

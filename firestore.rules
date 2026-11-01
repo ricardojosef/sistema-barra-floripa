@@ -122,7 +122,10 @@ service cloud.firestore {
       // Mesma observação das compras: em produção, emitir crédito é papel do
       // backend. O aluno pode lançar apenas débito (-1 ao agendar) e o
       // estorno vem de um cancelamento validado.
-      allow create: if ehDono(request.resource.data.alunoId) || ehEquipe();
+      // Ajuste manual (aba Alunos do painel) é exclusivo do administrador.
+      allow create: if ehAdmin()
+                    || (request.resource.data.motivo != 'ajuste'
+                        && (ehDono(request.resource.data.alunoId) || ehEquipe()));
 
       // Lançamento é imutável: corrigir se faz com um novo lançamento de
       // ajuste, preservando a trilha de auditoria.

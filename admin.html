@@ -24,7 +24,7 @@
     <main class="painel-conteudo">
       <div class="painel-cabecalho">
         <h1>Administração</h1>
-        <p>Configure professores, preços, locais, avisos e horários da escola.</p>
+        <p>Configure professores, créditos dos alunos, preços, locais, avisos e horários da escola.</p>
       </div>
 
       <!-- Visão geral -->
@@ -52,6 +52,7 @@
 
       <div class="abas" id="abas-admin">
         <button class="aba ativa" data-aba="professores" type="button"><span data-icone="grupo"></span>Professores</button>
+        <button class="aba" data-aba="alunos" type="button"><span data-icone="creditos"></span>Alunos</button>
         <button class="aba" data-aba="precos" type="button"><span data-icone="moeda"></span>Preços</button>
         <button class="aba" data-aba="locais" type="button"><span data-icone="local"></span>Locais</button>
         <button class="aba" data-aba="avisos" type="button"><span data-icone="megafone"></span>Avisos</button>
@@ -103,6 +104,76 @@
           <button class="btn btn-primario" id="btn-adicionar-professor" type="submit" form="form-professor">
             + Adicionar professor
           </button>
+        </div>
+      </section>
+
+      <!-- ALUNOS -->
+      <section class="painel-aba" data-painel="alunos">
+        <div class="painel-colunas">
+          <div class="card">
+            <div class="card-titulo"><h3>Alunos</h3></div>
+            <div class="campo">
+              <label for="busca-aluno">Buscar aluno</label>
+              <input type="search" id="busca-aluno" autocomplete="off" placeholder="Nome ou e-mail">
+            </div>
+            <div id="lista-alunos"></div>
+          </div>
+
+          <div class="card" id="card-aluno">
+            <div class="card-titulo"><h3 id="aluno-titulo">Créditos do aluno</h3></div>
+            <div id="aluno-detalhe"></div>
+
+            <form id="form-ajuste" class="oculto mt-24" novalidate>
+              <h4 class="mb-8">Ajustar créditos</h4>
+              <p class="texto-peq texto-cinza mb-16">
+                Use para cortesias, reposição de aula perdida ou reembolso. O
+                aluno vê o ajuste e o motivo no extrato dele. Ao retirar, saem
+                primeiro os créditos que vencem antes. Lançamentos não podem
+                ser apagados: para desfazer um ajuste, faça outro ao contrário.
+              </p>
+              <div class="linha-campos duas">
+                <div class="campo">
+                  <label for="ajuste-operacao">Operação</label>
+                  <select id="ajuste-operacao">
+                    <option value="adicionar">Adicionar créditos</option>
+                    <option value="retirar">Retirar créditos</option>
+                  </select>
+                </div>
+                <div class="campo">
+                  <label for="ajuste-quantidade">Quantidade</label>
+                  <input type="number" id="ajuste-quantidade" min="1" max="50" value="1">
+                </div>
+              </div>
+
+              <div id="ajuste-opcoes-entrada">
+                <div class="linha-campos duas">
+                  <div class="campo">
+                    <label for="ajuste-tipo">Tipo de aula</label>
+                    <select id="ajuste-tipo">
+                      <option value="grupo">Em grupo</option>
+                      <option value="individual">Particular</option>
+                    </select>
+                  </div>
+                  <div class="campo">
+                    <label for="ajuste-validade">Prazo para usar (dias)</label>
+                    <input type="number" id="ajuste-validade" min="1" max="365" placeholder="Sem prazo">
+                  </div>
+                </div>
+                <label class="checkbox-linha mb-16">
+                  <input type="checkbox" id="ajuste-fds">
+                  <span>Vale só sábado e domingo</span>
+                </label>
+              </div>
+
+              <div class="campo">
+                <label for="ajuste-motivo">Motivo</label>
+                <input type="text" id="ajuste-motivo" maxlength="120" placeholder="Ex.: Reembolso MP-123456 · Cortesia · Aula cancelada pelo mar">
+                <span class="dica">Obrigatório. Aparece no extrato do aluno.</span>
+              </div>
+
+              <button class="btn btn-primario" id="btn-ajustar" type="submit">Lançar ajuste</button>
+            </form>
+          </div>
         </div>
       </section>
 

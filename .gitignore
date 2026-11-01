@@ -1,0 +1,9 @@
+# Servidor (Cloud Functions)
+functions/node_modules/
+functions/.env
+functions/.env.*
+!functions/.env.example
+
+# Firebase CLI
+.firebase/
+firebase-debug.log

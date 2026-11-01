@@ -45,6 +45,8 @@ async function montarExtrato() {
           class: 'meta',
           text: `${formatarData(String(lancamento.criadoEm).slice(0, 10))} · ${tempoRelativo(lancamento.criadoEm)}`,
         }),
+        // Ajustes da escola trazem o motivo, para o aluno entender o lançamento.
+        lancamento.observacao ? el('div', { class: 'meta', text: lancamento.observacao }) : null,
       ]),
       el('span', { class: 'texto-cinza' }, [iconeEl(ICONES_MOTIVO[lancamento.motivo] || 'lista')]),
     ]));
@@ -130,7 +132,8 @@ async function iniciar() {
       .filter((l) => l.delta > 0 && l.motivo === 'compra')
       .reduce((t, l) => t + l.delta, 0);
     const usados = lancamentos
-      .filter((l) => l.delta < 0)
+      // Retirada por ajuste (ex.: reembolso) não é aula usada.
+      .filter((l) => l.delta < 0 && l.motivo !== 'ajuste')
       .reduce((t, l) => t + Math.abs(l.delta), 0);
 
     qs('#stat-saldo').textContent = String(saldo);

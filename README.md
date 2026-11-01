@@ -131,6 +131,7 @@ escolhe o driver. Por isso migrar para produção não exige reescrever telas.
 - Roteiro de teste passo a passo (8 cenários)
 - Firebase: criar projeto, ativar login, cadastrar a equipe, regras de segurança
 - Pagamentos: PIX, Mercado Pago, PayPal e cartão em produção
+- E-mails automáticos para alunos e professores
 - Publicação e perguntas frequentes
 
 ---
@@ -151,6 +152,7 @@ js/
   avisos.js          pop-ups para alunos
   ui.js              utilitários de interface
   pages/             um controlador por tela
+functions/           servidor (Cloud Functions): e-mails automáticos e pagamentos
 firestore.rules      regras de segurança do Firestore
 docs/GUIA.md         guia de implementação
 ```
