@@ -236,7 +236,7 @@ async function montarAlertas(resumo, historico) {
   const falhas = await reservasQueFalharam(usuario.id);
   for (const compra of falhas) {
     area.append(alerta('aviso', 'agenda', [
-      t('dash.reservaFalhou', { quando: `${formatarData(compra.reserva.data)} ${compra.reserva.horario}` }),
+      t('dash.reservaFalhou', { quando: compra.falhas.map((a) => `${formatarData(a.data)} ${a.horario}`).join(', ') }),
     ], el('div', { class: 'flex gap-8 quebra' }, [
       el('a', { href: 'agendar.html', class: 'btn btn-primario btn-peq', text: t('dash.escolherOutro') }),
       el('button', {
@@ -330,7 +330,7 @@ async function iniciar() {
   // Reserva paga que ainda não virou aula (o aluno fechou a aba no pagamento).
   try {
     const resultados = await concluirReservasPendentes(usuario);
-    if (resultados.some((r) => r.status === 'agendada')) toast(t('dash.reservaAgendada'), 'sucesso', 5000);
+    if (resultados.some((r) => r.agendadas?.length)) toast(t('dash.reservaAgendada'), 'sucesso', 5000);
   } catch (err) {
     console.warn('[dashboard] não foi possível concluir reservas pendentes:', err);
   }

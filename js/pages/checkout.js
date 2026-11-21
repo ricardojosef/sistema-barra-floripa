@@ -28,7 +28,7 @@ import {
 import { validarCupom, ErroCupom, descreverCupom } from '../cupons.js';
 import { declaracaoValida } from '../saude.js';
 import { montarFormularioSaude } from '../saude-form.js';
-import { lerRascunho, reservaDoRascunho, limparRascunho, concluirReserva } from '../reserva.js';
+import { lerRascunho, reservasDoRascunho, limparRascunho, concluirReserva, aulasDaCompra } from '../reserva.js';
 import { perfilCompleto } from '../documentos.js';
 import { politicaHTML } from '../politica.js';
 import { dataPorExtenso } from '../seletor-aula.js';
@@ -44,7 +44,7 @@ let pacote = null;
 let compra = null;
 let metodoAtual = METODOS[0]?.id || 'pix';
 let cupomAplicado = null;      // { cupom, desconto, valorFinal }
-let reserva = null;            // aula escolhida no fluxo de reserva
+let reservas = [];             // aulas escolhidas no fluxo de reserva
 
 const valorAPagar = () => (cupomAplicado ? cupomAplicado.valorFinal : Number(pacote.preco));
 
@@ -121,7 +121,7 @@ async function montarCatalogo() {
 function montarPassosReserva() {
   const alvo = qs('#passos');
   alvo.classList.remove('oculto');
-  const etapas = ['plano', 'aula', 'dados', 'saude', 'pagamento'];
+  const etapas = ['aula', 'plano', 'dados', 'saude', 'pagamento'];
   alvo.innerHTML = etapas.map((e, i) => `
     <li class="passo-fluxo ${i < 4 ? 'feito' : 'atual'}">
       ${i < 4 ? `<a href="reservar.html#${e}">` : '<span>'}
@@ -161,11 +161,15 @@ function montarResumo() {
       <span>${escapar(t('reserva.resumo.dias'))}</span>
       <span>${escapar(t('reserva.resumo.fimDeSemana'))}</span>
     </div>` : ''}
-    ${reserva ? `
+    ${reservas.length ? `
     <div class="resumo-aula mt-8">
-      <div class="texto-min texto-cinza">${escapar(t('reserva.resumo.suaAula'))}</div>
-      <div class="negrito">${escapar(dataPorExtenso(reserva.data))}</div>
-      <div>${escapar(faixaHorario(reserva.horario, contexto.config.duracaoMin))} · ${escapar(nomeLocal(contexto.mapaLocais, reserva.localId))}</div>
+      <div class="texto-min texto-cinza">${escapar(reservas.length === 1 ? t('reserva.resumo.suaAula') : t('reserva.resumo.suasAulas', { n: reservas.length }))}</div>
+      ${reservas.map((r) => `
+      <div class="resumo-aula-item">
+        <div class="negrito">${escapar(dataPorExtenso(r.data))}</div>
+        <div>${escapar(faixaHorario(r.horario, contexto.config.duracaoMin))} · ${escapar(nomeLocal(contexto.mapaLocais, r.localId))}</div>
+      </div>`).join('')}
+      ${pacote.creditos > reservas.length ? `<div class="texto-min texto-cinza mt-8">${escapar(t('reserva.resumo.sobram', { n: pacote.creditos - reservas.length }))}</div>` : ''}
       <a href="reservar.html#aula" class="texto-min">${escapar(t('checkout.trocarAula'))}</a>
     </div>` : ''}
     ${cupomAplicado ? `
@@ -283,7 +287,7 @@ async function garantirCompra(metodo) {
       pacoteId: pacote.id,
       metodo,
       cupom: cupomAplicado?.cupom || null,
-      reserva,
+      reservas,
     });
   }
   return compra;
@@ -479,26 +483,32 @@ async function mostrarSucesso(compraPaga) {
   // A aula escolhida no fluxo de reserva vira agendamento agora.
   const atual = (compraPaga?.id && await obter('compras', compraPaga.id)) || compraPaga;
   const area = qs('#sucesso-aula');
-  if (atual?.reserva) {
+  if (aulasDaCompra(atual).length) {
     area.innerHTML = '<div class="vazio"><span class="spinner escuro"></span></div>';
     const resultado = await concluirReserva(atual, usuario);
     limparRascunho();
     area.innerHTML = '';
-    if (resultado.status === 'agendada') {
+    const linhaAula = (a) => `${dataPorExtenso(a.data)} · ${faixaHorario(a.horario, contexto.config.duracaoMin)} · ${nomeLocal(contexto.mapaLocais, a.localId)}`;
+    if (resultado.agendadas.length) {
+      const linhas = [];
+      resultado.agendadas.forEach((a) => linhas.push(el('br'), linhaAula(a)));
       area.append(el('div', { class: 'alerta alerta-sucesso' }, [
         iconeEl('agenda'),
         el('span', { class: 'cresce' }, [
-          el('strong', { text: t('checkout.aulaAgendada') }), el('br'),
-          `${dataPorExtenso(atual.reserva.data)} · ${faixaHorario(atual.reserva.horario, contexto.config.duracaoMin)} · ${nomeLocal(contexto.mapaLocais, atual.reserva.localId)}`,
+          el('strong', { text: resultado.agendadas.length === 1 ? t('checkout.aulaAgendada') : t('checkout.aulasAgendadas', { n: resultado.agendadas.length }) }),
+          ...linhas,
           el('br'),
           el('span', { class: 'texto-min', text: t('checkout.leveDocumento') }),
         ]),
       ]));
       qs('#btn-sucesso-agendar').textContent = t('checkout.agendarOutra');
-    } else if (resultado.status === 'falhou') {
-      area.append(el('div', { class: 'alerta alerta-aviso' }, [
+    }
+    if (resultado.falhas.length) {
+      const linhas = [];
+      resultado.falhas.forEach((a) => linhas.push(el('br'), `${linhaAula(a)} — ${a.erro}`));
+      area.append(el('div', { class: `alerta alerta-aviso ${resultado.agendadas.length ? 'mt-16' : ''}` }, [
         iconeEl('alerta'),
-        el('span', { class: 'cresce', text: `${resultado.erro} ${t('checkout.reservaFalhou')}` }),
+        el('span', { class: 'cresce' }, [el('strong', { text: t('checkout.reservaFalhouTitulo') }), ...linhas, el('br'), t('checkout.reservaFalhou')]),
       ]));
     }
   }
@@ -585,7 +595,7 @@ async function iniciar() {
   // Fluxo de reserva: a aula escolhida acompanha a compra.
   if (paramUrl('reserva') === '1') {
     const rascunho = lerRascunho();
-    if (rascunho.pacoteId === pacote.id) reserva = reservaDoRascunho(rascunho);
+    if (rascunho.pacoteId === pacote.id) reservas = reservasDoRascunho(rascunho).slice(0, Number(pacote.creditos) || 1);
     montarPassosReserva();
   }
 

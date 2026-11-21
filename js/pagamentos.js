@@ -57,9 +57,9 @@ export const nomeMetodo = (id) => [...METODOS_DEMO, ...METODOS_REAIS].find((m) =
 /**
  * Cria a compra com status 'pendente'. Nenhum crédito é emitido aqui.
  * `cupom`: documento do cupom já validado (cupons.js) ou null.
- * `reserva`: aula escolhida no fluxo de reserva ({ data, horario, localId, tipo }) ou null.
+ * `reservas`: aulas escolhidas no fluxo de reserva ([{ data, horario, localId, tipo }]).
  */
-export async function criarCompra({ alunoId, pacoteId, metodo, cupom = null, reserva = null }) {
+export async function criarCompra({ alunoId, pacoteId, metodo, cupom = null, reservas = [] }) {
   const pacote = await obterPacote(pacoteId);
   if (!pacote) throw new ErroPagamento('PACOTE_INVALIDO', 'Plano não encontrado.');
   if (pacote.ativo === false) throw new ErroPagamento('PACOTE_INATIVO', 'Este plano não está mais disponível.');
@@ -75,8 +75,9 @@ export async function criarCompra({ alunoId, pacoteId, metodo, cupom = null, res
     desconto,
     cupomCodigo: cupom?.codigo || null,
     valor: valorFinal,
-    reserva: reserva || null,
-    reservaStatus: reserva ? 'pendente' : null,
+    // Nunca mais aulas do que créditos do plano.
+    reservas: (reservas || []).slice(0, Number(pacote.creditos) || 1),
+    reservaStatus: reservas?.length ? 'pendente' : null,
     aceiteTermosEm: new Date().toISOString(),
     creditos: pacote.creditos,
     // Regras do pacote viajam junto com a compra: assim, se o admin alterar

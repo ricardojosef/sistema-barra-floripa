@@ -8,7 +8,7 @@
 
 import { resumoDoPeriodo, horariosDoDia } from './agenda.js';
 import { nomeLocal } from './precos.js';
-import { t, idiomaAtual } from './i18n.js';
+import { t, idiomaAtual, localeDatas } from './i18n.js';
 import {
   el, isoDeData, hojeISO, faixaHorario, iconeEl, vazio, dataDeISO,
 } from './ui.js';
@@ -26,7 +26,7 @@ const SEMANA = {
 
 /** 'sábado, 14 de novembro de 2026' no idioma atual. */
 export function dataPorExtenso(iso) {
-  const locale = { pt: 'pt-BR', en: 'en-US', es: 'es-ES' }[idiomaAtual()] || 'pt-BR';
+  const locale = localeDatas();
   const texto = new Intl.DateTimeFormat(locale, {
     weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
   }).format(dataDeISO(iso));
@@ -40,12 +40,19 @@ export function dataPorExtenso(iso) {
  *   tipo()        'grupo' | 'individual'
  *   soFimDeSemana() true quando o crédito/plano só vale sábado e domingo
  *   aoSelecionar(slot|null)
+ *   multiplo      true: cada clique num horário chama aoAlternar(slot) e a
+ *                 página guarda a lista (fluxo de reserva com várias aulas)
+ *   aoAlternar(slot)   só no modo multiplo
+ *   diasMarcados()     datas ISO já escolhidas (destaque no calendário)
+ *   slotMarcado(slot)  true se aquele horário daquele dia está escolhido
  */
 export function criarSeletorAula(opcoes) {
   const {
     grade, rotuloMes, btnAnterior, btnProximo, lista, rotuloDia, resumoDia, contexto,
     tipo = () => 'grupo', soFimDeSemana = () => false, aoSelecionar = () => {},
+    multiplo = false, aoAlternar = () => {}, diasMarcados = () => [], slotMarcado = () => false,
   } = opcoes;
+  const marcado = (slot) => (multiplo ? slotMarcado(slot) : slotSelecionado?.chave === slot.chave);
 
   let mesVisivel = new Date();
   mesVisivel.setDate(1);
@@ -111,7 +118,7 @@ export function criarSeletorAula(opcoes) {
       const cel = el('button', {
         type: 'button',
         class: ['dia-cel', indisponivel ? 'indisponivel' : 'disponivel', iso === hojeIso ? 'hoje' : '',
-          iso === diaSelecionado ? 'selecionado' : '', !passou && semVagas && !semAula ? 'lotado-total' : '',
+          iso === diaSelecionado ? 'selecionado' : '', diasMarcados().includes(iso) ? 'escolhido' : '', !passou && semVagas && !semAula ? 'lotado-total' : '',
           semAula && !passou ? 'sem-aula' : ''].filter(Boolean).join(' '),
         disabled: indisponivel,
         title: dica,
@@ -172,7 +179,7 @@ export function criarSeletorAula(opcoes) {
 
       const botao = el('button', {
         type: 'button',
-        class: `slot ${estado.pode ? '' : 'lotado'} ${slotSelecionado?.chave === slot.chave ? 'selecionado' : ''}`,
+        class: `slot ${estado.pode ? '' : 'lotado'} ${marcado(slot) ? 'selecionado' : ''}`,
         disabled: !estado.pode,
         title: estado.dica,
         'aria-label': `${slot.horario}, ${local}: ${estado.dica}`,
@@ -187,6 +194,11 @@ export function criarSeletorAula(opcoes) {
       ]);
       if (estado.pode) {
         botao.addEventListener('click', () => {
+          if (multiplo) {
+            aoAlternar({ ...slot, tipo: tipo() });
+            atualizarMarcas();
+            return;
+          }
           slotSelecionado = { ...slot, tipo: tipo() };
           lista.querySelectorAll('.slot').forEach((s) => s.classList.toggle('selecionado', s === botao));
           aoSelecionar(slotSelecionado);
@@ -194,6 +206,17 @@ export function criarSeletorAula(opcoes) {
       }
       lista.append(botao);
     }
+  }
+
+  /** Redesenha só os destaques (dias e horários escolhidos), sem recarregar dados. */
+  let slotsDoDia = [];
+  function atualizarMarcas() {
+    const dias = diasMarcados();
+    grade.querySelectorAll('.dia-cel[data-data]').forEach((c) => c.classList.toggle('escolhido', dias.includes(c.dataset.data)));
+    lista.querySelectorAll('.slot[data-chave]').forEach((b) => {
+      const slot = slotsDoDia.find((s) => s.chave === b.dataset.chave);
+      if (slot) b.classList.toggle('selecionado', marcado(slot));
+    });
   }
 
   async function selecionarDia(iso) {
@@ -205,6 +228,7 @@ export function criarSeletorAula(opcoes) {
     lista.innerHTML = '<div class="vazio"><span class="spinner escuro"></span></div>';
     try {
       const slots = await horariosDoDia(iso, { tipo: tipo() });
+      slotsDoDia = slots;
       montarResumoDoDia(slots);
       montarSlots(slots);
     } catch (err) {
@@ -254,6 +278,7 @@ export function criarSeletorAula(opcoes) {
       lista.querySelectorAll('.slot.selecionado').forEach((s) => s.classList.remove('selecionado'));
       aoSelecionar(null);
     },
+    atualizarMarcas,
     selecionado: () => slotSelecionado,
     dia: () => diaSelecionado,
   };

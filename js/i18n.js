@@ -92,11 +92,45 @@ export function aoTrocarIdioma(cb) {
   return () => ouvintes.delete(cb);
 }
 
+/* --------------------------------------------------------------------------
+   Formato das datas
+   --------------------------------------------------------------------------
+   Padrão brasileiro (dia/mês/ano) em todo o site. A exceção é o "gringo"
+   que lê em inglês e é dos Estados Unidos (país do cadastro ou, antes do
+   login, o idioma do navegador en-US): para ele, mês/dia/ano. Espanhol e
+   inglês britânico também usam dia/mês/ano. Painéis da equipe e documentos
+   oficiais (PDF) ficam sempre no padrão brasileiro.
+   -------------------------------------------------------------------------- */
+
+let paisDoUsuario = null;
+// Painéis da equipe já nascem no padrão brasileiro (antes mesmo do login).
+let datasSempreBR = ['professor', 'admin'].includes(document.body?.dataset.page);
+
+/** 'dmy' (24/03/2026) ou 'mdy' (03/24/2026). */
+export function formatoDatas() {
+  if (datasSempreBR || atual !== 'en') return 'dmy';
+  if (paisDoUsuario) return paisDoUsuario === 'US' ? 'mdy' : 'dmy';
+  const nav = String(navigator.languages?.[0] || navigator.language || '');
+  return /^en-US$/i.test(nav) ? 'mdy' : 'dmy';
+}
+
+/** Locale para Intl (datas por extenso), coerente com formatoDatas(). */
+export function localeDatas() {
+  if (datasSempreBR || atual === 'pt') return 'pt-BR';
+  if (atual === 'es') return 'es-ES';
+  return formatoDatas() === 'mdy' ? 'en-US' : 'en-GB';
+}
+
+/** Equipe (professor/admin): datas sempre no padrão brasileiro. */
+export function fixarDatasBrasileiras() { datasSempreBR = true; }
+
 /**
  * Usa o idioma do perfil quando o visitante ainda não escolheu nenhum
- * explicitamente neste navegador.
+ * explicitamente neste navegador. Também guarda o país (formato das datas).
  */
 export function adotarIdiomaDoUsuario(usuario) {
+  if (usuario?.papel && usuario.papel !== 'aluno') datasSempreBR = true;
+  if (usuario?.nacionalidade) paisDoUsuario = String(usuario.nacionalidade).toUpperCase();
   if (!usuario?.idioma || !valido(usuario.idioma)) return;
   if (valido(lerSalvo())) return;
   definirIdioma(usuario.idioma, { salvar: false });

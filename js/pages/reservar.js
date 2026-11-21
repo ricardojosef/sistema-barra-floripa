@@ -1,8 +1,10 @@
 /**
  * reservar.js — fluxo público de reserva, no estilo e-commerce/passagens.
  *
- *   1. Plano        escolhe o pacote (sem login)
- *   2. Aula         dia, horário e praia (sem login, sem professor)
+ *   1. Aulas        calendário primeiro: o visitante vê a disponibilidade e
+ *                   marca um ou vários dias/horários (sem login, sem professor)
+ *   2. Plano        sugerido a partir das aulas marcadas (créditos, dias
+ *                   permitidos e prazo de validade)
  *   3. Seus dados   cria a conta aqui (ou entra, se já tiver)
  *   4. Saúde        questionário PAR-Q + termo de responsabilidade
  *   5. Pagamento    checkout.html, que já conhece a reserva
@@ -23,7 +25,7 @@ import { saldoCreditos } from '../creditos.js';
 import { declaracaoValida, baixarPdfDeclaracao } from '../saude.js';
 import { montarFormularioSaude, resumoDeclaracaoEl } from '../saude-form.js';
 import { criarSeletorAula, dataPorExtenso } from '../seletor-aula.js';
-import { lerRascunho, salvarRascunho } from '../reserva.js';
+import { lerRascunho, salvarRascunho, ordenarAulas } from '../reserva.js';
 import { politicaHTML } from '../politica.js';
 import { perfilCompleto } from '../documentos.js';
 import { camposPessoaisHTML, ligarCamposPessoais, lerCamposPessoais } from '../campos-pessoais.js';
@@ -33,21 +35,22 @@ import {
 import {
   qs, qsa, el, escapar, formatarBRL, faixaHorario, toast, botaoCarregando,
   montarTopoPublico, montarRodape, mascaraTelefone, paramUrl, iconeEl, icone, montarOndaCabecalho,
+  dataDeISO, formatarDataCurta,
 } from '../ui.js';
 import { nomeLocal } from '../precos.js';
 
-const ETAPAS = ['plano', 'aula', 'dados', 'saude', 'pagamento'];
+const ETAPAS = ['aula', 'plano', 'dados', 'saude', 'pagamento'];
 
 let usuario = null;
 let contexto = null;
 let catalogo = null;
 let rascunho = lerRascunho();
-let etapaAtual = 'plano';
+let etapaAtual = 'aula';
 let seletor = null;
 
 const pacoteEscolhido = () => catalogo?.todos.find((p) => p.id === rascunho.pacoteId) || null;
-const tipoDaAula = () => (pacoteEscolhido()?.tipo === 'individual' ? 'individual' : 'grupo');
-const temAula = () => !!(rascunho.data && rascunho.horario);
+const tipoDaAula = () => (rascunho.tipo === 'individual' ? 'individual' : 'grupo');
+const aulasEscolhidas = () => rascunho.aulas || [];
 const ehAluno = () => usuario?.papel === 'aluno';
 
 /* ==========================================================================
@@ -57,8 +60,12 @@ const ehAluno = () => usuario?.papel === 'aluno';
 /** A etapa pode ser aberta? Senão, devolve a primeira que falta. */
 function etapaPermitida(etapa) {
   const i = ETAPAS.indexOf(etapa);
-  if (i >= 1 && !pacoteEscolhido()) return 'plano';
-  if (i >= 2 && !temAula() && !rascunho.pularAula) return 'aula';
+  if (i >= 1 && !aulasEscolhidas().length && !rascunho.pularAula) return 'aula';
+  if (i >= 2) {
+    const pacote = pacoteEscolhido();
+    const tipoCerto = pacote && (pacote.tipo === 'individual') === (tipoDaAula() === 'individual');
+    if (!pacote || !tipoCerto || motivoIncompativel(pacote, aulasEscolhidas())) return 'plano';
+  }
   if (i >= 3 && (!ehAluno() || !perfilCompleto(usuario))) return 'dados';
   return etapa;
 }
@@ -124,13 +131,40 @@ function acoes({ voltar = null, continuar = null, textoContinuar = null, extra =
    Resumo lateral
    ========================================================================== */
 
+function linhaDaAula(a) {
+  return `${faixaHorario(a.horario, contexto.config.duracaoMin)} · ${nomeLocal(contexto.mapaLocais, a.localId)}`;
+}
+
 function montarResumo() {
   const alvo = qs('#resumo-pedido');
   const pacote = pacoteEscolhido();
+  const aulas = aulasEscolhidas();
   alvo.innerHTML = `<div class="card-titulo"><h3>${escapar(t('reserva.resumo.titulo'))}</h3></div>`;
 
-  if (!pacote) {
+  if (!pacote && !aulas.length && !rascunho.pularAula) {
     alvo.append(el('p', { class: 'texto-peq texto-cinza', text: t('reserva.resumo.vazio') }));
+    return;
+  }
+
+  // Aulas primeiro: é o que o aluno escolheu primeiro.
+  const caixaAulas = el('div', { class: 'resumo-aula' });
+  if (aulas.length) {
+    caixaAulas.append(el('div', {
+      class: 'texto-min texto-cinza',
+      text: aulas.length === 1 ? t('reserva.resumo.suaAula') : t('reserva.resumo.suasAulas', { n: aulas.length }),
+    }));
+    aulas.forEach((a) => caixaAulas.append(el('div', { class: 'resumo-aula-item' }, [
+      el('div', { class: 'negrito', text: dataPorExtenso(a.data) }),
+      el('div', { text: linhaDaAula(a) }),
+    ])));
+    caixaAulas.append(el('div', { class: 'texto-min texto-cinza mt-8', text: t('reserva.resumo.professor') }));
+  } else if (rascunho.pularAula) {
+    caixaAulas.append(el('div', { class: 'texto-peq texto-cinza', text: t('reserva.resumo.agendarDepois') }));
+  }
+  alvo.append(caixaAulas);
+
+  if (!pacote) {
+    alvo.append(el('p', { class: 'texto-peq texto-cinza mt-16', text: t('reserva.resumo.planoDepois') }));
     return;
   }
 
@@ -138,26 +172,17 @@ function montarResumo() {
     [t('reserva.resumo.plano'), pacote.nome],
     [t('reserva.resumo.creditos'), String(pacote.creditos)],
   ];
+  const sobram = Number(pacote.creditos) - aulas.length;
+  if (aulas.length && sobram > 0) linhas.push([t('reserva.resumo.paraDepois'), String(sobram)]);
   const validade = textoValidade(pacote);
   if (validade) linhas.push([t('reserva.resumo.validade'), validade.replace('válido por ', '')]);
   if (pacote.apenasFimDeSemana) linhas.push([t('reserva.resumo.dias'), t('reserva.resumo.fimDeSemana')]);
 
+  const bloco = el('div', { class: 'mt-16' });
   for (const [rotulo, valor] of linhas) {
-    alvo.append(el('div', { class: 'linha-resumo' }, [el('span', { text: rotulo }), el('span', { class: 'negrito', text: valor })]));
+    bloco.append(el('div', { class: 'linha-resumo' }, [el('span', { text: rotulo }), el('span', { class: 'negrito', text: valor })]));
   }
-
-  const aula = el('div', { class: 'resumo-aula mt-16' });
-  if (temAula()) {
-    aula.append(
-      el('div', { class: 'texto-min texto-cinza', text: t('reserva.resumo.suaAula') }),
-      el('div', { class: 'negrito', text: dataPorExtenso(rascunho.data) }),
-      el('div', { text: `${faixaHorario(rascunho.horario, contexto.config.duracaoMin)} · ${nomeLocal(contexto.mapaLocais, rascunho.localId)}` }),
-      el('div', { class: 'texto-min texto-cinza mt-8', text: t('reserva.resumo.professor') }),
-    );
-  } else if (rascunho.pularAula) {
-    aula.append(el('div', { class: 'texto-peq texto-cinza', text: t('reserva.resumo.agendarDepois') }));
-  }
-  alvo.append(aula);
+  alvo.append(bloco);
 
   alvo.append(el('div', { class: 'linha-resumo total mt-16' }, [
     el('span', { text: t('reserva.resumo.total') }),
@@ -171,12 +196,213 @@ function montarPolitica() {
 }
 
 /* ==========================================================================
-   1. Plano
+   1. Aulas — o calendário vem primeiro, para mostrar a disponibilidade
    ========================================================================== */
 
-function cardPlano(p) {
-  const card = el('article', { class: `card-plano ${p.destaque ? 'destaque' : ''} ${p.id === rascunho.pacoteId ? 'escolhido' : ''}` });
-  if (p.destaque) card.append(el('span', { class: 'selo-popular', text: t('reserva.plano.popular') }));
+/** Planos do tipo de aula (grupo inclui os mensalistas). */
+function planosDoTipo(tipo) {
+  return tipo === 'individual' ? catalogo.individual : [...catalogo.grupo, ...catalogo.mensal];
+}
+
+/** Quantas aulas dá para marcar de uma vez: o maior pacote do tipo (ou o plano já escolhido pelo link). */
+function limiteDeAulas() {
+  const pacote = pacoteEscolhido();
+  if (pacote && rascunho.pacoteFixo) return Number(pacote.creditos) || 1;
+  return Math.max(1, ...planosDoTipo(tipoDaAula()).map((p) => Number(p.creditos) || 1));
+}
+
+const chaveDaAula = (a) => `${a.data}|${a.horario}|${a.localId || ''}`;
+
+function alternarAula(slot) {
+  const aulas = aulasEscolhidas();
+  const chave = chaveDaAula(slot);
+  const existente = aulas.find((a) => chaveDaAula(a) === chave);
+  let novas;
+  if (existente) {
+    novas = aulas.filter((a) => a !== existente);
+  } else {
+    // Mesmo dia e horário em outra praia: troca (não dá para estar nas duas).
+    const semConflito = aulas.filter((a) => !(a.data === slot.data && a.horario === slot.horario));
+    const limite = limiteDeAulas();
+    if (semConflito.length >= limite) {
+      toast(limite === 1 ? t('reserva.aula.limiteUma') : t('reserva.aula.limite', { n: limite }), 'aviso', 5000);
+      return;
+    }
+    novas = [...semConflito, { data: slot.data, horario: slot.horario, localId: slot.localId || null }];
+  }
+  rascunho = salvarRascunho({ aulas: ordenarAulas(novas), pularAula: false });
+  montarAulasEscolhidas();
+  montarResumo();
+}
+
+function montarAulasEscolhidas() {
+  const alvo = qs('#aulas-escolhidas');
+  if (!alvo) return;
+  const aulas = aulasEscolhidas();
+  alvo.innerHTML = '';
+  const btn = qs('#btn-continuar');
+  if (btn) {
+    btn.disabled = !aulas.length;
+    btn.textContent = aulas.length
+      ? `${aulas.length === 1 ? t('reserva.aula.verPlanosUma') : t('reserva.aula.verPlanos', { n: aulas.length })} →`
+      : `${t('comum.continuar')} →`;
+  }
+
+  if (!aulas.length) {
+    alvo.append(el('p', { class: 'texto-peq texto-cinza', text: t('reserva.aula.nenhuma') }));
+    return;
+  }
+  alvo.append(el('div', { class: 'negrito mb-8', text: aulas.length === 1 ? t('reserva.resumo.suaAula') : t('reserva.resumo.suasAulas', { n: aulas.length }) }));
+  const lista = el('div', { class: 'chips-aulas' });
+  aulas.forEach((a) => lista.append(el('span', { class: 'chip-aula' }, [
+    el('span', {}, [el('strong', { text: formatarDataCurta(a.data) }), ` ${a.horario}`]),
+    el('button', {
+      type: 'button', class: 'chip-remover', 'aria-label': t('reserva.aula.remover'), title: t('reserva.aula.remover'),
+      text: '×',
+      onclick: () => { alternarAula(a); seletor?.atualizarMarcas(); },
+    }),
+  ])));
+  alvo.append(lista);
+
+  // Sugestão rápida: com quantas aulas o pacote fica mais em conta.
+  const melhor = melhorPlano(aulas);
+  if (melhor) {
+    alvo.append(el('p', { class: 'texto-min texto-cinza mt-8', text: t('reserva.aula.sugestao', { plano: melhor.nome, valor: formatarBRL(precoUnitario(melhor)) }) }));
+  }
+}
+
+function trocarTipo(tipo) {
+  if (tipo === tipoDaAula()) return;
+  const pacote = pacoteEscolhido();
+  const pacoteServe = pacote && (pacote.tipo === 'individual') === (tipo === 'individual');
+  rascunho = salvarRascunho({
+    tipo, aulas: [], pularAula: false,
+    ...(pacoteServe ? {} : { pacoteId: null, pacoteFixo: false }),
+  });
+  irPara('aula', { rolar: false });
+}
+
+async function etapaAula(alvo) {
+  const pacote = pacoteEscolhido();
+  const individual = tipoDaAula() === 'individual';
+  const soFds = !!(pacote?.apenasFimDeSemana && rascunho.pacoteFixo);
+  const temParticular = catalogo.individual.length > 0;
+
+  alvo.innerHTML = `
+    <h2 class="mb-8">${escapar(t('reserva.aula.titulo'))}</h2>
+    <ol class="como-funciona mb-16">
+      <li><span class="cf-num">1</span><span>${t('reserva.aula.como1')}</span></li>
+      <li><span class="cf-num">2</span><span>${t('reserva.aula.como2')}</span></li>
+      <li><span class="cf-num">3</span><span>${t('reserva.aula.como3')}</span></li>
+    </ol>
+    ${temParticular ? `
+    <div class="abas abas-tipo mb-16" role="group" aria-label="${escapar(t('reserva.aula.tipo'))}">
+      <button type="button" class="aba ${individual ? '' : 'ativa'}" data-tipo="grupo">${escapar(t('reserva.aula.tipoGrupo'))}</button>
+      <button type="button" class="aba ${individual ? 'ativa' : ''}" data-tipo="individual">${escapar(t('reserva.aula.tipoParticular'))}</button>
+    </div>` : ''}
+    <p class="texto-cinza mb-16">${escapar(individual ? t('reserva.aula.textoParticular') : t('reserva.aula.textoGrupo', { n: contexto.config.capacidadeGrupo }))}</p>
+    ${pacote && rascunho.pacoteFixo ? `<div class="alerta alerta-info mb-16">${icone('planos')}<span class="cresce">${escapar(t('reserva.aula.planoFixo', { plano: pacote.nome, n: pacote.creditos }))}</span>
+      <button type="button" class="btn btn-fantasma btn-peq" id="btn-soltar-plano">${escapar(t('reserva.aula.verTodos'))}</button></div>` : ''}
+    ${soFds ? `<div class="alerta alerta-info mb-16">${icone('agenda')}<span>${escapar(t('reserva.aula.mensalista'))}</span></div>` : ''}
+    <div class="painel-colunas">
+      <div>
+        <div class="calendario-topo">
+          <button class="btn-mes" id="mes-anterior" type="button" aria-label="${escapar(t('cal.mesAnterior'))}">‹</button>
+          <span class="mes-atual" id="mes-atual">—</span>
+          <button class="btn-mes" id="mes-proximo" type="button" aria-label="${escapar(t('cal.mesProximo'))}">›</button>
+        </div>
+        <div class="calendario-grade" id="calendario" role="grid"></div>
+        <div class="legenda-cal">
+          <span><i class="bolinha" style="background:var(--verde)"></i> ${escapar(t('cal.comVagas'))}</span>
+          <span><i class="bolinha bolinha-escolhida"></i> ${escapar(t('cal.escolhido'))}</span>
+          <span><i class="bolinha" style="background:var(--vermelho)"></i> ${escapar(t('cal.lotadoOuSemAula'))}</span>
+          <span><i class="bolinha" style="background:var(--cinza-300)"></i> ${escapar(t('cal.indisponivel'))}</span>
+        </div>
+      </div>
+      <div>
+        <p class="negrito mb-8" id="dia-selecionado">${escapar(t('cal.escolhaDia'))}</p>
+        <div id="resumo-dia" class="resumo-dia"></div>
+        <div id="lista-slots"></div>
+        <p class="texto-min texto-cinza mt-16 com-icone">${icone('info')}${escapar(t('reserva.aula.professorInterno'))}</p>
+      </div>
+    </div>
+    <div id="aulas-escolhidas" class="aulas-escolhidas mt-16"></div>`;
+
+  qsa('.abas-tipo .aba', alvo).forEach((b) => b.addEventListener('click', () => trocarTipo(b.dataset.tipo)));
+  qs('#btn-soltar-plano', alvo)?.addEventListener('click', () => {
+    rascunho = salvarRascunho({ pacoteFixo: false });
+    irPara('aula', { rolar: false });
+  });
+
+  alvo.append(acoes({
+    continuar: () => {
+      if (!aulasEscolhidas().length) { toast(t('reserva.aula.escolhaHorario'), 'aviso'); return; }
+      irPara('plano');
+    },
+    extra: el('button', {
+      type: 'button', class: 'btn btn-fantasma', text: t('reserva.aula.semDatas'),
+      onclick: () => { rascunho = salvarRascunho({ pularAula: true, aulas: [] }); irPara('plano'); },
+    }),
+  }));
+  montarAulasEscolhidas();
+
+  seletor = criarSeletorAula({
+    grade: qs('#calendario', alvo),
+    rotuloMes: qs('#mes-atual', alvo),
+    btnAnterior: qs('#mes-anterior', alvo),
+    btnProximo: qs('#mes-proximo', alvo),
+    lista: qs('#lista-slots', alvo),
+    rotuloDia: qs('#dia-selecionado', alvo),
+    resumoDia: qs('#resumo-dia', alvo),
+    contexto,
+    tipo: tipoDaAula,
+    soFimDeSemana: () => soFds,
+    multiplo: true,
+    aoAlternar: alternarAula,
+    diasMarcados: () => aulasEscolhidas().map((a) => a.data),
+    slotMarcado: (slot) => aulasEscolhidas().some((a) => chaveDaAula(a) === chaveDaAula(slot)),
+  });
+
+  await seletor.iniciar({ dia: aulasEscolhidas()[0]?.data || null });
+}
+
+/* ==========================================================================
+   2. Plano — sugerido a partir das aulas escolhidas
+   ========================================================================== */
+
+/** Por que o plano não serve para as aulas escolhidas (ou null se serve). */
+function motivoIncompativel(p, aulas) {
+  if (!aulas.length) return null;
+  if (Number(p.creditos) < aulas.length) {
+    return t('reserva.plano.naoCabe', { n: p.creditos, aulas: aulas.length });
+  }
+  if (p.apenasFimDeSemana && aulas.some((a) => ![0, 6].includes(dataDeISO(a.data).getDay()))) {
+    return t('reserva.plano.soFds');
+  }
+  if (p.validadeDias) {
+    const limite = new Date();
+    limite.setDate(limite.getDate() + Number(p.validadeDias));
+    const ultima = aulas[aulas.length - 1].data;
+    if (dataDeISO(ultima) > limite) return t('reserva.plano.prazo', { dias: p.validadeDias });
+  }
+  return null;
+}
+
+/** O plano mais barato que cobre as aulas (empate: o que dá mais créditos). */
+function melhorPlano(aulas) {
+  if (!aulas.length) return null;
+  const servem = planosDoTipo(tipoDaAula()).filter((p) => !motivoIncompativel(p, aulas));
+  servem.sort((a, b) => (Number(a.preco) - Number(b.preco)) || (Number(b.creditos) - Number(a.creditos)));
+  return servem[0] || null;
+}
+
+function cardPlano(p, { recomendado = false, motivo = null, aulas = [] } = {}) {
+  const escolhido = p.id === rascunho.pacoteId;
+  const card = el('article', {
+    class: ['card-plano', recomendado || (!aulas.length && p.destaque) ? 'destaque' : '', escolhido ? 'escolhido' : '', motivo ? 'incompativel' : ''].filter(Boolean).join(' '),
+  });
+  if (recomendado) card.append(el('span', { class: 'selo-popular', text: t('reserva.plano.recomendado') }));
+  else if (!aulas.length && p.destaque) card.append(el('span', { class: 'selo-popular', text: t('reserva.plano.popular') }));
   card.append(el('div', { class: 'plano-nome', text: p.nome }), el('div', { class: 'plano-desc', text: p.descricao || '' }));
   const preco = el('div', { class: 'plano-preco' });
   preco.innerHTML = `${escapar(formatarBRL(p.preco))}${sufixoPeriodo(p) ? `<span class="periodo">${sufixoPeriodo(p)}</span>` : ''}`;
@@ -187,13 +413,20 @@ function cardPlano(p) {
       : (p.tipo === 'individual' ? t('reserva.plano.particular') : t('reserva.plano.avulsa')),
   }));
   const economia = economiaDoPacote(p);
-  if (economia) {
+  if (economia && !motivo) {
     card.append(el('div', { class: 'selo-economia' }, [
       el('span', { text: t('reserva.plano.economize', { valor: formatarBRL(economia.valor) }) }),
       el('span', { class: 'percentual', text: `${economia.percentual}%` }),
     ]));
   }
   const condicoes = [];
+  if (aulas.length && !motivo) {
+    const sobram = Number(p.creditos) - aulas.length;
+    const um = aulas.length === 1 ? 'Uma' : '';
+    condicoes.push(['check', sobram > 0
+      ? t(`reserva.plano.cobre${um}Sobram`, { n: aulas.length, sobram })
+      : t(`reserva.plano.cobre${um}`, { n: aulas.length })]);
+  }
   const validade = textoValidade(p);
   if (validade) condicoes.push(['ampulheta', validade.charAt(0).toUpperCase() + validade.slice(1)]);
   if (p.apenasFimDeSemana) condicoes.push(['agenda', t('reserva.resumo.fimDeSemana')]);
@@ -201,34 +434,35 @@ function cardPlano(p) {
     card.append(el('ul', { class: 'plano-condicoes' },
       condicoes.map(([ic, texto]) => el('li', { class: 'com-icone' }, [iconeEl(ic), texto]))));
   }
+  if (motivo) card.append(el('p', { class: 'plano-motivo com-icone' }, [iconeEl('info'), motivo]));
   card.append(el('button', {
     type: 'button',
-    class: `btn ${p.destaque ? 'btn-primario' : 'btn-secundario'} btn-bloco`,
-    text: t('reserva.plano.escolher'),
+    class: `btn ${recomendado || (!aulas.length && p.destaque) ? 'btn-primario' : 'btn-secundario'} btn-bloco`,
+    text: motivo ? t('reserva.plano.naoServe') : t('reserva.plano.escolher'),
+    disabled: !!motivo,
     onclick: () => escolherPlano(p),
   }));
   return card;
 }
 
 function escolherPlano(p) {
-  const mudouTipo = pacoteEscolhido() && (pacoteEscolhido().tipo === 'individual') !== (p.tipo === 'individual');
-  const mudouRegra = pacoteEscolhido()?.apenasFimDeSemana !== p.apenasFimDeSemana;
-  rascunho = salvarRascunho({
-    pacoteId: p.id,
-    tipo: p.tipo === 'individual' ? 'individual' : 'grupo',
-    pularAula: false,
-    // A aula escolhida pode não valer para o novo plano (particular x grupo, fim de semana).
-    ...(mudouTipo || mudouRegra ? { data: null, horario: null, localId: null } : {}),
-  });
-  irPara('aula');
+  rascunho = salvarRascunho({ pacoteId: p.id, pacoteFixo: false, tipo: p.tipo === 'individual' ? 'individual' : 'grupo' });
+  irPara('dados');
 }
 
 async function etapaPlano(alvo) {
+  const aulas = aulasEscolhidas();
   alvo.innerHTML = '';
-  alvo.append(
-    el('h2', { class: 'mb-8', text: t('reserva.plano.titulo') }),
-    el('p', { class: 'texto-cinza mb-16', text: t('reserva.plano.texto') }),
-  );
+  alvo.append(el('h2', { class: 'mb-8', text: t('reserva.plano.titulo') }));
+
+  if (aulas.length) {
+    alvo.append(el('p', {
+      class: 'texto-cinza mb-16',
+      text: aulas.length === 1 ? t('reserva.plano.textoUma') : t('reserva.plano.textoAulas', { n: aulas.length }),
+    }));
+  } else {
+    alvo.append(el('p', { class: 'texto-cinza mb-16', text: t('reserva.plano.texto') }));
+  }
 
   if (ehAluno()) {
     const saldo = await saldoCreditos(usuario.id);
@@ -241,102 +475,52 @@ async function etapaPlano(alvo) {
     }
   }
 
-  const blocos = [
-    [t('reserva.plano.grupo'), catalogo.grupo, 'grade-4'],
-    [t('reserva.plano.outros'), [...catalogo.individual, ...catalogo.mensal], 'grade-3'],
-  ];
-  for (const [titulo, lista, classe] of blocos) {
-    if (!lista.length) continue;
-    alvo.append(el('h3', { class: 'mb-16 mt-16', text: titulo }));
-    const grade = el('div', { class: `grade ${classe} mb-16` });
-    lista.forEach((p) => grade.append(cardPlano(p)));
+  // Sem aulas escolhidas ("ainda não sei as datas"): catálogo completo, como antes.
+  if (!aulas.length) {
+    const blocos = [
+      [t('reserva.plano.grupo'), catalogo.grupo, 'grade-4'],
+      [t('reserva.plano.outros'), [...catalogo.individual, ...catalogo.mensal], 'grade-3'],
+    ];
+    for (const [titulo, lista, classe] of blocos) {
+      if (!lista.length) continue;
+      alvo.append(el('h3', { class: 'mb-16 mt-16', text: titulo }));
+      const grade = el('div', { class: `grade ${classe} mb-16` });
+      lista.forEach((p) => grade.append(cardPlano(p)));
+      alvo.append(grade);
+    }
+    alvo.append(acoes({ voltar: () => irPara('aula') }));
+    return;
+  }
+
+  const planos = planosDoTipo(tipoDaAula());
+  const melhor = melhorPlano(aulas);
+  const servem = planos.filter((p) => !motivoIncompativel(p, aulas));
+  const naoServem = planos.filter((p) => motivoIncompativel(p, aulas));
+  // O recomendado vem primeiro; os demais na ordem do catálogo.
+  servem.sort((a, b) => (a === melhor ? -1 : b === melhor ? 1 : 0));
+
+  if (servem.length) {
+    alvo.append(el('h3', { class: 'mb-16 mt-16', text: t('reserva.plano.servem') }));
+    const grade = el('div', { class: `grade ${servem.length >= 4 ? 'grade-4' : 'grade-3'} mb-16` });
+    servem.forEach((p) => grade.append(cardPlano(p, { recomendado: p === melhor, aulas })));
     alvo.append(grade);
+  } else {
+    alvo.append(el('div', { class: 'alerta alerta-aviso mb-16' }, [iconeEl('alerta'), el('span', { text: t('reserva.plano.nenhumServe') })]));
   }
+
+  if (naoServem.length) {
+    const detalhes = el('details', { class: 'planos-outros mt-16' }, [
+      el('summary', { text: t('reserva.plano.outrosPlanos', { n: naoServem.length }) }),
+    ]);
+    const grade = el('div', { class: 'grade grade-3 mt-16' });
+    naoServem.forEach((p) => grade.append(cardPlano(p, { motivo: motivoIncompativel(p, aulas), aulas })));
+    detalhes.append(grade);
+    alvo.append(detalhes);
+  }
+
+  alvo.append(acoes({ voltar: () => irPara('aula') }));
 }
 
-/* ==========================================================================
-   2. Aula
-   ========================================================================== */
-
-async function etapaAula(alvo) {
-  const pacote = pacoteEscolhido();
-  const individual = tipoDaAula() === 'individual';
-  alvo.innerHTML = `
-    <h2 class="mb-8">${escapar(t('reserva.aula.titulo'))}</h2>
-    <p class="texto-cinza mb-16">${escapar(individual ? t('reserva.aula.textoParticular') : t('reserva.aula.textoGrupo', { n: contexto.config.capacidadeGrupo }))}</p>
-    ${pacote.apenasFimDeSemana ? `<div class="alerta alerta-info mb-16">${icone('agenda')}<span>${escapar(t('reserva.aula.mensalista'))}</span></div>` : ''}
-    <div class="painel-colunas">
-      <div>
-        <div class="calendario-topo">
-          <button class="btn-mes" id="mes-anterior" type="button" aria-label="${escapar(t('cal.mesAnterior'))}">‹</button>
-          <span class="mes-atual" id="mes-atual">—</span>
-          <button class="btn-mes" id="mes-proximo" type="button" aria-label="${escapar(t('cal.mesProximo'))}">›</button>
-        </div>
-        <div class="calendario-grade" id="calendario" role="grid"></div>
-        <div class="legenda-cal">
-          <span><i class="bolinha" style="background:var(--verde)"></i> ${escapar(t('cal.comVagas'))}</span>
-          <span><i class="bolinha" style="background:var(--vermelho)"></i> ${escapar(t('cal.lotadoOuSemAula'))}</span>
-          <span><i class="bolinha" style="background:var(--cinza-300)"></i> ${escapar(t('cal.indisponivel'))}</span>
-        </div>
-      </div>
-      <div>
-        <p class="negrito mb-8" id="dia-selecionado">${escapar(t('cal.escolhaDia'))}</p>
-        <div id="resumo-dia" class="resumo-dia"></div>
-        <div id="lista-slots"></div>
-        <p class="texto-min texto-cinza mt-16 com-icone">${icone('info')}${escapar(t('reserva.aula.professorInterno'))}</p>
-      </div>
-    </div>`;
-
-  const pularAula = pacote.creditos > 1
-    ? el('button', {
-      type: 'button', class: 'btn btn-fantasma', text: t('reserva.aula.agendarDepois'),
-      onclick: () => { rascunho = salvarRascunho({ pularAula: true, data: null, horario: null, localId: null }); irPara('dados'); },
-    })
-    : null;
-
-  alvo.append(acoes({
-    voltar: () => irPara('plano'),
-    continuar: () => {
-      if (!temAula()) { toast(t('reserva.aula.escolhaHorario'), 'aviso'); return; }
-      irPara('dados');
-    },
-    extra: pularAula,
-  }));
-  qs('#btn-continuar', alvo).disabled = !temAula();
-
-  seletor = criarSeletorAula({
-    grade: qs('#calendario', alvo),
-    rotuloMes: qs('#mes-atual', alvo),
-    btnAnterior: qs('#mes-anterior', alvo),
-    btnProximo: qs('#mes-proximo', alvo),
-    lista: qs('#lista-slots', alvo),
-    rotuloDia: qs('#dia-selecionado', alvo),
-    resumoDia: qs('#resumo-dia', alvo),
-    contexto,
-    tipo: tipoDaAula,
-    soFimDeSemana: () => pacote.apenasFimDeSemana === true,
-    aoSelecionar: (slot) => {
-      // Trocar de dia limpa a seleção; só grava quando há um horário escolhido.
-      if (slot) {
-        rascunho = salvarRascunho({
-          data: slot.data, horario: slot.horario, localId: slot.localId, tipo: tipoDaAula(), pularAula: false,
-        });
-      }
-      const btn = qs('#btn-continuar');
-      if (btn) btn.disabled = !slot;
-      montarResumo();
-    },
-  });
-
-  const diaAnterior = rascunho.data;
-  const chaveAnterior = rascunho.horario ? `${rascunho.horario}|${rascunho.localId || ''}` : null;
-  await seletor.iniciar({ dia: diaAnterior });
-  // Volta à etapa com a aula já escolhida: remarca o horário, se ainda houver vaga.
-  if (diaAnterior && chaveAnterior && !seletor.selecionarChave(chaveAnterior)) {
-    rascunho = salvarRascunho({ data: null, horario: null, localId: null });
-    montarResumo();
-  }
-}
 
 /* ==========================================================================
    3. Seus dados (cadastro ou login)
@@ -383,7 +567,7 @@ async function etapaDados(alvo) {
   if (usuario && !ehAluno()) {
     alvo.append(
       el('div', { class: 'alerta alerta-aviso' }, [iconeEl('alerta'), el('span', { text: t('dados.equipe') })]),
-      acoes({ voltar: () => irPara('aula'), extra: el('a', { class: 'btn btn-secundario', href: painelDoPapel(usuario.papel), text: t('nav.minhaArea') }) }),
+      acoes({ voltar: () => irPara('plano'), extra: el('a', { class: 'btn btn-secundario', href: painelDoPapel(usuario.papel), text: t('nav.minhaArea') }) }),
     );
     return;
   }
@@ -403,7 +587,7 @@ async function etapaDados(alvo) {
           onclick: async () => { await sair(null); usuario = null; irPara('dados'); },
         }),
       ]),
-      acoes({ voltar: () => irPara('aula'), continuar: () => irPara('saude') }),
+      acoes({ voltar: () => irPara('plano'), continuar: () => irPara('saude') }),
     );
     return;
   }
@@ -416,7 +600,7 @@ async function etapaDados(alvo) {
     alvo.append(form);
     ligarCamposPessoais(form, (idioma) => { rascunhoForm = lerCamposPessoais(form); definirIdioma(idioma); });
     alvo.append(acoes({
-      voltar: () => irPara('aula'),
+      voltar: () => irPara('plano'),
       continuar: async () => {
         const btn = qs('#btn-continuar');
         const restaurar = botaoCarregando(btn, t('comum.salvando'));
@@ -489,7 +673,7 @@ async function etapaDados(alvo) {
   qsa('input, select', form).forEach((c) => c.addEventListener('input', () => c.closest('.campo')?.classList.remove('erro')));
 
   alvo.append(acoes({
-    voltar: () => irPara('aula'),
+    voltar: () => irPara('plano'),
     textoContinuar: t('dados.criarConta'),
     continuar: async () => {
       if (qs('#f-senha', form).value !== qs('#f-senha2', form).value) {
@@ -567,7 +751,7 @@ function montarLogin(alvo) {
       }),
     );
   }
-  alvo.append(acoes({ voltar: () => irPara('aula') }));
+  alvo.append(acoes({ voltar: () => irPara('plano') }));
 }
 
 /* ==========================================================================
@@ -637,8 +821,16 @@ async function iniciar() {
 
   // Link direto para um plano (ex.: botão de um card na página inicial).
   const pacoteUrl = paramUrl('pacote');
-  if (pacoteUrl && catalogo.todos.some((p) => p.id === pacoteUrl) && pacoteUrl !== rascunho.pacoteId) {
-    rascunho = salvarRascunho({ pacoteId: pacoteUrl, data: null, horario: null, localId: null, pularAula: false });
+  // O calendário continua vindo primeiro, mas limitado ao que o plano permite.
+  const doLink = catalogo.todos.find((p) => p.id === pacoteUrl);
+  if (doLink && pacoteUrl !== rascunho.pacoteId) {
+    rascunho = salvarRascunho({
+      pacoteId: doLink.id,
+      pacoteFixo: true,
+      tipo: doLink.tipo === 'individual' ? 'individual' : 'grupo',
+      aulas: [],
+      pularAula: false,
+    });
   }
 
   montarPolitica();
@@ -649,7 +841,7 @@ async function iniciar() {
   });
 
   const hash = location.hash.replace('#', '');
-  const inicial = ETAPAS.includes(hash) ? hash : (pacoteUrl ? 'aula' : 'plano');
+  const inicial = ETAPAS.includes(hash) ? hash : 'aula';
   await irPara(inicial, { rolar: false });
 }
 

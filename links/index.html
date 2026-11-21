@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Barra Floripa Surf School — Links</title>
+  <meta name="description" content="Agende sua aula de surf, fale com a escola pelo WhatsApp, veja as fotos das aulas e como chegar na Barra da Lagoa.">
+  <meta name="theme-color" content="#FD711D">
+  <meta property="og:title" content="Barra Floripa Surf School">
+  <meta property="og:description" content="Aulas de surf na Barra da Lagoa, Florianópolis, desde 1989.">
+  <meta property="og:image" content="https://ivory-chough-425846.hostingersite.com/wp-content/uploads/2026/01/bg-barra-02-1-1.webp">
+  <link rel="icon" href="/logomenor-barrafloripa.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Anton&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* Identidade da escola: laranja #FD711D, preto #111, creme; Anton + Poppins */
+    :root {
+      --laranja: #fd711d;
+      --laranja-escuro: #e05f10;
+      --laranja-claro: #fb8d42;
+      --laranja-suave: #fff3e9;
+      --preto: #111111;
+      --grafite: #2b2b2b;
+      --creme: #fdf8f2;
+      --branco: #ffffff;
+      --cinza: #6b6b6b;
+      --verde-whats: #25d366;
+      --verde-whats-escuro: #1ebe5b;
+      --raio: 18px;
+      --sombra: 0 6px 18px rgba(17, 17, 17, 0.12);
+      --sombra-forte: 0 12px 28px rgba(17, 17, 17, 0.18);
+    }
+    * { box-sizing: border-box; margin: 0; }
+    html { -webkit-text-size-adjust: 100%; }
+    body {
+      min-height: 100vh;
+      font-family: 'Poppins', system-ui, -apple-system, sans-serif;
+      color: var(--preto);
+      background: var(--creme);
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: inherit; }
+
+    /* ---------- Topo com foto e onda ---------- */
+    .capa {
+      position: relative;
+      padding: 44px 16px 74px;
+      text-align: center;
+      color: var(--branco);
+      background: var(--preto);
+      overflow: hidden;
+    }
+    .capa-foto {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      opacity: 0.55;
+    }
+    .capa::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, rgba(17, 17, 17, 0.25), rgba(17, 17, 17, 0.75));
+    }
+    .capa > *:not(.capa-foto):not(.onda):not(.idiomas) { position: relative; z-index: 1; }
+    .logo {
+      width: 104px;
+      height: 104px;
+      border-radius: 50%;
+      background: var(--branco);
+      padding: 10px;
+      object-fit: contain;
+      box-shadow: 0 0 0 4px var(--laranja), var(--sombra-forte);
+    }
+    .capa h1 {
+      margin-top: 16px;
+      font-family: 'Anton', 'Arial Narrow', sans-serif;
+      font-weight: 400;
+      font-size: clamp(1.9rem, 7vw, 2.4rem);
+      letter-spacing: 0.01em;
+      line-height: 1.05;
+      text-transform: uppercase;
+    }
+    .capa h1 span { color: var(--laranja); }
+    .capa p { margin-top: 8px; font-size: 0.92rem; opacity: 0.92; }
+    .selo-desde {
+      display: inline-block;
+      margin-top: 12px;
+      padding: 4px 12px;
+      border-radius: 999px;
+      background: var(--laranja);
+      font-size: 0.74rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .onda {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: -1px;
+      width: 100%;
+      height: 46px;
+      z-index: 2;
+    }
+    .onda .frente { fill: var(--creme); }
+    .onda .fundo { fill: var(--laranja); opacity: 0.9; }
+
+    /* ---------- Idioma ---------- */
+    .idiomas {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      z-index: 3;
+      display: flex;
+      gap: 2px;
+      padding: 3px;
+      border-radius: 999px;
+      background: rgba(17, 17, 17, 0.45);
+    }
+    .idiomas button {
+      border: 0;
+      background: none;
+      color: var(--branco);
+      font: 600 0.72rem 'Poppins', sans-serif;
+      padding: 5px 9px;
+      border-radius: 999px;
+      cursor: pointer;
+    }
+    .idiomas button.ativo { background: var(--laranja); }
+
+    /* ---------- Botões ---------- */
+    main { max-width: 520px; margin: -20px auto 0; padding: 0 16px 32px; position: relative; z-index: 3; }
+    .links { display: grid; gap: 14px; }
+    .link {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      min-height: 80px;
+      padding: 14px 18px;
+      border-radius: var(--raio);
+      text-decoration: none;
+      box-shadow: var(--sombra);
+      overflow: hidden;
+      transition: transform 0.18s ease, box-shadow 0.18s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .link:hover, .link:focus-visible { transform: translateY(-2px); box-shadow: var(--sombra-forte); }
+    .link:active { transform: scale(0.98); }
+    .link:focus-visible { outline: 3px solid var(--preto); outline-offset: 3px; }
+    .link-icone {
+      flex: none;
+      width: 50px;
+      height: 50px;
+      border-radius: 14px;
+      display: grid;
+      place-items: center;
+    }
+    .link-icone svg { width: 28px; height: 28px; }
+    .link-texto { flex: 1; min-width: 0; }
+    .link-titulo { display: block; font-weight: 700; font-size: 1.06rem; line-height: 1.2; }
+    .link-sub { display: block; margin-top: 3px; font-size: 0.8rem; opacity: 0.85; line-height: 1.3; }
+    .link-seta { flex: none; width: 20px; height: 20px; opacity: 0.8; }
+
+    /* 1. Agendar: laranja da marca, com onda */
+    .link-agendar {
+      min-height: 96px;
+      color: var(--branco);
+      background: linear-gradient(135deg, var(--laranja) 0%, var(--laranja-claro) 100%);
+    }
+    .link-agendar .link-icone { background: var(--branco); color: var(--laranja); }
+    .link-agendar .link-titulo {
+      font-family: 'Anton', 'Arial Narrow', sans-serif;
+      font-weight: 400;
+      font-size: 1.5rem;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+    }
+    .link-agendar .onda-botao {
+      position: absolute;
+      right: -10px;
+      bottom: -6px;
+      width: 180px;
+      height: 46px;
+      opacity: 0.22;
+      pointer-events: none;
+    }
+    .link-agendar .selo {
+      position: absolute;
+      top: 10px;
+      right: 12px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: var(--preto);
+      color: var(--branco);
+      font-size: 0.64rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    /* 2. WhatsApp: verde oficial com a logo */
+    .link-whats { color: var(--branco); background: var(--verde-whats); }
+    .link-whats:hover { background: var(--verde-whats-escuro); }
+    .link-whats .link-icone { background: rgba(255, 255, 255, 0.2); }
+    .link-whats .link-icone svg { width: 32px; height: 32px; }
+
+    /* 3. Fotos: preto com as miniaturas das aulas */
+    .link-fotos { color: var(--branco); background: var(--preto); border: 0; width: 100%; text-align: left; font: inherit; cursor: pointer; }
+    .link-fotos .link-icone { background: var(--grafite); color: var(--laranja); }
+    .miniaturas { display: flex; flex: none; }
+    .miniaturas img {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      object-fit: cover;
+      border: 2px solid var(--preto);
+      background: var(--grafite);
+    }
+    .miniaturas img + img { margin-left: -12px; }
+
+    /* 4. Localização: cartão claro com "mapa" e alfinete */
+    .link-mapa {
+      color: var(--preto);
+      background-color: var(--branco);
+      background-image:
+        linear-gradient(115deg, transparent 46%, rgba(253, 113, 29, 0.16) 46%, rgba(253, 113, 29, 0.16) 50%, transparent 50%),
+        linear-gradient(25deg, transparent 62%, #e9eef2 62%, #e9eef2 66%, transparent 66%),
+        linear-gradient(160deg, transparent 70%, #dcecf7 70%);
+      border: 1px solid #ece4da;
+    }
+    .link-mapa .link-icone { background: var(--laranja-suave); color: var(--laranja); }
+    .link-mapa .link-sub { color: var(--cinza); opacity: 1; }
+
+    /* ---------- Galeria ---------- */
+    .galeria { margin-top: 14px; display: none; }
+    .galeria.aberta { display: block; animation: aparecer 0.25s ease; }
+    .galeria-grade { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+    .galeria-grade button {
+      padding: 0;
+      border: 0;
+      border-radius: 12px;
+      overflow: hidden;
+      aspect-ratio: 1;
+      background: #e9e2d8;
+      cursor: zoom-in;
+    }
+    .galeria-grade img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 0.25s ease; }
+    .galeria-grade button:hover img { transform: scale(1.05); }
+    .galeria-mais {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 10px;
+      font-size: 0.86rem;
+      font-weight: 600;
+      color: var(--laranja-escuro);
+      text-decoration: none;
+    }
+    .galeria-mais svg { width: 18px; height: 18px; }
+    @keyframes aparecer { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+
+    dialog.foto-grande {
+      padding: 0;
+      border: 0;
+      border-radius: 16px;
+      max-width: min(92vw, 720px);
+      background: var(--preto);
+    }
+    dialog.foto-grande::backdrop { background: rgba(17, 17, 17, 0.82); }
+    dialog.foto-grande img { display: block; max-width: 100%; max-height: 82vh; }
+    dialog.foto-grande button {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      width: 36px;
+      height: 36px;
+      border: 0;
+      border-radius: 50%;
+      background: rgba(17, 17, 17, 0.7);
+      color: var(--branco);
+      font-size: 1.3rem;
+      cursor: pointer;
+    }
+
+    /* ---------- Rodapé ---------- */
+    .rodape { margin-top: 28px; text-align: center; font-size: 0.82rem; color: var(--cinza); }
+    .redes { display: flex; justify-content: center; gap: 10px; margin-bottom: 12px; }
+    .redes a {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: var(--branco);
+      color: var(--preto);
+      box-shadow: var(--sombra);
+      transition: background 0.18s ease, color 0.18s ease;
+    }
+    .redes a:hover { background: var(--laranja); color: var(--branco); }
+    .redes svg { width: 20px; height: 20px; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .link, .galeria-grade img { transition: none; }
+      .galeria.aberta { animation: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <header class="capa">
+    <img class="capa-foto" src="https://ivory-chough-425846.hostingersite.com/wp-content/uploads/2026/01/bg-barra-02-1-1.webp" alt="" aria-hidden="true">
+    <div class="idiomas" role="group" aria-label="Idioma / Language">
+      <button type="button" data-idioma="pt">PT</button>
+      <button type="button" data-idioma="en">EN</button>
+      <button type="button" data-idioma="es">ES</button>
+    </div>
+    <img class="logo" src="/logomenor-barrafloripa.webp" alt="Barra Floripa Surf School" width="104" height="104">
+    <h1>Barra Floripa <span>Surf School</span></h1>
+    <p data-t="subtitulo">Aulas de surf na Barra da Lagoa · Florianópolis</p>
+    <span class="selo-desde" data-t="desde">Desde 1989</span>
+    <svg class="onda" viewBox="0 0 1200 46" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+      <path class="fundo" d="M0 30 C200 14 350 46 550 30 S900 14 1200 30 V46 H0Z"/>
+      <path class="frente" d="M0 18 C150 0 300 36 450 18 S750 0 900 18 S1100 34 1200 16 V46 H0Z" transform="translate(0 8)"/>
+    </svg>
+  </header>
+
+  <main>
+    <nav class="links" aria-label="Links">
+
+      <a class="link link-agendar" id="link-agendar" href="/reservar.html">
+        <span class="selo" data-t="online">Online</span>
+        <span class="link-icone" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16.5" rx="2.5"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/><path d="m9 15 2 2 4-4"/></svg>
+        </span>
+        <span class="link-texto">
+          <span class="link-titulo" data-t="agendar">Agende sua aula</span>
+          <span class="link-sub" data-t="agendarSub">Veja os dias com vaga e reserve em poucos minutos</span>
+        </span>
+        <svg class="onda-botao" viewBox="0 0 180 46" preserveAspectRatio="none" aria-hidden="true"><path fill="#fff" d="M0 26 C30 10 60 40 90 26 S150 10 180 26 V46 H0Z"/></svg>
+      </a>
+
+      <a class="link link-whats" id="link-whats" href="https://wa.me/5548999002584" target="_blank" rel="noopener">
+        <span class="link-icone" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path fill="currentColor" d="M17.47 14.38c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.16-.17.2-.35.22-.64.08-.3-.15-1.26-.47-2.39-1.48-.88-.79-1.48-1.76-1.65-2.06-.17-.3-.02-.46.13-.6.13-.14.3-.35.44-.52.15-.18.2-.3.3-.5.1-.2.05-.37-.02-.52-.08-.15-.67-1.61-.92-2.2-.24-.58-.49-.5-.67-.51h-.57c-.2 0-.52.07-.79.37-.27.3-1.04 1.02-1.04 2.48s1.07 2.88 1.21 3.07c.15.2 2.1 3.2 5.08 4.49.71.3 1.26.49 1.7.62.71.23 1.36.2 1.87.12.57-.08 1.76-.72 2-1.41.25-.7.25-1.29.18-1.41-.08-.13-.28-.2-.57-.35Zm-5.42 7.4h-.01a9.87 9.87 0 0 1-5.03-1.38l-.36-.21-3.74.98 1-3.65-.24-.37a9.86 9.86 0 0 1-1.51-5.26c0-5.45 4.44-9.88 9.89-9.88 2.64 0 5.12 1.03 6.99 2.9a9.82 9.82 0 0 1 2.89 6.99c0 5.45-4.44 9.88-9.88 9.88Zm8.41-18.3A11.82 11.82 0 0 0 12.05 0C5.5 0 .16 5.34.16 11.89c0 2.1.55 4.14 1.59 5.95L.06 24l6.3-1.65a11.88 11.88 0 0 0 5.68 1.45h.01c6.55 0 11.89-5.34 11.89-11.9 0-3.17-1.24-6.16-3.48-8.41Z"/></svg>
+        </span>
+        <span class="link-texto">
+          <span class="link-titulo" data-t="whats">WhatsApp da escola</span>
+          <span class="link-sub" data-t="whatsSub">Tire dúvidas com a nossa equipe</span>
+        </span>
+        <svg class="link-seta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
+      </a>
+
+      <div>
+        <button type="button" class="link link-fotos" id="link-fotos" aria-expanded="false" aria-controls="galeria">
+          <span class="link-icone" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8.5A2.5 2.5 0 0 1 6.5 6h1.7l1.3-2h5l1.3 2h1.7A2.5 2.5 0 0 1 20 8.5v9A2.5 2.5 0 0 1 17.5 20h-11A2.5 2.5 0 0 1 4 17.5Z"/><circle cx="12" cy="13" r="3.5"/></svg>
+          </span>
+          <span class="link-texto">
+            <span class="link-titulo" data-t="fotos">Fotos das aulas</span>
+            <span class="link-sub" data-t="fotosSub">Veja a galera na água</span>
+          </span>
+          <span class="miniaturas" aria-hidden="true">
+            <img src="https://ivory-chough-425846.hostingersite.com/wp-content/uploads/2026/01/surf1-1.webp" alt="" loading="lazy">
+            <img src="https://ivory-chough-425846.hostingersite.com/wp-content/uploads/2026/01/surf3-1.webp" alt="" loading="lazy">
+            <img src="https://ivory-chough-425846.hostingersite.com/wp-content/uploads/2026/01/barrafloripa-galera-1.webp" alt="" loading="lazy">
+          </span>
+        </button>
+        <div class="galeria" id="galeria">
+          <div class="galeria-grade" id="galeria-grade"></div>
+          <a class="galeria-mais" id="galeria-mais" href="https://instagram.com/barra.floripa.surf" target="_blank" rel="noopener">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor"/></svg>
+            <span data-t="maisFotos">Mais fotos no Instagram</span>
+          </a>
+        </div>
+      </div>
+
+      <a class="link link-mapa" id="link-mapa" href="https://www.google.com/maps/place/Barra+Floripa+Surf+School/@-27.5758361,-48.4258321,17z" target="_blank" rel="noopener">
+        <span class="link-icone" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21Z"/><circle cx="12" cy="9.5" r="2.5"/></svg>
+        </span>
+        <span class="link-texto">
+          <span class="link-titulo" data-t="mapa">Localização da escola</span>
+          <span class="link-sub" id="endereco">Tv. Manoel Florentino Vieira, 0030 · Barra da Lagoa</span>
+        </span>
+        <svg class="link-seta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
+      </a>
+    </nav>
+
+    <footer class="rodape">
+      <div class="redes">
+        <a id="rede-instagram" href="https://instagram.com/barra.floripa.surf" target="_blank" rel="noopener" aria-label="Instagram">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor"/></svg>
+        </a>
+        <a href="/" aria-label="Site">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.6 3.8 5.6 3.8 9s-1.3 6.4-3.8 9c-2.5-2.6-3.8-5.6-3.8-9S9.5 5.6 12 3Z"/></svg>
+        </a>
+        <a id="rede-email" href="mailto:contato@barrafloripasurfschool.com.br" aria-label="E-mail">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="m4 7 8 6 8-6"/></svg>
+        </a>
+      </div>
+      <p>© <span id="ano">2026</span> Barra Floripa Surf School</p>
+    </footer>
+  </main>
+
+  <dialog class="foto-grande" id="foto-grande">
+    <img id="foto-grande-img" src="" alt="">
+    <button type="button" id="foto-fechar" aria-label="Fechar">×</button>
+  </dialog>
+
+  <script type="module">
+    import { ESCOLA } from '/js/config.js';
+
+    const BASE = 'https://ivory-chough-425846.hostingersite.com/wp-content/uploads/2026/01/';
+    const FOTOS = [
+      ['surf1-1.webp', 'Aluno surfando sua primeira onda'],
+      ['surf2-1.webp', 'Turma treinando na areia'],
+      ['surf3-1.webp', 'Aluna surfando na Barra da Lagoa'],
+      ['barrafloripa-galera-1.webp', 'A galera da escola na praia'],
+      ['newpraiabarra-1.webp', 'Praia da Barra da Lagoa'],
+      ['new-pranchas-1.webp', 'Pranchas da escola'],
+    ];
+
+    const TEXTOS = {
+      pt: {
+        subtitulo: 'Aulas de surf na Barra da Lagoa · Florianópolis', desde: 'Desde 1989', online: 'Online',
+        agendar: 'Agende sua aula', agendarSub: 'Veja os dias com vaga e reserve em poucos minutos',
+        whats: 'WhatsApp da escola', whatsSub: 'Tire dúvidas com a nossa equipe',
+        fotos: 'Fotos das aulas', fotosSub: 'Veja a galera na água', maisFotos: 'Mais fotos no Instagram',
+        mapa: 'Localização da escola', mensagem: 'Olá! Vim pelo Instagram e quero saber mais sobre as aulas de surf.',
+      },
+      en: {
+        subtitulo: 'Surf lessons at Barra da Lagoa · Florianópolis', desde: 'Since 1989', online: 'Online',
+        agendar: 'Book your lesson', agendarSub: 'See open days and book in a few minutes',
+        whats: 'School WhatsApp', whatsSub: 'Ask our team anything',
+        fotos: 'Lesson photos', fotosSub: 'See our students in the water', maisFotos: 'More photos on Instagram',
+        mapa: 'School location', mensagem: 'Hi! I found you on Instagram and would like to know more about surf lessons.',
+      },
+      es: {
+        subtitulo: 'Clases de surf en Barra da Lagoa · Florianópolis', desde: 'Desde 1989', online: 'Online',
+        agendar: 'Reserva tu clase', agendarSub: 'Mira los días con lugar y reserva en minutos',
+        whats: 'WhatsApp de la escuela', whatsSub: 'Consulta tus dudas con el equipo',
+        fotos: 'Fotos de las clases', fotosSub: 'Mira a los alumnos en el agua', maisFotos: 'Más fotos en Instagram',
+        mapa: 'Ubicación de la escuela', mensagem: '¡Hola! Vengo de Instagram y quiero saber más sobre las clases de surf.',
+      },
+    };
+
+    // Mesmo idioma do site (escolha salva) ou o do navegador.
+    function idiomaInicial() {
+      try {
+        const salvo = localStorage.getItem('bf_idioma');
+        if (TEXTOS[salvo]) return salvo;
+      } catch { /* navegação privada */ }
+      for (const cod of navigator.languages || [navigator.language || 'pt']) {
+        const base = String(cod).slice(0, 2).toLowerCase();
+        if (TEXTOS[base]) return base;
+      }
+      return 'en';
+    }
+
+    let idioma = idiomaInicial();
+
+    function aplicar() {
+      const tx = TEXTOS[idioma];
+      document.documentElement.lang = { pt: 'pt-BR', en: 'en', es: 'es' }[idioma];
+      document.querySelectorAll('[data-t]').forEach((el) => { el.textContent = tx[el.dataset.t]; });
+      document.querySelectorAll('.idiomas button').forEach((b) => {
+        b.classList.toggle('ativo', b.dataset.idioma === idioma);
+        b.setAttribute('aria-pressed', String(b.dataset.idioma === idioma));
+      });
+      document.getElementById('link-whats').href =
+        `https://wa.me/${ESCOLA.whatsapp}?text=${encodeURIComponent(tx.mensagem)}`;
+    }
+
+    document.querySelectorAll('.idiomas button').forEach((b) => b.addEventListener('click', () => {
+      idioma = b.dataset.idioma;
+      try { localStorage.setItem('bf_idioma', idioma); } catch { /* ok */ }
+      aplicar();
+    }));
+
+    // Dados da escola vêm da configuração central (js/config.js).
+    const instagram = `https://instagram.com/${ESCOLA.instagram}`;
+    document.getElementById('link-mapa').href = ESCOLA.mapsUrl;
+    document.getElementById('endereco').textContent = ESCOLA.endereco.split(',').slice(0, 3).join(',').replace(/ - /, ' · ');
+    document.getElementById('rede-instagram').href = instagram;
+    document.getElementById('galeria-mais').href = instagram;
+    document.getElementById('rede-email').href = `mailto:${ESCOLA.email}`;
+    document.getElementById('ano').textContent = String(new Date().getFullYear());
+
+    // Fotos: álbum externo, se configurado; senão a galeria desta página.
+    const botaoFotos = document.getElementById('link-fotos');
+    const galeria = document.getElementById('galeria');
+    const grade = document.getElementById('galeria-grade');
+    const dialogo = document.getElementById('foto-grande');
+    const imgGrande = document.getElementById('foto-grande-img');
+
+    FOTOS.forEach(([arquivo, alt]) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.setAttribute('aria-label', alt);
+      b.innerHTML = `<img src="${BASE}${arquivo}" alt="${alt}" loading="lazy">`;
+      b.querySelector('img').addEventListener('error', () => b.remove());
+      b.addEventListener('click', () => {
+        imgGrande.src = BASE + arquivo;
+        imgGrande.alt = alt;
+        dialogo.showModal();
+      });
+      grade.append(b);
+    });
+
+    botaoFotos.addEventListener('click', () => {
+      if (ESCOLA.fotosUrl) {
+        window.open(ESCOLA.fotosUrl, '_blank', 'noopener');
+        return;
+      }
+      const aberta = galeria.classList.toggle('aberta');
+      botaoFotos.setAttribute('aria-expanded', String(aberta));
+      if (aberta) galeria.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    });
+    document.getElementById('foto-fechar').addEventListener('click', () => dialogo.close());
+    dialogo.addEventListener('click', (ev) => { if (ev.target === dialogo) dialogo.close(); });
+
+    aplicar();
+  </script>
+</body>
+</html>

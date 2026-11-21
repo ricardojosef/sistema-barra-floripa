@@ -128,3 +128,30 @@ sem rolagem lateral) e ausência de erros no console.
 **Não testado aqui** (exige as credenciais e o deploy): regras do Firestore
 publicadas, Cloud Functions de pagamento, webhook do Mercado Pago, e-mails e
 WhatsApp. Siga o passo 7 de [PAGAMENTOS.md](PAGAMENTOS.md#7-teste-com-dinheiro-real-pequeno).
+
+## Ajustes v2.1
+
+| Pedido | Onde ficou |
+|---|---|
+| Datas dia/mês/ano | `formatarData` (`js/ui.js`) e `formatoDatas` (`js/i18n.js`). Campos de data viraram texto com máscara `dd/mm/aaaa` (o `.value` continua `YYYY-MM-DD`) |
+| Menu lateral sem rolagem | `.barra-lateral` rola; a barra aparece ao passar o mouse (`css/pages.css`, seção v2.1) |
+| Calendário antes do plano | `reservar.html`: 1. Suas aulas (uma ou várias) → 2. Plano sugerido → dados → saúde → pagamento. A compra guarda `reservas: [...]` |
+| WhatsApp flutuante e no rodapé | `montarBotaoWhatsapp` / `montarRodape` (`js/ui.js`) |
+| Página de links da bio | `links/index.html` → `barrafloripasurfschool.com.br/links` |
+
+### Decisões a validar (v2.1)
+
+18. **Quem é "gringo" para as datas:** só quem lê em inglês **e** é dos EUA
+    (pelo cadastro ou, antes do login, pelo navegador `en-US`) vê mm/dd/aaaa.
+    Espanhol, inglês britânico e brasileiros em inglês ficam com dia/mês/ano.
+    Painéis da equipe, PDF da declaração e e-mails: sempre padrão brasileiro.
+    *Alternativa:* todo mundo em dia/mês/ano, sem exceção (1 linha).
+19. **Limite de aulas por compra:** até o maior pacote do tipo (12 em grupo,
+    1 particular). As demais são agendadas depois pelo painel.
+20. **Plano recomendado:** o mais barato que cobre as aulas marcadas. Planos
+    que não servem (poucos créditos, mensalista só fim de semana, prazo de
+    validade menor que a data da última aula) aparecem recolhidos, com o motivo.
+21. **Particular:** uma aula por compra (o catálogo só tem particular avulsa).
+22. **Fotos das aulas (/links):** abre uma galeria na própria página com as
+    fotos do site. Para um álbum externo (Google Fotos), preencha
+    `ESCOLA.fotosUrl` em `js/config.js`.

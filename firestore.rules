@@ -143,7 +143,8 @@ service cloud.firestore {
       allow update: if ehAdmin()
                     || (ehDono(resource.data.alunoId)
                         && (request.resource.data.diff(resource.data).affectedKeys()
-                              .hasOnly(['reservaStatus', 'reservaAgendamentoId', 'reservaErro', 'atualizadoEm'])
+                              .hasOnly(['reservaStatus', 'reservaAgendamentoId', 'reservaAgendamentoIds',
+                                        'reservaFalhas', 'reservaErro', 'atualizadoEm'])
                             || (resource.data.status == 'pendente'
                                 && request.resource.data.status == 'cancelado'
                                 && request.resource.data.diff(resource.data).affectedKeys()

@@ -15,7 +15,7 @@ import { obterConfig } from '../precos.js';
 import { politicaHTML } from '../politica.js';
 import { aplicarTraducoes, aoTrocarIdioma } from '../i18n.js';
 import { iniciarAnimacoes } from '../animacoes.js';
-import { qs, qsa, montarTopoPublico, montarRodape } from '../ui.js';
+import { qs, qsa, montarTopoPublico, montarRodape, montarBotaoWhatsapp } from '../ui.js';
 
 /* --------------------------------------------------------------------------
    Contador "DE ZERO A __%"
@@ -166,12 +166,13 @@ function montarPolitica() {
 async function iniciar() {
   // Idioma: reconhecido pelo navegador já no primeiro acesso (turistas).
   aplicarTraducoes();
-  aoTrocarIdioma(() => { aplicarTraducoes(); montarPolitica(); });
+  aoTrocarIdioma(() => { aplicarTraducoes(); montarPolitica(); montarRodape(); montarBotaoWhatsapp(); });
 
   // Cabeçalho e rodapé primeiro: a página não fica em branco se o
   // armazenamento demorar a responder.
   montarTopoPublico(null);
   montarRodape();
+  montarBotaoWhatsapp();
   montarPolitica();
 
   rotularPlaceholders();

@@ -1912,3 +1912,190 @@ body.pagina-fluxo { background: var(--fundo-painel, #f7f3ee); }
 /* Ícones de traço também na página inicial (o tamanho base vem do tema dos painéis). */
 svg.icone { width: 1.2em; height: 1.2em; flex: none; vertical-align: -0.22em; }
 .cartao-politica h3 .icone { width: 26px; height: 26px; }
+
+/* ==========================================================================
+   v2.1 — menu lateral com rolagem, reserva com várias aulas, WhatsApp
+   ========================================================================== */
+
+/* ---------- Menu lateral dos painéis: rola quando não cabe na tela ----------
+   A barra de rolagem fica invisível e aparece quando o mouse está sobre o
+   menu, para o botão "Sair" nunca ficar escondido em telas baixas. */
+.barra-lateral {
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+  scrollbar-gutter: stable;
+}
+.barra-lateral > * { flex-shrink: 0; }
+.barra-lateral:hover,
+.barra-lateral:focus-within { scrollbar-color: var(--cinza-300) transparent; }
+.barra-lateral::-webkit-scrollbar { width: 6px; }
+.barra-lateral::-webkit-scrollbar-thumb { background: transparent; border-radius: 6px; }
+.barra-lateral:hover::-webkit-scrollbar-thumb,
+.barra-lateral:focus-within::-webkit-scrollbar-thumb { background: var(--cinza-300); }
+.barra-lateral .empurra { min-height: 12px; }
+
+/* ---------- Reserva: como funciona ---------- */
+.como-funciona {
+  list-style: none;
+  padding: 14px 16px;
+  margin: 0;
+  display: grid;
+  gap: 10px;
+  border-radius: var(--raio);
+  background: var(--laranja-suave);
+  border: 1px solid var(--laranja-borda);
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+.como-funciona li { display: flex; gap: 10px; align-items: flex-start; }
+.como-funciona .cf-num {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--laranja);
+  color: var(--branco);
+  font-weight: 700;
+  font-size: 0.8rem;
+}
+.como-funciona strong { color: var(--laranja-escuro); }
+
+.abas-tipo { margin-bottom: 12px; }
+
+/* Dia com aula marcada: contorno laranja e um selo de check */
+.dia-cel { position: relative; }
+.dia-cel.escolhido:not(.selecionado) {
+  border-color: var(--laranja);
+  border-width: 2px;
+  background: var(--laranja-suave);
+  color: var(--laranja-escuro);
+}
+.dia-cel.escolhido::after {
+  content: '✓';
+  position: absolute;
+  top: 2px;
+  right: 4px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--laranja);
+}
+.dia-cel.escolhido.selecionado::after { color: var(--branco); }
+.legenda-cal .bolinha-escolhida { background: var(--laranja-suave); border: 2px solid var(--laranja); width: 11px; height: 11px; }
+
+/* Lista das aulas marcadas */
+.aulas-escolhidas {
+  padding: 14px 16px;
+  border: 1px dashed var(--cinza-300);
+  border-radius: var(--raio);
+  background: var(--branco);
+}
+.chips-aulas { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip-aula {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 6px 5px 12px;
+  border-radius: 999px;
+  background: var(--laranja-suave);
+  border: 1px solid var(--laranja-borda);
+  color: var(--cinza-900);
+  font-size: 0.88rem;
+}
+.chip-aula strong { color: var(--laranja-escuro); }
+.chip-remover {
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--cinza-700);
+  font-size: 1.05rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.chip-remover:hover { background: var(--laranja); color: var(--branco); }
+
+.resumo-aula-item + .resumo-aula-item { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--laranja-borda); }
+
+/* Planos que não cobrem as aulas marcadas */
+.card-plano.incompativel { opacity: 0.6; }
+.card-plano.incompativel .btn { cursor: not-allowed; }
+.plano-motivo { font-size: 0.82rem; color: var(--cinza-700); margin: 6px 0 10px; }
+.plano-motivo .icone { color: var(--laranja); }
+.planos-outros > summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--cinza-700);
+  padding: 8px 0;
+}
+.planos-outros > summary:hover { color: var(--laranja-escuro); }
+
+/* ---------- WhatsApp: botão flutuante (página inicial) e rodapé ---------- */
+.logo-whatsapp { width: 26px; height: 26px; flex: none; }
+
+.whats-flutuante {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 900;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  height: 58px;
+  padding: 0 16px;
+  border-radius: 999px;
+  background: #25d366;
+  color: #fff;
+  text-decoration: none;
+  font-family: var(--fonte-texto);
+  font-weight: 600;
+  font-size: 0.92rem;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.22);
+  transition: transform var(--transicao), box-shadow var(--transicao), background var(--transicao);
+  animation: whats-entrar 0.5s ease 1s both;
+}
+.whats-flutuante .logo-whatsapp { width: 30px; height: 30px; }
+.whats-flutuante:hover,
+.whats-flutuante:focus-visible { background: #1ebe5b; color: #fff; transform: translateY(-2px); box-shadow: 0 10px 26px rgba(0, 0, 0, 0.26); }
+.whats-flutuante::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: 0 0 0 0 rgba(37, 211, 102, 0.55);
+  animation: whats-pulso 2.6s ease-out 2s infinite;
+  pointer-events: none;
+}
+@keyframes whats-entrar { from { opacity: 0; transform: translateY(20px) scale(0.9); } to { opacity: 1; transform: none; } }
+@keyframes whats-pulso { 0% { box-shadow: 0 0 0 0 rgba(37, 211, 102, 0.55); } 70%, 100% { box-shadow: 0 0 0 16px rgba(37, 211, 102, 0); } }
+@media (max-width: 640px) {
+  .whats-flutuante { width: 58px; padding: 0; justify-content: center; right: 14px; bottom: 14px; }
+  .whats-flutuante-texto { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .whats-flutuante, .whats-flutuante::before { animation: none; }
+}
+
+.btn-whatsapp-rodape {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin: 2px 0 14px;
+  padding: 10px 16px;
+  border-radius: var(--raio);
+  background: #25d366;
+  color: #fff !important;
+  font-weight: 600;
+  font-size: 0.92rem;
+  text-decoration: none;
+  transition: background var(--transicao), transform var(--transicao);
+}
+.btn-whatsapp-rodape:hover { background: #1ebe5b; transform: translateY(-1px); }
+.btn-whatsapp-rodape .logo-whatsapp { width: 22px; height: 22px; }

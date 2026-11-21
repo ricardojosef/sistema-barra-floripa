@@ -269,7 +269,7 @@ export async function baixarPdfDeclaracao(decl) {
   linha(`Nº do ${decl.tipoDocumento || 'CPF'}`, decl.documento);
   linha('Nº celular', decl.celular);
   linha('E-mail', decl.email);
-  linha('Data de nascimento', decl.nascimento ? formatarData(decl.nascimento) : '');
+  linha('Data de nascimento', decl.nascimento ? formatarData(decl.nascimento, { br: true }) : '');
   if (decl.responsavelNome) linha('Responsável legal (menor de 18 anos)', decl.responsavelNome);
 
   y += 3;
@@ -283,9 +283,9 @@ export async function baixarPdfDeclaracao(decl) {
   paragrafo('Assinatura do(a) aluno(a)' + (decl.responsavelNome ? ' / responsável' : ''), { tamanho: 9 });
 
   const assinado = new Date(decl.assinadoEm);
-  paragrafo(`Florianópolis, ${formatarData(decl.assinadoEm.slice(0, 10))} — assinado eletronicamente às `
+  paragrafo(`Florianópolis, ${formatarData(decl.assinadoEm.slice(0, 10), { br: true })} — assinado eletronicamente às `
     + `${String(assinado.getHours()).padStart(2, '0')}:${String(assinado.getMinutes()).padStart(2, '0')}.`, { tamanho: 9 });
-  paragrafo(`Válido até ${formatarData(String(decl.validaAte).slice(0, 10))}. Registro ${decl.id}.`, { tamanho: 8 });
+  paragrafo(`Válido até ${formatarData(String(decl.validaAte).slice(0, 10), { br: true })}. Registro ${decl.id}.`, { tamanho: 8 });
 
   const nomeArquivo = `declaracao-saude-${String(decl.nomeCompleto || decl.alunoNome || 'aluno')
     .normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-zA-Z0-9]+/g, '-').toLowerCase()}`

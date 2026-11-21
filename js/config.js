@@ -67,6 +67,12 @@ export const ESCOLA = {
    * O administrador troca pelo painel (aba Horários); aqui é só o padrão.
    */
   grupoWhatsapp: '',
+  /**
+   * Álbum de fotos das aulas (Google Fotos, Drive...) usado no botão "Fotos
+   * das aulas" da página de links (/links). Vazio = mostra a galeria da
+   * própria página.
+   */
+  fotosUrl: '',
 };
 
 /**
