@@ -16,12 +16,13 @@ import { aplicarFiltros, aplicarOrdenacao } from './store.js';
 
 const PREFIXO = 'bf_';
 const CHAVE_VERSAO = `${PREFIXO}versao_seed`;
-const VERSAO_SEED = 7;
+const VERSAO_SEED = 8;
 
 const COLECOES = [
   'usuarios', 'professores', 'pacotes', 'compras', 'creditos',
   'agendamentos', 'locais', 'avisos', 'avisosLidos', 'config',
   'vagas', 'disponibilidade', 'mensagens',
+  'declaracoes', 'justificativas', 'cupons', 'repasses',
 ];
 
 /* --------------------------------------------------------------------------
@@ -117,15 +118,16 @@ function proximoFimDeSemana(aPartirDe = 1) {
    Seed dos dados de demonstração
    -------------------------------------------------------------------------- */
 
+// CPFs fictícios, mas com dígitos verificadores válidos (passam na validação).
 const ALUNOS_DEMO = [
-  { nome: 'Ricardo Alves', email: 'aluno@teste.com', telefone: '(48) 99111-1111' },
-  { nome: 'Giovanna Zambrini', email: 'giovanna@teste.com', telefone: '(48) 99222-2222' },
-  { nome: 'Ana Gabriela Ferreira', email: 'ana@teste.com', telefone: '(48) 99333-3333' },
-  { nome: 'André Pagorare', email: 'andre@teste.com', telefone: '(48) 99444-4444' },
-  { nome: 'Marina Costa', email: 'marina@teste.com', telefone: '(48) 99555-5555' },
-  { nome: 'Bruno Tavares', email: 'bruno@teste.com', telefone: '(48) 99666-6666' },
-  { nome: 'Camila Rocha', email: 'camila@teste.com', telefone: '(48) 99777-7777' },
-  { nome: 'Diego Martins', email: 'diego@teste.com', telefone: '(48) 99888-8888' },
+  { nome: 'Ricardo Alves', email: 'aluno@teste.com', telefone: '(48) 99111-1111', cpf: '52998224725', nacionalidade: 'BR', idioma: 'pt', nascimento: '1992-03-14' },
+  { nome: 'Giovanna Zambrini', email: 'giovanna@teste.com', telefone: '(48) 99222-2222', cpf: '11144477735', nacionalidade: 'BR', idioma: 'pt', nascimento: '1998-07-02' },
+  { nome: 'Ana Gabriela Ferreira', email: 'ana@teste.com', telefone: '(48) 99333-3333', cpf: '39053344705', nacionalidade: 'BR', idioma: 'pt', nascimento: '2001-11-20' },
+  { nome: 'André Pagorare', email: 'andre@teste.com', telefone: '(48) 99444-4444', cpf: '15350946056', nacionalidade: 'BR', idioma: 'pt', nascimento: '1987-05-09' },
+  { nome: 'Martín Gómez', email: 'martin@teste.com', telefone: '+54 9 11 5555-5555', documento: 'AAB123456', nacionalidade: 'AR', idioma: 'es', nascimento: '1995-01-30' },
+  { nome: 'Bruno Tavares', email: 'bruno@teste.com', telefone: '(48) 99666-6666', cpf: '86288366757', nacionalidade: 'BR', idioma: 'pt', nascimento: '1990-09-17' },
+  { nome: 'Camila Rocha', email: 'camila@teste.com', telefone: '(48) 99777-7777', cpf: '71428793860', nacionalidade: 'BR', idioma: 'pt', nascimento: '1999-12-05' },
+  { nome: 'Emily Carter', email: 'emily@teste.com', telefone: '+1 415 555 0100', documento: '563829174', nacionalidade: 'US', idioma: 'en', nascimento: '1996-04-22' },
 ];
 
 async function semear() {
@@ -163,6 +165,11 @@ async function semear() {
     nome: a.nome,
     email: a.email,
     telefone: a.telefone,
+    cpf: a.cpf || null,
+    documento: a.documento || null,
+    nacionalidade: a.nacionalidade,
+    idioma: a.idioma,
+    nascimento: a.nascimento,
     papel: 'aluno',
     ativo: true,
     googleId: null,
@@ -266,6 +273,8 @@ async function semear() {
       tipo,
       localId,
       status: 'confirmado',
+      atribuicao: 'automatica',
+      presenca: null,
       canceladoPor: null,
       motivoCancelamento: null,
       criadoEm: agora(),
@@ -301,9 +310,31 @@ async function semear() {
   marcar(7, 'prof-pedro', 6, '08:00');
   marcar(1, 'prof-gabrieli', 7, '14:00');
 
+  // --- Aulas que já aconteceram: presença registrada e saldo do professor ---
+  const passada = (alunoIdx, professorId, dia, horario, presenca) => {
+    seqAg += 1;
+    const aluno = alunos[alunoIdx];
+    const agendamentoId = `agd-demo-${seqAg}`;
+    agendamentos.push({
+      id: agendamentoId, alunoId: aluno.id, alunoNome: aluno.nome, professorId,
+      data: diaRelativo(dia), horario, duracaoMin: DEFAULTS.duracaoMin, tipo: 'grupo',
+      localId: 'local-barra', status: 'realizado', atribuicao: 'automatica', presenca,
+      presencaEm: presenca ? agora() : null, canceladoPor: null, motivoCancelamento: null, criadoEm: agora(),
+    });
+    creditos.push({
+      id: `debito_${agendamentoId}`, alunoId: aluno.id, delta: -1, motivo: 'agendamento',
+      compraId: null, agendamentoId, criadoEm: agora(),
+    });
+  };
+  passada(1, 'prof-pedro', -1, '08:00', 'presente');
+  passada(2, 'prof-pedro', -1, '08:00', 'presente');
+  passada(3, 'prof-pedro', -1, '08:00', 'ausente');
+  passada(4, 'prof-igor', -2, '10:00', 'presente');
+
   // --- Lotação pública (espelho dos agendamentos confirmados) ---
   const vagas = new Map();
   for (const a of agendamentos) {
+    if (a.status !== 'confirmado') continue;
     const id = `${a.data}_${a.professorId}_${a.horario.replace(':', '')}`;
     const v = vagas.get(id) || {
       id, data: a.data, professorId: a.professorId, horario: a.horario,
@@ -391,6 +422,10 @@ async function semear() {
     capacidadeGrupo: DEFAULTS.capacidadeGrupo,
     horasMinimasCancelamento: DEFAULTS.horasMinimasCancelamento,
     localPadraoId: 'local-barra',
+    remuneracao: { ...DEFAULTS.remuneracao },
+    validadeDeclaracaoMeses: DEFAULTS.validadeDeclaracaoMeses,
+    diasSemAula: [],
+    grupoWhatsapp: 'https://chat.whatsapp.com/EXEMPLO-GRUPO-ALUNOS',
     atualizadoEm: agora(),
   }];
 
@@ -407,6 +442,43 @@ async function semear() {
   escrever('avisos', avisos);
   escrever('avisosLidos', []);
   escrever('config', config);
+
+  // --- Declarações de saúde: quase todos já responderam ---
+  // A Camila (6) e o Bruno (5) ficam sem, para testar a obrigatoriedade.
+  const ASSINATURA_DEMO = null; // demonstração: sem imagem de assinatura
+  const declaracoes = [0, 1, 2, 3, 4, 7].map((idx) => {
+    const a = alunos[idx];
+    const assinado = new Date();
+    assinado.setDate(assinado.getDate() - (idx === 3 ? 175 : 20));
+    const validade = new Date(assinado);
+    validade.setMonth(validade.getMonth() + DEFAULTS.validadeDeclaracaoMeses);
+    const respostas = ['nao', 'nao', 'nao', 'nao', idx === 2 ? 'sim' : 'nao', 'nao', 'nao'];
+    return {
+      id: `dcl-demo-${idx + 1}`, alunoId: a.id, alunoNome: a.nome, nomeCompleto: a.nome,
+      documento: a.cpf ? a.cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4') : a.documento,
+      tipoDocumento: a.cpf ? 'CPF' : 'Passaporte', rg: '', celular: a.telefone, email: a.email,
+      nascimento: a.nascimento, idade: null, responsavelNome: null, respostas,
+      algumSim: respostas.includes('sim'),
+      observacoes: idx === 2 ? 'Tendinite no ombro direito, já liberada pelo fisioterapeuta.' : null,
+      aceiteTermo: true, assinatura: ASSINATURA_DEMO, idioma: a.idioma,
+      assinadoEm: assinado.toISOString(), validaAte: validade.toISOString(), criadoEm: assinado.toISOString(),
+    };
+  });
+  escrever('declaracoes', declaracoes);
+
+  // --- Cupom de exemplo ---
+  escrever('cupons', [{
+    id: 'BEMVINDO10', codigo: 'BEMVINDO10', descricao: 'Boas-vindas: 10% na primeira compra',
+    tipo: 'percentual', valor: 10, ativo: true, validoAte: null, usosMaximos: null, usos: 0, pacotes: [],
+    criadoEm: agora(),
+  }]);
+
+  // --- Um pagamento já feito ao Pedro (saldo do professor) ---
+  escrever('repasses', [{
+    id: 'rep-demo-1', professorId: 'prof-pedro', professorUsuarioId: 'usr-prof-pedro', valor: 40, data: diaRelativo(0),
+    observacao: 'PIX — adiantamento', criadoPor: 'usr-prof-laudinei', criadoPorNome: 'Laudinei Neves', criadoEm: agora(),
+  }]);
+  escrever('justificativas', []);
 
   localStorage.setItem(CHAVE_VERSAO, String(VERSAO_SEED));
 }

@@ -40,23 +40,23 @@
         <!-- Coluna esquerda -->
         <div class="hero-site-esq">
           <span class="hero-site-rotulo">Barra Floripa Surf School</span>
-          <h1>A escola ideal para<br>quem está começando</h1>
+          <h1 data-i18n-html="hero.titulo">A escola ideal para<br>quem está começando</h1>
         </div>
 
         <!-- Coluna direita -->
         <div class="hero-site-dir">
-          <h2 class="hero-site-destaque">E quem quer evoluir</h2>
+          <h2 class="hero-site-destaque" data-i18n="hero.destaque">E quem quer evoluir</h2>
           <div class="hero-site-botoes">
-            <a href="login.html?aba=cadastro" class="btn btn-primario btn-g">
-              Agendar Aula <span class="seta-btn" aria-hidden="true">→</span>
+            <a href="reservar.html" class="btn btn-primario btn-g">
+                <span data-i18n="nav.agendar">Agendar Aula</span> <span class="seta-btn" aria-hidden="true">→</span>
             </a>
-            <a href="login.html" class="btn btn-contorno-claro btn-g">Entrar</a>
+            <a href="login.html" class="btn btn-contorno-claro btn-g" data-i18n="nav.entrar">Entrar</a>
           </div>
         </div>
       </div>
 
       <a href="#sobre" class="hero-site-scroll">
-        <span>Conheça a escola</span>
+        <span data-i18n="hero.scroll">Conheça a escola</span>
         <span class="seta" aria-hidden="true">⌄</span>
       </a>
     </section>
@@ -83,19 +83,19 @@
             </div>
 
             <div class="bloco-site-texto">
-              <h2>De zero a <span class="destaque-contador" id="contador-evolucao">0%</span></h2>
-              <p>
+              <h2><span data-i18n="sobre.titulo">De zero a</span> <span class="destaque-contador" id="contador-evolucao">0%</span></h2>
+              <p data-i18n="sobre.texto">
                 Vem aprender, evoluir e praticar o seu surf com a gente. Aqui tem
                 técnica, experiência e treinos específicos para cada tipo de mar,
                 aluno e prancha. Acompanhamos cada remada da sua evolução.
               </p>
               <ul class="lista-check-laranja">
-                <li><span class="check" aria-hidden="true">✓</span>Análise de Movimento</li>
-                <li><span class="check" aria-hidden="true">✓</span>Equipamento adequado</li>
-                <li><span class="check" aria-hidden="true">✓</span>Feedback em tempo real</li>
+                <li><span class="check" aria-hidden="true">✓</span><span data-i18n="sobre.item1">Análise de Movimento</span></li>
+                <li><span class="check" aria-hidden="true">✓</span><span data-i18n="sobre.item2">Equipamento adequado</span></li>
+                <li><span class="check" aria-hidden="true">✓</span><span data-i18n="sobre.item3">Feedback em tempo real</span></li>
               </ul>
-              <a href="login.html?aba=cadastro" class="btn btn-primario btn-g">
-                Agendar Aula <span class="seta-btn" aria-hidden="true">→</span>
+              <a href="reservar.html" class="btn btn-primario btn-g">
+                <span data-i18n="nav.agendar">Agendar Aula</span> <span class="seta-btn" aria-hidden="true">→</span>
               </a>
             </div>
           </div>
@@ -108,9 +108,9 @@
       <div class="container">
         <div class="bloco-site">
           <div class="bloco-site-texto">
-            <h2>Aprenda com quem tem<br><span class="texto-laranja">experiência</span></h2>
+            <h2 data-i18n-html="exp.titulo">Aprenda com quem tem<br><span class="texto-laranja">experiência</span></h2>
 
-            <p class="citacao-lateral">
+            <p class="citacao-lateral" data-i18n="exp.texto">
               Com mais de 35 anos de experiência, somos uma das escolas
               pioneiras em SC, localizados a 50m da praia da Barra da Lagoa, ao
               lado do Canal. Aqui possuímos equipamentos de qualidade, guarda
@@ -120,16 +120,16 @@
             <div class="flex-col gap-12 mt-24 mb-24">
               <div class="cartao-selo">
                 <span class="icone" aria-hidden="true">🛡️</span>
-                <span class="titulo">Segurança Total</span>
+                <span class="titulo" data-i18n="exp.selo1">Segurança Total</span>
               </div>
               <div class="cartao-selo">
                 <span class="icone" aria-hidden="true">🏆</span>
-                <span class="titulo">Pioneiros em SC</span>
+                <span class="titulo" data-i18n="exp.selo2">Pioneiros em SC</span>
               </div>
             </div>
 
-            <a href="login.html?aba=cadastro" class="btn btn-primario btn-g">
-              Agendar Aula <span class="seta-btn" aria-hidden="true">→</span>
+            <a href="reservar.html" class="btn btn-primario btn-g">
+                <span data-i18n="nav.agendar">Agendar Aula</span> <span class="seta-btn" aria-hidden="true">→</span>
             </a>
           </div>
 
@@ -151,7 +151,7 @@
 
       <div class="container local-conteudo">
         <div class="local-selo">
-          <span class="rotulo">Localização privilegiada</span>
+          <span class="rotulo" data-i18n="local.rotulo">Localização privilegiada</span>
           <h2>Praia da Barra</h2>
         </div>
 
@@ -165,15 +165,15 @@
           </figure>
 
           <div class="local-cartao">
-            <h3>O melhor lugar para<br>você aprender!</h3>
-            <p>
+            <h3 data-i18n-html="local.titulo">O melhor lugar para<br>você aprender!</h3>
+            <p data-i18n="local.texto">
               Se você é iniciante, encontrou o lugar certo! Aqui na praia da
               Barra as ondas são perfeitas para você aprender com calma e
               segurança.
             </p>
             <div class="local-tags">
-              <span class="tag-local">Ondas Longas</span>
-              <span class="tag-local">Segurança</span>
+              <span class="tag-local" data-i18n="local.tag1">Ondas Longas</span>
+              <span class="tag-local" data-i18n="local.tag2">Segurança</span>
             </div>
           </div>
         </div>
@@ -184,7 +184,7 @@
     <section class="secao" id="depoimentos">
       <div class="container">
         <div class="secao-cabecalho">
-          <h2>Quem conhece <span class="texto-laranja">indica</span></h2>
+          <h2 data-i18n-html="dep.titulo">Quem conhece <span class="texto-laranja">indica</span></h2>
         </div>
 
         <!--
@@ -225,7 +225,7 @@
 
         <div class="texto-centro mt-24">
           <a href="#" class="btn btn-claro" id="link-depoimentos" target="_blank" rel="noopener">
-            ⭐ Ver mais depoimentos
+            <span data-i18n="dep.ver">⭐ Ver mais depoimentos</span>
           </a>
         </div>
       </div>
@@ -234,10 +234,10 @@
     <!-- ===================== CHAMADA ===================== -->
     <section class="faixa-chamada">
       <div class="container texto-centro">
-        <h2>É a sua vez de embarcar nessa viagem</h2>
-        <p>Vai deixar a onda passar?</p>
-        <a href="login.html?aba=cadastro" class="btn btn-primario btn-g mt-16">
-          Agendar Aula <span class="seta-btn" aria-hidden="true">→</span>
+        <h2 data-i18n="chamada.titulo">É a sua vez de embarcar nessa viagem</h2>
+        <p data-i18n="chamada.texto">Vai deixar a onda passar?</p>
+        <a href="reservar.html" class="btn btn-primario btn-g mt-16">
+                <span data-i18n="nav.agendar">Agendar Aula</span> <span class="seta-btn" aria-hidden="true">→</span>
         </a>
       </div>
     </section>
@@ -248,37 +248,61 @@
         <div class="bloco-site alinhado-topo">
           <div class="cartao-seguranca">
             <div class="seguranca-icone" aria-hidden="true">🛟</div>
-            <h2>Segurança na<br><span class="texto-laranja">1ª aula</span></h2>
-            <p>
+            <h2 data-i18n-html="seg.titulo">Segurança na<br><span class="texto-laranja">1ª aula</span></h2>
+            <p data-i18n="seg.texto1">
               No seu primeiro contato com o surf, vamos te passar instruções
               básicas de segurança e ensinar a técnica mais segura e eficaz de
               subida para que você já possa surfar a sua primeira onda.
             </p>
-            <p>
+            <p data-i18n="seg.texto2">
               Nós conhecemos cada canto da praia para que o local seja adequado
               ao seu nível.
             </p>
           </div>
 
           <div>
-            <h2 class="mb-16">Nossas turmas</h2>
+            <h2 class="mb-16" data-i18n="turmas.titulo">Nossas turmas</h2>
             <div class="flex-col gap-16">
               <div class="cartao-turma">
-                <h3>Turma Iniciante</h3>
-                <p>Aprenda em grupo, faça amigos e evolua com a energia da galera</p>
+                <h3 data-i18n="turmas.t1">Turma Iniciante</h3>
+                <p data-i18n="turmas.t1texto">Aprenda em grupo, faça amigos e evolua com a energia da galera</p>
               </div>
               <div class="cartao-turma">
-                <h3>Turma Intermediária</h3>
-                <p>Para aqueles que já tem alguma experiência e querem avançar em grupo</p>
+                <h3 data-i18n="turmas.t2">Turma Intermediária</h3>
+                <p data-i18n="turmas.t2texto">Para aqueles que já tem alguma experiência e querem avançar em grupo</p>
               </div>
               <div class="cartao-turma">
-                <h3>Aula Particular</h3>
-                <p>Foco total em você. Evolução acelerada com atenção 100% dedicada do instrutor</p>
+                <h3 data-i18n="turmas.t3">Aula Particular</h3>
+                <p data-i18n="turmas.t3texto">Foco total em você. Evolução acelerada com atenção 100% dedicada do instrutor</p>
               </div>
             </div>
-            <a href="login.html?aba=cadastro" class="btn btn-primario btn-bloco btn-g mt-24">
-              Agendar Aula <span class="seta-btn" aria-hidden="true">→</span>
+            <a href="reservar.html" class="btn btn-primario btn-bloco btn-g mt-24">
+                <span data-i18n="nav.agendar">Agendar Aula</span> <span class="seta-btn" aria-hidden="true">→</span>
             </a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== POLÍTICA DE CANCELAMENTO ===================== -->
+    <section class="secao secao-politica" id="politica">
+      <div class="container">
+        <div class="secao-cabecalho">
+          <span class="pilula-rotulo" data-i18n="politica.rotulo">Antes de agendar</span>
+          <h2 data-i18n="politica.tituloSecao">Como funcionam agendamento e cancelamento</h2>
+        </div>
+        <div class="politica-grade">
+          <div class="cartao-politica" id="politica-landing"></div>
+          <div class="cartao-politica cartao-politica-passos">
+            <h3 data-i18n="politica.passosTitulo">Agende em 5 passos</h3>
+            <ol class="lista-passos">
+              <li data-i18n="politica.passo1">Escolha o plano</li>
+              <li data-i18n="politica.passo2">Escolha o dia e o horário</li>
+              <li data-i18n="politica.passo3">Crie sua conta (com CPF ou passaporte)</li>
+              <li data-i18n="politica.passo4">Responda o questionário de saúde</li>
+              <li data-i18n="politica.passo5">Pague com PIX, cartão ou boleto</li>
+            </ol>
+            <a href="reservar.html" class="btn btn-primario btn-g mt-16"><span data-i18n="nav.agendar">Agendar Aula</span> <span class="seta-btn" aria-hidden="true">→</span></a>
           </div>
         </div>
       </div>
@@ -288,9 +312,9 @@
     <section class="secao secao-avancado">
       <div class="container">
         <div class="secao-cabecalho">
-          <span class="pilula-rotulo">Alta performance</span>
-          <h2>Níveis avançados</h2>
-          <p>
+          <span class="pilula-rotulo" data-i18n="avan.rotulo">Alta performance</span>
+          <h2 data-i18n="avan.titulo">Níveis avançados</h2>
+          <p data-i18n="avan.texto">
             Para os alunos avançados temos profissionais capacitados para
             evolução em diversas praias da ilha com desafios e ondas maiores.
             Aprenda com quem já surfou a maior onda já surfada no litoral
@@ -318,18 +342,18 @@
 
             <div class="bloco-site-texto">
               <h2>De da Barra</h2>
-              <span class="rotulo-espacado">Fundador e ícone</span>
-              <p class="mt-16">
+              <span class="rotulo-espacado" data-i18n="avan.fundador">Fundador e ícone</span>
+              <p class="mt-16" data-i18n="avan.texto1">
                 Conhecido em toda a Barra da Lagoa e também fora dela, o professor
                 e mestre do surf De é um ícone no esporte, seja ensinando ou
                 tirando uma onda.
               </p>
-              <p>
+              <p data-i18n="avan.texto2">
                 Dedicado sempre a manter o corpo e a mente ativa, ele se torna
                 todos os dias uma referência para quem quer viver do esporte.
               </p>
-              <a href="login.html?aba=cadastro" class="btn btn-primario btn-g mt-16">
-                Agendar Aula <span class="seta-btn" aria-hidden="true">→</span>
+              <a href="reservar.html" class="btn btn-primario btn-g mt-16">
+                <span data-i18n="nav.agendar">Agendar Aula</span> <span class="seta-btn" aria-hidden="true">→</span>
               </a>
             </div>
           </div>
@@ -341,8 +365,8 @@
     <section class="secao-produtos" id="produtos">
       <div class="container">
         <div class="secao-cabecalho">
-          <h2 class="texto-branco">Produtos</h2>
-          <p>
+          <h2 class="texto-branco" data-i18n="prod.titulo">Produtos</h2>
+          <p data-i18n="prod.texto">
             Que tal surfar com uma prancha que é a sua cara, uma roupa estilosa
             e já sair com tudo o que precisa? Aqui na escola nós trabalhamos com
             equipamentos de surf e também alguns cosméticos adequados para água.
@@ -356,9 +380,9 @@
             <img src="https://ivory-chough-425846.hostingersite.com/wp-content/uploads/2026/01/new-pranchas-1.webp" alt="Pranchas de surf"
                  onerror="this.parentElement.classList.add('sem-imagem')">
             <div class="produto-conteudo">
-              <h4>Pranchas</h4>
+              <h4 data-i18n="prod.pranchas">Pranchas</h4>
               <a class="btn btn-claro btn-peq btn-bloco" data-produto="uma prancha"
-                 href="#" target="_blank" rel="noopener">💬 Obter</a>
+                 href="#" target="_blank" rel="noopener" data-i18n="prod.obter">💬 Obter</a>
             </div>
           </article>
 
@@ -366,9 +390,9 @@
             <img src="https://ivory-chough-425846.hostingersite.com/wp-content/uploads/2026/01/equipamentos-card-1.webp" alt="Equipamentos de surf"
                  onerror="this.parentElement.classList.add('sem-imagem')">
             <div class="produto-conteudo">
-              <h4>Equipamentos</h4>
+              <h4 data-i18n="prod.equipamentos">Equipamentos</h4>
               <a class="btn btn-claro btn-peq btn-bloco" data-produto="um equipamento de surf"
-                 href="#" target="_blank" rel="noopener">💬 Obter</a>
+                 href="#" target="_blank" rel="noopener" data-i18n="prod.obter">💬 Obter</a>
             </div>
           </article>
 
@@ -376,9 +400,9 @@
             <img src="https://ivory-chough-425846.hostingersite.com/wp-content/uploads/2026/01/acessorios-card-1-1.webp" alt="Acessórios de surf"
                  onerror="this.parentElement.classList.add('sem-imagem')">
             <div class="produto-conteudo">
-              <h4>Acessórios</h4>
+              <h4 data-i18n="prod.acessorios">Acessórios</h4>
               <a class="btn btn-claro btn-peq btn-bloco" data-produto="acessórios"
-                 href="#" target="_blank" rel="noopener">💬 Obter</a>
+                 href="#" target="_blank" rel="noopener" data-i18n="prod.obter">💬 Obter</a>
             </div>
           </article>
 
@@ -386,9 +410,9 @@
             <img src="https://ivory-chough-425846.hostingersite.com/wp-content/uploads/2026/01/roupas-card-1-1.webp" alt="Roupas da escola"
                  onerror="this.parentElement.classList.add('sem-imagem')">
             <div class="produto-conteudo">
-              <h4>Roupas</h4>
+              <h4 data-i18n="prod.roupas">Roupas</h4>
               <a class="btn btn-claro btn-peq btn-bloco" data-produto="roupas"
-                 href="#" target="_blank" rel="noopener">💬 Obter</a>
+                 href="#" target="_blank" rel="noopener" data-i18n="prod.obter">💬 Obter</a>
             </div>
           </article>
         </div>

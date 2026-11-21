@@ -8,9 +8,12 @@
  * Os links de produtos continuam indo para o WhatsApp, como no site original.
  */
 
-import { ESCOLA } from '../config.js';
+import { ESCOLA, DEFAULTS } from '../config.js';
 import { inicializarStore } from '../store.js';
 import { usuarioOpcional } from '../auth.js';
+import { obterConfig } from '../precos.js';
+import { politicaHTML } from '../politica.js';
+import { aplicarTraducoes, aoTrocarIdioma } from '../i18n.js';
 import { iniciarAnimacoes } from '../animacoes.js';
 import { qs, qsa, montarTopoPublico, montarRodape } from '../ui.js';
 
@@ -153,11 +156,23 @@ function rotularPlaceholders() {
    Inicialização
    -------------------------------------------------------------------------- */
 
+/** Política de cancelamento visível na página inicial (prazo vem da config). */
+let horasCancelamento = DEFAULTS.horasMinimasCancelamento;
+function montarPolitica() {
+  const alvo = qs('#politica-landing');
+  if (alvo) alvo.innerHTML = politicaHTML({ horas: horasCancelamento });
+}
+
 async function iniciar() {
+  // Idioma: reconhecido pelo navegador já no primeiro acesso (turistas).
+  aplicarTraducoes();
+  aoTrocarIdioma(() => { aplicarTraducoes(); montarPolitica(); });
+
   // Cabeçalho e rodapé primeiro: a página não fica em branco se o
   // armazenamento demorar a responder.
   montarTopoPublico(null);
   montarRodape();
+  montarPolitica();
 
   rotularPlaceholders();
   montarLinksProdutos();
@@ -174,6 +189,8 @@ async function iniciar() {
     await inicializarStore();
     const usuario = await usuarioOpcional();
     if (usuario) montarTopoPublico(usuario);
+    horasCancelamento = (await obterConfig()).horasMinimasCancelamento;
+    montarPolitica();
   } catch (err) {
     // A landing é informativa: sem o store ela continua válida.
     console.error('[landing] não foi possível verificar a sessão:', err);

@@ -23,8 +23,8 @@
 
     <main class="painel-conteudo">
       <div class="painel-cabecalho">
-        <h1>Agendar aula</h1>
-        <p>Escolha o dia e o horário. Cada aula dura 1h30 e consome 1 crédito.</p>
+        <h1 data-i18n="agendar.titulo">Agendar aula</h1>
+        <p data-i18n="agendar.subtitulo">Escolha o dia, o horário e a praia. Cada aula dura 1h30 e consome 1 crédito.</p>
       </div>
 
       <div id="alerta-area"></div>
@@ -55,9 +55,9 @@
           <div class="calendario-grade" id="calendario" role="grid"></div>
 
           <div class="legenda-cal">
-            <span><i class="bolinha" style="background:var(--verde)"></i> Com vagas</span>
-            <span><i class="bolinha" style="background:var(--vermelho)"></i> Lotado</span>
-            <span><i class="bolinha" style="background:var(--cinza-300)"></i> Indisponível</span>
+            <span><i class="bolinha" style="background:var(--verde)"></i> <span data-i18n="cal.comVagas">Com vagas</span></span>
+            <span><i class="bolinha" style="background:var(--vermelho)"></i> <span data-i18n="cal.lotadoOuSemAula">Lotado ou sem aula</span></span>
+            <span><i class="bolinha" style="background:var(--cinza-300)"></i> <span data-i18n="cal.indisponivel">Indisponível</span></span>
           </div>
         </section>
 
@@ -79,14 +79,18 @@
 
           <div id="lista-slots"></div>
 
+          <p class="texto-min texto-cinza mt-16 com-icone"><span data-icone="info"></span><span data-i18n="reserva.aula.professorInterno">O professor da sua turma é definido pela escola.</span></p>
+
           <div id="area-confirmacao" class="oculto">
-            <div class="linha-resumo total mt-16">
+            <p class="negrito mt-16" id="confirmacao-texto"></p>
+            <div class="linha-resumo total mt-8">
               <span>Total</span>
               <span class="valor">1 crédito</span>
             </div>
-            <button class="btn btn-primario btn-bloco mt-16" id="btn-confirmar">
+            <button class="btn btn-primario btn-bloco mt-16" id="btn-confirmar" data-i18n="agendar.confirmar">
               Confirmar agendamento
             </button>
+            <p class="texto-min texto-cinza mt-8" id="nota-cancelamento"></p>
           </div>
         </section>
       </div>

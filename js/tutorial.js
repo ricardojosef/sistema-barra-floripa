@@ -353,12 +353,12 @@ export function passosPainel(usuario) {
     {
       alvo: '.acao-rapida[href="agendar.html"]',
       titulo: '2º passo: agendar a aula',
-      texto: '<p>Com créditos na conta, é aqui que você escolhe o dia, o horário e o professor.</p>',
+      texto: '<p>Com créditos na conta, é aqui que você escolhe o dia, o horário e a praia.</p>',
     },
     {
       alvo: () => qs('#lista-proximas')?.closest('.card'),
       titulo: 'Suas próximas aulas',
-      texto: `<p>Toda aula marcada aparece aqui, com data, horário, professor e local.</p>
+      texto: `<p>Toda aula marcada aparece aqui, com data, horário e local.</p>
               <p>Imprevisto? Você pode <strong>cancelar até 12h antes</strong>
               e o crédito volta para a sua conta.</p>`,
     },
@@ -398,7 +398,7 @@ export function passosAgendamento(ganchos = {}) {
     {
       alvo: () => qs('#tipo-aula')?.closest('.campo'),
       titulo: 'Escolha o tipo de aula',
-      texto: `<p><strong>Em grupo:</strong> até 5 alunos por professor.<br>
+      texto: `<p><strong>Em grupo:</strong> turmas pequenas, até 5 alunos por professor.<br>
               <strong>Particular:</strong> só você e o professor.</p>
               <p>O calendário se ajusta à escolha.</p>`,
     },
@@ -411,10 +411,10 @@ export function passosAgendamento(ganchos = {}) {
     },
     {
       alvo: () => qs('#lista-slots')?.closest('.card'),
-      titulo: 'Escolha o horário e o professor',
-      texto: `<p>Cada linha mostra o horário (aulas de 1h30), o professor, o
-              local e a lotação — <strong>3/5</strong> quer dizer 3 alunos
-              de 5 vagas.</p>
+      titulo: 'Escolha o horário',
+      texto: `<p>Cada linha mostra o horário (aulas de 1h30), a praia e
+              quantas vagas restam. O professor da turma é definido pela
+              escola.</p>
               <p>Horários <strong>LOTADO</strong> não podem ser escolhidos.</p>`,
     },
     {

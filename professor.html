@@ -29,6 +29,8 @@
 
       <div class="abas" id="abas-professor" role="tablist">
         <button class="aba ativa" data-aba="turmas" type="button" role="tab"><span data-icone="prancha"></span>Turmas</button>
+        <button class="aba" data-aba="saldo" type="button" role="tab"><span data-icone="moeda"></span>Saldo</button>
+        <button class="aba" data-aba="declaracoes" type="button" role="tab"><span data-icone="saude"></span>Declarações</button>
         <button class="aba" data-aba="disponibilidade" type="button" role="tab"><span data-icone="agenda"></span>Disponibilidade</button>
         <button class="aba" data-aba="mensagens" type="button" role="tab"><span data-icone="mensagens"></span>Mensagens</button>
       </div>
@@ -77,10 +79,99 @@
         <div class="faixa-dias" id="faixa-dias"></div>
       </div>
 
+      <!-- Baixa de presença pelo documento -->
+      <form class="card mb-24 checkin-card" id="form-checkin" novalidate>
+        <div class="flex itens-centro gap-12 quebra">
+          <span class="icone-acao" data-icone="documento"></span>
+          <div class="cresce">
+            <label for="checkin-documento" class="negrito">Dar baixa pelo CPF</label>
+            <div class="texto-min texto-cinza">Digite o CPF (ou passaporte) do documento que o aluno mostrou. Vale para as turmas do dia selecionado.</div>
+          </div>
+          <div class="cupom-linha checkin-linha">
+            <input type="text" id="checkin-documento" inputmode="numeric" autocomplete="off" placeholder="000.000.000-00">
+            <button class="btn btn-primario btn-peq" type="submit">Confirmar presença</button>
+          </div>
+        </div>
+        <div id="checkin-resultado" class="mt-8"></div>
+      </form>
+
       <!-- Turmas -->
       <div class="grade-turmas" id="grade-turmas">
         <div class="vazio"><span class="spinner escuro"></span></div>
       </div>
+      </section>
+
+      <!-- ===================== ABA SALDO ===================== -->
+      <section class="painel-aba" data-painel="saldo">
+        <div class="grade grade-4 mb-24">
+          <div class="card-stat laranja">
+            <span class="stat-rotulo">Saldo a receber</span>
+            <span class="stat-valor" id="fin-saldo">—</span>
+            <span class="stat-extra">aulas dadas − pagamentos</span>
+          </div>
+          <div class="card-stat">
+            <span class="stat-rotulo">Ganho no mês</span>
+            <span class="stat-valor" id="fin-mes">—</span>
+            <span class="stat-extra" id="fin-mes-extra">—</span>
+          </div>
+          <div class="card-stat">
+            <span class="stat-rotulo">Total ganho</span>
+            <span class="stat-valor" id="fin-ganho">—</span>
+            <span class="stat-extra">desde o início</span>
+          </div>
+          <div class="card-stat">
+            <span class="stat-rotulo">Já recebido</span>
+            <span class="stat-valor" id="fin-pago">—</span>
+            <span class="stat-extra">pagamentos da escola</span>
+          </div>
+        </div>
+        <p class="texto-peq texto-cinza mb-16" id="fin-regra"></p>
+        <div class="painel-colunas">
+          <div class="card">
+            <div class="card-titulo"><h3>Aulas dadas</h3></div>
+            <div id="fin-turmas" class="rolagem" style="max-height:520px"></div>
+          </div>
+          <div class="card">
+            <div class="card-titulo"><h3>Pagamentos recebidos</h3></div>
+            <div id="fin-repasses"></div>
+            <form id="form-repasse" class="oculto mt-16" novalidate>
+              <h4 class="mb-8">Registrar pagamento ao professor</h4>
+              <div class="linha-campos duas">
+                <div class="campo"><label for="repasse-valor">Valor (R$)</label><input type="number" id="repasse-valor" min="1" step="0.01"></div>
+                <div class="campo"><label for="repasse-data">Data</label><input type="date" id="repasse-data"></div>
+              </div>
+              <div class="campo"><label for="repasse-obs">Observação</label><input type="text" id="repasse-obs" maxlength="160" placeholder="Ex.: PIX referente a outubro"></div>
+              <button class="btn btn-primario" type="submit">Registrar pagamento</button>
+            </form>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================== ABA DECLARAÇÕES ===================== -->
+      <section class="painel-aba" data-painel="declaracoes">
+        <div class="card">
+          <div class="card-titulo"><h3>Declarações de saúde dos alunos</h3></div>
+          <p class="texto-peq texto-cinza mb-16">
+            Questionário PAR-Q e termo de responsabilidade assinados no site. Cada
+            declaração vale 6 meses. Baixe o PDF para arquivar ou imprimir.
+          </p>
+          <div class="linha-campos duas">
+            <div class="campo">
+              <label for="busca-declaracao">Buscar aluno</label>
+              <input type="search" id="busca-declaracao" placeholder="Nome, e-mail ou CPF">
+            </div>
+            <div class="campo">
+              <label for="filtro-declaracao">Mostrar</label>
+              <select id="filtro-declaracao">
+                <option value="todas">Todas as declarações vigentes e vencidas</option>
+                <option value="vigentes">Só vigentes</option>
+                <option value="vencidas">Só vencidas</option>
+                <option value="atencao">Com resposta SIM (atenção)</option>
+              </select>
+            </div>
+          </div>
+          <div id="lista-declaracoes" class="tabela-wrap"></div>
+        </div>
       </section>
 
       <!-- ===================== ABA DISPONIBILIDADE ===================== -->

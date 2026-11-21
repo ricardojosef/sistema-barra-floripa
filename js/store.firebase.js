@@ -202,6 +202,9 @@ export function criarDriver() {
 
     usuarioFirebaseAtual: () => auth.currentUser,
 
+    /** Token de identidade (JWT) do usuário logado, enviado ao servidor de pagamentos. */
+    tokenAtual: () => auth.currentUser?.getIdToken() || null,
+
     entrarComSenha: (email, senha) => fa.signInWithEmailAndPassword(auth, email, senha),
 
     cadastrarComSenha: (email, senha) => fa.createUserWithEmailAndPassword(auth, email, senha),

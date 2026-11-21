@@ -13,8 +13,17 @@
  */
 
 import { exigirAuth, sair } from '../auth.js';
-import { turmasDoDia, cancelar, cancelarTurma, ErroAgenda } from '../agenda.js';
-import { carregarContexto, nomeLocal } from '../precos.js';
+import {
+  turmasDoDia, cancelar, cancelarTurma, registrarPresenca, reatribuirProfessor, professoresDoHorario, ErroAgenda,
+} from '../agenda.js';
+import {
+  documentoFormatado, rotuloDocumento, normalizarDocumento, nomeIdioma, bandeiraIdioma, nomePais,
+} from '../documentos.js';
+import {
+  ultimaDeclaracao, declaracaoVigente, baixarPdfDeclaracao, PERGUNTAS,
+} from '../saude.js';
+import { resumoFinanceiro, registrarRepasse, removerRepasse } from '../financeiro.js';
+import { carregarContexto, nomeLocal, obterConfig } from '../precos.js';
 import { obter, listar } from '../store.js';
 import { saldoCreditos } from '../creditos.js';
 import {
@@ -25,7 +34,7 @@ import { enviarMensagem, enviosDaEquipe, ErroMensagem } from '../mensagens.js';
 import {
   qs, qsa, el, isoDeData, dataDeISO, hojeISO, MESES, formatarData, formatarDataExtenso, faixaHorario, iniciais,
   SEMANA, SEMANA_CURTO, montarShellPainel, toast, abrirModal, confirmar, escapar, vazio,
-  botaoCarregando, tempoRelativo, marcarItemMenu, iconeEl, avatarEl,
+  botaoCarregando, tempoRelativo, marcarItemMenu, iconeEl, avatarEl, formatarBRL,
 } from '../ui.js';
 
 let usuario = null;
@@ -34,7 +43,9 @@ let diaAtual = hojeISO();
 let professorFiltro = null;      // admin: professor escolhido no filtro
 let abaAtual = 'turmas';
 let rascunhoDisp = null;         // disponibilidade em edição
-const fotosAlunos = new Map();   // alunoId -> fotoUrl (ou null)
+const dadosAlunos = new Map();    // alunoId -> usuário (foto, documento, idioma)
+const declaracoesAlunos = new Map(); // alunoId -> última declaração de saúde
+let turmasEmTela = [];            // turmas do dia mostradas (para a baixa por CPF)
 
 const ehAdmin = () => usuario.papel === 'admin';
 
@@ -76,10 +87,14 @@ async function trocarAba(nome) {
   const subtitulos = {
     disponibilidade: 'Quando e onde você atende — os alunos só agendam no que estiver marcado.',
     mensagens: 'Recados enviados aos alunos e quantos já leram.',
+    saldo: 'Quanto você tem a receber pelas aulas dadas.',
+    declaracoes: 'Questionários de saúde e termos assinados pelos alunos.',
   };
   if (subtitulos[nome]) qs('#subtitulo-painel').textContent = subtitulos[nome];
 
   if (nome === 'turmas') await carregarTurmas();
+  if (nome === 'saldo') await carregarSaldo();
+  if (nome === 'declaracoes') await carregarDeclaracoes();
   if (nome === 'disponibilidade') await carregarDisponibilidade();
   if (nome === 'mensagens') await carregarEnviadas();
 }
@@ -157,6 +172,32 @@ function cartaoTurma(slot) {
   if (slot.alunos.length) {
     const lista = el('ul', { class: 'lista-alunos' });
     for (const aula of slot.alunos) {
+      const aluno = dadosAlunos.get(aula.alunoId) || {};
+      const decl = declaracoesAlunos.get(aula.alunoId);
+      const marcadores = [
+        aula.tipo === 'individual' ? el('span', { class: 'badge badge-info texto-min', text: 'Particular' }) : null,
+        aluno.idioma && aluno.idioma !== 'pt'
+          ? el('span', { class: 'badge badge-neutro texto-min', title: `Prefere aula em ${nomeIdioma(aluno.idioma)}`, text: `${bandeiraIdioma(aluno.idioma)} ${aluno.idioma.toUpperCase()}` })
+          : null,
+        !declaracaoVigente(decl)
+          ? el('span', { class: 'badge badge-aviso texto-min', title: 'Questionário de saúde vencido ou não respondido', text: 'Sem PAR-Q' })
+          : decl.algumSim
+            ? el('span', { class: 'badge badge-perigo texto-min', title: 'Respondeu SIM a alguma pergunta do PAR-Q — veja a declaração', text: 'PAR-Q: atenção' })
+            : null,
+      ];
+
+      const presenca = el('span', { class: 'presenca-acoes' });
+      if (aula.presenca === 'presente') {
+        presenca.append(el('button', { type: 'button', class: 'badge badge-sucesso', title: 'Desfazer baixa', text: '✓ Presente', onclick: () => marcarPresenca(aula, null) }));
+      } else if (aula.presenca === 'ausente') {
+        presenca.append(el('button', { type: 'button', class: 'badge badge-perigo', title: 'Desfazer falta', text: 'Falta', onclick: () => marcarPresenca(aula, null) }));
+      } else {
+        presenca.append(
+          el('button', { type: 'button', class: 'btn-presenca ok', title: 'Dar baixa (presente) conferindo o documento', text: '✓', onclick: () => confirmarPresencaComDocumento(aula) }),
+          el('button', { type: 'button', class: 'btn-presenca falta', title: 'Registrar falta', text: 'F', onclick: () => marcarPresenca(aula, 'ausente') }),
+        );
+      }
+
       lista.append(el('li', {}, [
         el('button', {
           type: 'button',
@@ -164,19 +205,29 @@ function cartaoTurma(slot) {
           title: `Ver dados de ${aula.alunoNome}`,
           onclick: () => abrirFichaAluno(aula),
         }, [
-          avatarEl({ nome: aula.alunoNome, fotoUrl: fotosAlunos.get(aula.alunoId) }),
+          avatarEl({ nome: aula.alunoNome, fotoUrl: aluno.fotoUrl }),
           el('span', { class: 'cresce' }, [
             el('span', { class: 'aluno-nome', text: aula.alunoNome }),
-            aula.tipo === 'individual' ? el('span', { class: 'badge badge-info texto-min', text: 'Particular' }) : null,
+            el('span', { class: 'texto-min texto-cinza aluno-doc', text: documentoFormatado(aluno) ? `${rotuloDocumento(aluno)} ${documentoFormatado(aluno)}` : 'Sem documento' }),
+            ...marcadores,
           ]),
         ]),
-        el('button', {
-          class: 'btn-remover',
-          title: `Cancelar a aula de ${aula.alunoNome}`,
-          'aria-label': `Cancelar a aula de ${aula.alunoNome}`,
-          text: '✕',
-          onclick: () => cancelarAluno(aula),
-        }),
+        presenca,
+        ehAdmin() && aula.status === 'confirmado'
+          ? el('button', {
+            class: 'btn-remover', title: `Trocar o professor de ${aula.alunoNome}`, 'aria-label': `Trocar o professor de ${aula.alunoNome}`,
+            text: '⇄', onclick: () => trocarProfessor(aula),
+          })
+          : null,
+        aula.status === 'confirmado'
+          ? el('button', {
+            class: 'btn-remover',
+            title: `Cancelar a aula de ${aula.alunoNome}`,
+            'aria-label': `Cancelar a aula de ${aula.alunoNome}`,
+            text: '✕',
+            onclick: () => cancelarAluno(aula),
+          })
+          : null,
       ]));
     }
     card.append(lista);
@@ -207,16 +258,132 @@ function cartaoTurma(slot) {
   return card;
 }
 
-/** Busca a foto dos alunos que ainda não estão no cache. Falha sem travar. */
-async function carregarFotos(ids) {
-  const faltam = [...new Set(ids)].filter((id) => !fotosAlunos.has(id));
+/**
+ * Busca os dados dos alunos (foto, documento, idioma) e a última declaração
+ * de saúde de cada um, só para quem ainda não está no cache. Falha sem travar.
+ */
+async function carregarDadosAlunos(ids) {
+  const faltam = [...new Set(ids)].filter((id) => !dadosAlunos.has(id));
   await Promise.all(faltam.map(async (id) => {
     try {
-      fotosAlunos.set(id, (await obter('usuarios', id))?.fotoUrl || null);
+      dadosAlunos.set(id, (await obter('usuarios', id)) || {});
     } catch {
-      fotosAlunos.set(id, null);
+      dadosAlunos.set(id, {});
+    }
+    try {
+      declaracoesAlunos.set(id, await ultimaDeclaracao(id));
+    } catch {
+      declaracoesAlunos.set(id, null);
     }
   }));
+}
+
+/* --- Presença (baixa na praia) ---------------------------------------- */
+
+async function marcarPresenca(aula, presenca) {
+  try {
+    await registrarPresenca(aula.id, presenca, { id: usuario.id, nome: usuario.nome, papel: usuario.papel });
+    toast(presenca === 'presente' ? `Presença de ${aula.alunoNome} registrada.`
+      : presenca === 'ausente' ? `Falta de ${aula.alunoNome} registrada.` : 'Baixa desfeita.', 'sucesso');
+    await carregarTurmas();
+  } catch (err) {
+    toast(err instanceof ErroAgenda ? err.message : 'Não foi possível registrar a presença.', 'erro', 6000);
+  }
+}
+
+/** Mostra o documento do cadastro para o professor conferir com o que o aluno trouxe. */
+async function confirmarPresencaComDocumento(aula) {
+  const aluno = dadosAlunos.get(aula.alunoId) || {};
+  const doc = documentoFormatado(aluno);
+  const confirmou = await confirmar({
+    titulo: `Presença de ${aula.alunoNome}`,
+    mensagem: doc
+      ? `Confira o documento do aluno: ${rotuloDocumento(aluno)} ${doc}. Confere com o que ele apresentou?`
+      : 'Este aluno não tem documento cadastrado. Confira a identidade pessoalmente antes de dar baixa.',
+    textoOk: 'Confere — dar baixa',
+  });
+  if (confirmou) await marcarPresenca(aula, 'presente');
+}
+
+/** Baixa pelo número digitado: procura o aluno nas turmas do dia em foco. */
+async function checkinPorDocumento(ev) {
+  ev.preventDefault();
+  const resultado = qs('#checkin-resultado');
+  const digitado = normalizarDocumento(qs('#checkin-documento').value);
+  resultado.innerHTML = '';
+  if (digitado.length < 5) {
+    resultado.append(el('span', { class: 'texto-peq texto-perigo', text: 'Digite o CPF ou passaporte completo.' }));
+    return;
+  }
+
+  const aulas = turmasEmTela.flatMap((s) => s.alunos).filter((a) => a.status === 'confirmado');
+  const encontrada = aulas.find((a) => {
+    const aluno = dadosAlunos.get(a.alunoId) || {};
+    return [aluno.cpf, aluno.documento].filter(Boolean).map(normalizarDocumento).includes(digitado);
+  });
+
+  if (!encontrada) {
+    resultado.append(el('div', { class: 'alerta alerta-perigo' }, [
+      iconeEl('alerta'),
+      el('span', { text: 'Nenhum aluno com este documento tem aula neste dia (nas turmas mostradas). Confira o número e o dia selecionado.' }),
+    ]));
+    return;
+  }
+  if (encontrada.presenca === 'presente') {
+    resultado.append(el('div', { class: 'alerta alerta-info' }, [iconeEl('info'), el('span', { text: `${encontrada.alunoNome} já está com presença registrada (${encontrada.horario}).` })]));
+    return;
+  }
+  await marcarPresenca(encontrada, 'presente');
+  qs('#checkin-documento').value = '';
+  qs('#checkin-resultado').append(el('div', { class: 'alerta alerta-sucesso' }, [
+    iconeEl('check'),
+    el('span', { text: `${encontrada.alunoNome} — turma das ${encontrada.horario} com ${nomeDoProfessor(encontrada.professorId)}. Presença registrada.` }),
+  ]));
+}
+
+/* --- Troca de professor (só administrador) ---------------------------- */
+
+async function trocarProfessor(aula) {
+  const opcoes = await professoresDoHorario(aula.data, aula.horario);
+  const corpo = el('div');
+  corpo.innerHTML = `
+    <p class="texto-peq mb-16">Aula de <strong>${escapar(aula.alunoNome)}</strong> em
+      ${escapar(formatarData(aula.data))} às ${escapar(aula.horario)}. Hoje com
+      <strong>${escapar(nomeDoProfessor(aula.professorId))}</strong>. O aluno não vê essa troca.</p>
+    <div class="campo">
+      <label for="novo-professor">Passar para</label>
+      <select id="novo-professor">
+        ${opcoes.filter((p) => p.id !== aula.professorId).map((p) => `
+          <option value="${escapar(p.id)}">${escapar(p.nome)}${p.atende ? '' : ' (fora da disponibilidade)'}</option>`).join('')}
+      </select>
+    </div>
+    <label class="checkbox-linha"><input type="checkbox" id="forcar-troca">
+      <span>Mesmo se a turma do professor estiver cheia</span></label>`;
+
+  const { caixa, fechar } = abrirModal({
+    titulo: 'Trocar professor',
+    corpo,
+    botoes: [
+      { texto: 'Cancelar', classe: 'btn-claro' },
+      {
+        texto: 'Trocar',
+        classe: 'btn-primario',
+        autoFechar: false,
+        onClick: async () => {
+          const novoId = qs('#novo-professor', caixa).value;
+          if (!novoId) return;
+          try {
+            await reatribuirProfessor(aula.id, novoId, usuario, { forcar: qs('#forcar-troca', caixa).checked });
+            fechar();
+            toast(`${aula.alunoNome} agora está com ${nomeDoProfessor(novoId)}.`, 'sucesso');
+            await carregarTurmas();
+          } catch (err) {
+            toast(err instanceof ErroAgenda ? err.message : 'Não foi possível trocar o professor.', 'erro', 6000);
+          }
+        },
+      },
+    ],
+  });
 }
 
 async function carregarTurmas() {
@@ -229,7 +396,8 @@ async function carregarTurmas() {
   try {
     const filtro = ehAdmin() ? professorFiltro : meuProfessorId();
     const slots = await turmasDoDia(diaAtual, filtro);
-    await carregarFotos(slots.flatMap((s) => s.alunos.map((a) => a.alunoId)));
+    await carregarDadosAlunos(slots.flatMap((s) => s.alunos.map((a) => a.alunoId)));
+    turmasEmTela = slots;
 
     const comAlunos = slots.filter((s) => s.ocupados > 0);
     qs('#stat-alunos').textContent = String(comAlunos.reduce((t, s) => t + s.ocupados, 0));
@@ -304,6 +472,14 @@ async function abrirFichaAluno(aula) {
         ]),
       ]),
 
+      el('h4', { class: 'ficha-secao', text: 'Documento e idioma' }),
+      el('div', { class: 'ficha-contatos' }, [
+        linhaContato('documento', rotuloDocumento(aluno), documentoFormatado(aluno), null),
+        linhaContato('globo', 'Nacionalidade', nomePais(aluno?.nacionalidade), null),
+        linhaContato('mensagens', 'Idioma da aula', aluno?.idioma ? `${bandeiraIdioma(aluno.idioma)} ${nomeIdioma(aluno.idioma)}` : '', null),
+      ]),
+      fichaDeclaracao(aula.alunoId),
+
       el('h4', { class: 'ficha-secao', text: 'Contato' }),
       el('div', { class: 'ficha-contatos' }, [
         linhaContato('email', 'E-mail', email, email ? `mailto:${email}` : null),
@@ -322,7 +498,7 @@ async function abrirFichaAluno(aula) {
       ]),
       proximas.length
         ? el('ul', { class: 'ficha-proximas' }, proximas.slice(0, 5).map((a) => el('li', {
-          text: `${formatarData(a.data)} · ${a.horario} · Prof. ${nomeDoProfessor(a.professorId)}`
+          text: `${formatarData(a.data)} · ${a.horario} · ${nomeDoProfessor(a.professorId)}`
             + `${a.tipo === 'individual' ? ' · particular' : ''}`,
         })))
         : null,
@@ -908,6 +1084,202 @@ async function salvarDisponibilidadeUI(btn) {
 }
 
 /* ==========================================================================
+   DECLARAÇÃO NA FICHA DO ALUNO
+   ========================================================================== */
+
+function fichaDeclaracao(alunoId) {
+  const decl = declaracoesAlunos.get(alunoId);
+  if (!decl) {
+    return el('div', { class: 'alerta alerta-aviso mt-8' }, [iconeEl('saude'), el('span', { text: 'Ainda não respondeu o questionário de saúde.' })]);
+  }
+  const vigente = declaracaoVigente(decl);
+  const sins = (decl.respostas || []).map((r, i) => (r === 'sim' ? i : -1)).filter((i) => i >= 0);
+  return el('div', { class: `alerta ${!vigente ? 'alerta-aviso' : decl.algumSim ? 'alerta-perigo' : 'alerta-sucesso'} mt-8` }, [
+    iconeEl('saude'),
+    el('span', { class: 'cresce' }, [
+      el('strong', { text: vigente ? `PAR-Q válido até ${formatarData(String(decl.validaAte).slice(0, 10))}` : 'PAR-Q vencido' }),
+      sins.length ? el('br') : null,
+      sins.length ? `Respondeu SIM: ${sins.map((i) => `${i + 1}) ${PERGUNTAS.pt[i]}`).join(' · ')}` : null,
+      decl.observacoes ? el('br') : null,
+      decl.observacoes ? `Observações: ${decl.observacoes}` : null,
+    ]),
+    el('button', {
+      type: 'button', class: 'btn btn-claro btn-peq', text: 'PDF',
+      onclick: () => baixarPdfDeclaracao(decl).catch((e) => toast(e.message, 'erro')),
+    }),
+  ]);
+}
+
+/* ==========================================================================
+   ABA SALDO (valor a receber pelas aulas dadas)
+   ========================================================================== */
+
+async function carregarSaldo() {
+  const professorId = professorEmFoco();
+  const alvoTurmas = qs('#fin-turmas');
+  const alvoRepasses = qs('#fin-repasses');
+  if (!professorId) {
+    alvoTurmas.innerHTML = '';
+    alvoTurmas.append(vazio('Escolha um professor no filtro acima.', 'grupo'));
+    alvoRepasses.innerHTML = '';
+    return;
+  }
+  alvoTurmas.innerHTML = '<div class="vazio"><span class="spinner escuro"></span></div>';
+  qs('#form-repasse').classList.toggle('oculto', !ehAdmin());
+
+  try {
+    const r = await resumoFinanceiro(professorId);
+    qs('#fin-saldo').textContent = formatarBRL(r.saldo);
+    qs('#fin-mes').textContent = formatarBRL(r.ganhoMes);
+    qs('#fin-mes-extra').textContent = `${r.aulasMes} ${r.aulasMes === 1 ? 'turma' : 'turmas'} · ${r.alunosMes} ${r.alunosMes === 1 ? 'aluno' : 'alunos'}`;
+    qs('#fin-ganho').textContent = formatarBRL(r.ganho);
+    qs('#fin-pago').textContent = formatarBRL(r.pago);
+    qs('#fin-regra').textContent = `${nomeDoProfessor(professorId)}: ${formatarBRL(r.tabela.porAlunoGrupo)} por aluno em turma de grupo · `
+      + `${formatarBRL(r.tabela.porAulaParticular)} por aula particular. Conta só aula que já aconteceu e não foi cancelada`
+      + `${r.tabela.contarAusentes ? ' (falta sem justificativa conta)' : ' (falta não conta)'}. Valores definidos pela administração.`;
+
+    alvoTurmas.innerHTML = '';
+    if (!r.turmas.length) {
+      alvoTurmas.append(vazio('Nenhuma aula dada ainda.', 'prancha'));
+    } else {
+      const tabela = el('table', { class: 'tabela' });
+      tabela.innerHTML = `<thead><tr><th>Data</th><th>Horário</th><th>Alunos</th><th>Presença</th><th class="texto-direita">Valor</th></tr></thead>`;
+      const corpo = el('tbody');
+      for (const turma of r.turmas) {
+        corpo.append(el('tr', {}, [
+          el('td', { text: formatarData(turma.data) }),
+          el('td', { text: `${turma.horario}${turma.particular ? ' · particular' : ''}` }),
+          el('td', { text: String(turma.quantidade), title: turma.alunos.map((a) => a.alunoNome).join(', ') }),
+          el('td', { class: 'texto-min', text: `${turma.presentes} ✓ · ${turma.ausentes} F` }),
+          el('td', { class: 'texto-direita negrito', text: formatarBRL(turma.valor) }),
+        ]));
+      }
+      tabela.append(corpo);
+      alvoTurmas.append(tabela);
+    }
+
+    alvoRepasses.innerHTML = '';
+    if (!r.repasses.length) {
+      alvoRepasses.append(el('p', { class: 'texto-peq texto-cinza', text: 'Nenhum pagamento registrado ainda.' }));
+    }
+    for (const rep of r.repasses) {
+      alvoRepasses.append(el('div', { class: 'linha-declaracao' }, [
+        el('div', { class: 'cresce' }, [
+          el('div', { class: 'negrito', text: formatarBRL(rep.valor) }),
+          el('div', { class: 'texto-min texto-cinza', text: `${formatarData(rep.data)}${rep.observacao ? ` · ${rep.observacao}` : ''}` }),
+        ]),
+        ehAdmin() ? el('button', {
+          type: 'button', class: 'btn btn-fantasma btn-peq', text: 'Excluir',
+          onclick: async () => {
+            if (!(await confirmar({ titulo: 'Excluir pagamento', mensagem: `Excluir o registro de ${formatarBRL(rep.valor)}?`, perigo: true, textoOk: 'Excluir' }))) return;
+            await removerRepasse(rep.id);
+            await carregarSaldo();
+          },
+        }) : null,
+      ]));
+    }
+  } catch (err) {
+    console.error('[professor] falha ao carregar saldo:', err);
+    alvoTurmas.innerHTML = '';
+    alvoTurmas.append(vazio('Não foi possível carregar o saldo.', 'alerta'));
+  }
+}
+
+async function registrarRepasseUI(ev) {
+  ev.preventDefault();
+  const btn = qs('#form-repasse button[type=submit]');
+  const restaurar = botaoCarregando(btn, 'Registrando...');
+  try {
+    await registrarRepasse({
+      professorId: professorEmFoco(),
+      valor: qs('#repasse-valor').value,
+      data: qs('#repasse-data').value || hojeISO(),
+      observacao: qs('#repasse-obs').value,
+    }, usuario);
+    qs('#form-repasse').reset();
+    toast('Pagamento registrado.', 'sucesso');
+    await carregarSaldo();
+  } catch (err) {
+    toast(err.message || 'Não foi possível registrar.', 'erro', 6000);
+  } finally {
+    restaurar();
+  }
+}
+
+/* ==========================================================================
+   ABA DECLARAÇÕES (hall dos questionários assinados)
+   ========================================================================== */
+
+let declaracoesHall = [];
+
+async function carregarDeclaracoes() {
+  const alvo = qs('#lista-declaracoes');
+  alvo.innerHTML = '<div class="vazio"><span class="spinner escuro"></span></div>';
+  try {
+    const todas = await listar('declaracoes', {}, { ordenarPor: 'assinadoEm', direcao: 'desc' });
+    // Uma linha por aluno: a declaração mais recente (as antigas ficam no histórico dele).
+    const porAluno = new Map();
+    for (const d of todas) if (!porAluno.has(d.alunoId)) porAluno.set(d.alunoId, { ...d, anteriores: 0 });
+    for (const d of todas) {
+      const atual = porAluno.get(d.alunoId);
+      if (atual.id !== d.id) atual.anteriores += 1;
+    }
+    declaracoesHall = [...porAluno.values()].sort((a, b) => String(a.nomeCompleto).localeCompare(String(b.nomeCompleto)));
+    renderizarDeclaracoes();
+  } catch (err) {
+    console.error('[professor] falha ao carregar declarações:', err);
+    alvo.innerHTML = '';
+    alvo.append(vazio('Não foi possível carregar as declarações. Confira se as regras novas do Firestore foram publicadas.', 'alerta'));
+  }
+}
+
+function renderizarDeclaracoes() {
+  const alvo = qs('#lista-declaracoes');
+  const busca = normalizarTexto(qs('#busca-declaracao').value);
+  const filtro = qs('#filtro-declaracao').value;
+  const lista = declaracoesHall.filter((d) => {
+    const vigente = declaracaoVigente(d);
+    if (filtro === 'vigentes' && !vigente) return false;
+    if (filtro === 'vencidas' && vigente) return false;
+    if (filtro === 'atencao' && !d.algumSim) return false;
+    if (!busca) return true;
+    return normalizarTexto(`${d.nomeCompleto} ${d.alunoNome} ${d.email} ${d.documento}`).includes(busca)
+      || normalizarDocumento(d.documento).includes(normalizarDocumento(busca));
+  });
+
+  alvo.innerHTML = '';
+  if (!lista.length) {
+    alvo.append(vazio(declaracoesHall.length ? 'Nenhuma declaração com esse filtro.' : 'Nenhum aluno respondeu o questionário ainda.', 'saude'));
+    return;
+  }
+
+  const tabela = el('table', { class: 'tabela' });
+  tabela.innerHTML = '<thead><tr><th>Aluno</th><th>Documento</th><th>Assinada</th><th>Situação</th><th>PAR-Q</th><th></th></tr></thead>';
+  const corpo = el('tbody');
+  for (const d of lista) {
+    const vigente = declaracaoVigente(d);
+    corpo.append(el('tr', {}, [
+      el('td', {}, [
+        el('div', { class: 'negrito', text: d.nomeCompleto || d.alunoNome }),
+        el('div', { class: 'texto-min texto-cinza', text: d.email || '' }),
+      ]),
+      el('td', { class: 'texto-peq', text: d.documento ? `${d.tipoDocumento || 'CPF'} ${d.documento}` : '—' }),
+      el('td', { class: 'texto-peq', text: `${formatarData(d.assinadoEm.slice(0, 10))}${d.anteriores ? ` (+${d.anteriores})` : ''}` }),
+      el('td', {}, [el('span', { class: `badge ${vigente ? 'badge-sucesso' : 'badge-neutro'}`, text: vigente ? `Até ${formatarData(String(d.validaAte).slice(0, 10))}` : 'Vencida' })]),
+      el('td', {}, [el('span', { class: `badge ${d.algumSim ? 'badge-perigo' : 'badge-sucesso'}`, text: d.algumSim ? 'Atenção: SIM' : 'Tudo NÃO' })]),
+      el('td', { class: 'texto-direita' }, [el('button', {
+        type: 'button', class: 'btn btn-claro btn-peq com-icone',
+        onclick: () => baixarPdfDeclaracao(d).catch((e) => toast(e.message, 'erro')),
+      }, [iconeEl('download'), 'PDF'])]),
+    ]));
+  }
+  tabela.append(corpo);
+  alvo.append(tabela);
+}
+
+const normalizarTexto = (t) => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
+
+/* ==========================================================================
    INICIALIZAÇÃO
    ========================================================================== */
 
@@ -940,6 +1312,10 @@ async function iniciar() {
   qsa('#abas-professor .aba').forEach((b) => b.addEventListener('click', () => trocarAba(b.dataset.aba)));
   qs('#btn-salvar-disponibilidade').addEventListener('click', (ev) => salvarDisponibilidadeUI(ev.currentTarget));
   qs('#disp-mes-anterior').addEventListener('click', () => trocarMesDisp(-1));
+  qs('#form-checkin').addEventListener('submit', checkinPorDocumento);
+  qs('#form-repasse').addEventListener('submit', registrarRepasseUI);
+  qs('#busca-declaracao').addEventListener('input', renderizarDeclaracoes);
+  qs('#filtro-declaracao').addEventListener('change', renderizarDeclaracoes);
   qs('#disp-mes-proximo').addEventListener('click', () => trocarMesDisp(1));
   window.addEventListener('beforeunload', (ev) => {
     if (rascunhoAlterado) { ev.preventDefault(); ev.returnValue = ''; }
@@ -949,11 +1325,11 @@ async function iniciar() {
 
   // O menu lateral abre direto numa aba: professor.html#disponibilidade
   const inicial = location.hash.replace('#', '');
-  await trocarAba(['turmas', 'disponibilidade', 'mensagens'].includes(inicial) ? inicial : 'turmas');
+  await trocarAba(['turmas', 'saldo', 'declaracoes', 'disponibilidade', 'mensagens'].includes(inicial) ? inicial : 'turmas');
 
   window.addEventListener('hashchange', () => {
     const aba = location.hash.replace('#', '');
-    if (aba !== abaAtual && ['turmas', 'disponibilidade', 'mensagens'].includes(aba)) trocarAba(aba);
+    if (aba !== abaAtual && ['turmas', 'saldo', 'declaracoes', 'disponibilidade', 'mensagens'].includes(aba)) trocarAba(aba);
   });
 }
 

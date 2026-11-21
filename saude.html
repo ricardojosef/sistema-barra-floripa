@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Saúde e termo — Barra Floripa Surf School</title>
+  <link rel="icon" href="logomenor-barrafloripa.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/pages.css">
+  <link rel="stylesheet" href="css/tema.css">
+</head>
+<body class="painel" data-page="saude">
+
+  <header id="painel-topo"></header>
+
+  <div class="painel-shell">
+    <nav id="barra-lateral" aria-label="Menu"></nav>
+
+    <main class="painel-conteudo">
+      <div class="painel-cabecalho">
+        <h1 data-i18n="saude.titulo">Saúde e termo de responsabilidade</h1>
+        <p data-i18n="saude.subtitulo">Questionário de prontidão (PAR-Q) e termo assinado — renovados a cada 6 meses.</p>
+      </div>
+
+      <div class="painel-colunas">
+        <section class="card" id="card-formulario">
+          <div class="card-titulo"><h3 data-i18n="saude.parqTitulo">Questionário de Prontidão para Atividade Física</h3></div>
+          <div id="area-formulario"><div class="vazio"><span class="spinner escuro"></span></div></div>
+        </section>
+
+        <section class="card">
+          <div class="card-titulo"><h3 data-i18n="saude.minhas">Minhas declarações</h3></div>
+          <div id="lista-declaracoes"></div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <nav id="nav-inferior" aria-label="Menu rápido"></nav>
+
+  <script type="module" src="js/pages/saude.js"></script>
+</body>
+</html>

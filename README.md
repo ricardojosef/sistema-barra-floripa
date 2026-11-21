@@ -1,9 +1,11 @@
 # Barra Floripa — Sistema de Reserva de Aulas
 
 Sistema web completo de agendamento para a escola de surf Barra Floripa
-(Praia da Barra da Lagoa, Florianópolis). Alunos compram pacotes e agendam
-aulas; professores acompanham a lotação das turmas; a administração
-configura preços, professores, locais e avisos.
+(Praia da Barra da Lagoa, Florianópolis). O visitante escolhe plano e aula,
+cria a conta no caminho e paga — como num site de passagens. Professores
+controlam turmas, presença e saldo; a administração configura preços,
+cupons, professores, avisos e analisa justificativas. Site em português,
+inglês e espanhol.
 
 HTML5 + CSS + JavaScript puro. Sem framework, sem build, sem `npm install`.
 
@@ -37,24 +39,29 @@ A tela de login traz botões que preenchem essas contas automaticamente.
 
 ## O que o sistema faz
 
-**Aluno**
-- Recebe um **tutorial guiado no primeiro acesso**, mostrando o painel e a
-  tela de agendamento passo a passo (dá para rever em "Como agendar")
-- Compra pacotes com PIX (QR Code + copia e cola), cartão, Mercado Pago ou PayPal
-- Agenda aulas em calendário que mostra as vagas de cada turma em tempo real
-- Cancela aulas e recebe o crédito de volta na hora
-- Acompanha saldo, extrato de créditos e histórico
+**Visitante / aluno**
+- **Reserva sem login** (`reservar.html`): plano → dia e horário → cadastro
+  (CPF ou passaporte, nacionalidade, idioma) → questionário de saúde → pagamento
+- Não escolhe professor: vê horário, praia e vagas
+- Paga pelo Mercado Pago (PIX, cartão, boleto) ou PayPal, com **cupom de desconto**
+- Questionário PAR-Q + termo de responsabilidade assinados no site (renovados a cada 6 meses, PDF)
+- Cancela até 12h antes; depois disso envia **justificativa com atestado**
+- Botão do **grupo de WhatsApp** dos alunos, avisos de "sem aulas" com pedido para reagendar
+- Tutorial guiado no primeiro acesso, extrato de créditos e histórico
 
 **Professor**
-- Vê as turmas do dia com a lotação de cada horário
-- Recebe destaque visual quando a turma atinge o limite de 5 alunos
+- Turmas do dia com documento, idioma e alerta de saúde de cada aluno
+- **Baixa de presença pelo CPF** e registro de falta
+- **Saldo a receber** pelas aulas dadas e pagamentos já recebidos
+- **Hall de declarações de saúde** com download em PDF
 - Cancela a aula de um aluno ou a turma inteira, com motivo
 
 **Administrador** (Laudinei)
 - Tudo do professor, para todos os professores
-- **Adiciona e retira professores** do sistema — exclusivo do administrador
-- Edita nomes dos professores, preços, locais e grade de horários
-- Publica avisos que aparecem como pop-up no painel dos alunos
+- **Atribui/troca o professor** de cada aula (invisível para o aluno)
+- Adiciona e retira professores; define a remuneração de cada um
+- Cupons, justificativas (aprovar devolve o crédito), preços, locais, horários
+- Avisos com **data sem aula**: cancela as aulas, devolve créditos e avisa os alunos
 
 ---
 
@@ -88,7 +95,10 @@ A tela de login traz botões que preenchem essas contas automaticamente.
 - Horários: **08:00, 10:00, 14:00, 16:00**, todos os dias — aulas de **1h30**
 - Professores: **Laudinei Neves** (admin), **Pedro**, **Igor** e **Gabrieli** —
   o quadro é gerenciado pelo painel administrativo
-- Aluno cancela pelo site até **12h antes**; a equipe cancela a qualquer momento
+- O **professor é atribuído pela escola**; o aluno escolhe só horário e praia
+- Aluno cancela pelo site até **12h antes**; depois o site bloqueia, e falta
+  sem justificativa aprovada faz perder o crédito. A equipe cancela a qualquer momento
+- Para comprar e agendar: **CPF/passaporte** e **questionário de saúde** vigente (6 meses)
 - Todo cancelamento **devolve o crédito**, mantendo a validade e as restrições
   do pacote de origem
 - **Créditos vencidos saem do saldo** e não permitem agendar
@@ -118,29 +128,23 @@ escolhe o driver. Por isso migrar para produção não exige reescrever telas.
 
 > ⚠️ No modo `mock`, **o navegador confirma o pagamento e emite os créditos**.
 > Isso é adequado para demonstração e inseguro em produção. O
-> [guia](docs/GUIA.md#6-ligando-os-pagamentos-reais) explica por quê e como
-> mover a emissão de crédito para um backend.
+> [guia de pagamentos](docs/PAGAMENTOS.md) explica o servidor que credita em produção.
 
 ---
 
 ## Documentação
 
-**[docs/GUIA.md](docs/GUIA.md)** — guia completo:
-
-- Como o sistema funciona por dentro
-- Roteiro de teste passo a passo (8 cenários)
-- Firebase: criar projeto, ativar login, cadastrar a equipe, regras de segurança
-- Pagamentos: PIX, Mercado Pago, PayPal e cartão em produção
-- E-mails automáticos para alunos e professores
-- Alternativa gratuita, sem o plano Blaze (Cloudflare Workers)
-- Publicação e perguntas frequentes
+- **[docs/GUIA.md](docs/GUIA.md)** — estado atual (checklist) e o que falta, em ordem
+- **[docs/PAGAMENTOS.md](docs/PAGAMENTOS.md)** — Mercado Pago em produção, passo a passo
+- **[docs/NOTIFICACOES.md](docs/NOTIFICACOES.md)** — e-mail e WhatsApp: opções gratuitas e implementação
+- **[docs/ALTERACOES-V2.md](docs/ALTERACOES-V2.md)** — o que mudou, modelo de dados e decisões a validar
 
 ---
 
 ## Estrutura
 
 ```
-*.html               9 telas (landing, login, painéis, agendamento, checkout)
+*.html               12 telas (landing, reserva, termos, login, painéis, agendamento, checkout, saúde)
 css/                 base, componentes, layout e estilos por página
 js/
   config.js          ⚙️ configuração central
@@ -150,12 +154,16 @@ js/
   creditos.js        saldo e extrato
   pagamentos.js      PIX, cartão e gateways
   precos.js          preços e configuração efetivos
-  avisos.js          pop-ups para alunos
+  avisos.js          pop-ups e datas sem aula
+  reserva.js         fluxo de reserva sem login
+  saude.js           PAR-Q, termo e PDF
+  cupons.js · justificativas.js · financeiro.js
+  i18n.js            idiomas (PT/EN/ES)
   ui.js              utilitários de interface
   pages/             um controlador por tela
-functions/           servidor (Cloud Functions): e-mails automáticos e pagamentos
+functions/           servidor (Cloud Functions): pagamentos, e-mails e WhatsApp (opcional)
 firestore.rules      regras de segurança do Firestore
-docs/GUIA.md         guia de implementação
+docs/                guias (GUIA, PAGAMENTOS, NOTIFICACOES, ALTERACOES-V2)
 ```
 
 ---

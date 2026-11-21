@@ -54,8 +54,8 @@
         <div class="card">
           <!-- Abas (só para alunos) -->
           <div class="abas" id="abas-auth">
-            <button class="aba ativa" data-aba="login" type="button">Entrar</button>
-            <button class="aba" data-aba="cadastro" type="button">Criar conta</button>
+            <button class="aba ativa" data-aba="login" type="button" data-i18n="nav.entrar">Entrar</button>
+            <button class="aba" data-aba="cadastro" type="button" data-i18n="login.abaNovo">Sou novo</button>
           </div>
 
           <div id="alerta-area"></div>
@@ -101,55 +101,14 @@
 
           <!-- CADASTRO -->
           <section class="painel-aba" data-painel="cadastro">
-            <form id="form-cadastro" novalidate>
-              <div class="campo">
-                <label for="cad-nome">Nome completo</label>
-                <input type="text" id="cad-nome" name="nome" autocomplete="name"
-                       placeholder="Como podemos te chamar?" required>
-                <span class="msg-erro">Informe seu nome completo.</span>
-              </div>
-              <div class="campo">
-                <label for="cad-email">E-mail</label>
-                <input type="email" id="cad-email" name="email" autocomplete="email"
-                       placeholder="voce@email.com" required>
-                <span class="msg-erro">Informe um e-mail válido.</span>
-              </div>
-              <div class="campo">
-                <label for="cad-telefone">WhatsApp <span class="dica">Para avisarmos sobre condições do mar</span></label>
-                <input type="tel" id="cad-telefone" name="telefone" autocomplete="tel"
-                       placeholder="(48) 99999-9999">
-              </div>
-              <div class="linha-campos duas">
-                <div class="campo">
-                  <label for="cad-senha">Senha</label>
-                  <input type="password" id="cad-senha" name="senha"
-                         autocomplete="new-password" placeholder="Mínimo 6 caracteres" required>
-                  <span class="msg-erro">A senha precisa ter pelo menos 6 caracteres.</span>
-                </div>
-                <div class="campo">
-                  <label for="cad-senha2">Repita a senha</label>
-                  <input type="password" id="cad-senha2" name="senha2"
-                         autocomplete="new-password" placeholder="Digite de novo" required>
-                  <span class="msg-erro">As senhas não são iguais.</span>
-                </div>
-              </div>
-              <label class="checkbox-linha mb-16">
-                <input type="checkbox" id="cad-termos" required>
-                <span>Li e aceito os termos de uso e a política de cancelamento da escola.</span>
-              </label>
-              <button type="submit" class="btn btn-primario btn-bloco" id="btn-cadastrar">Criar conta</button>
-            </form>
-
-            <div class="separador-ou">ou</div>
-            <button type="button" class="btn-google" id="btn-google-cadastro">
-              <svg viewBox="0 0 48 48" aria-hidden="true">
-                <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
-                <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
-                <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24s.92 7.54 2.56 10.78l7.97-6.19z"/>
-                <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
-              </svg>
-              Criar conta com Google
-            </button>
+            <!-- O cadastro agora acontece no fluxo de reserva: o aluno escolhe
+                 plano e aula, cria a conta no caminho e paga. -->
+            <div class="texto-centro">
+              <div class="vazio-icone" data-icone="prancha"></div>
+              <h3 class="mb-8" data-i18n="login.novoTitulo">Primeira vez na Barra Floripa?</h3>
+              <p class="texto-peq texto-cinza mb-16" data-i18n="login.novoTexto">Escolha seu plano e o horário da aula. A conta é criada no caminho, junto com o questionário de saúde — e depois vira o seu acesso ao painel.</p>
+              <a href="reservar.html" class="btn btn-primario btn-bloco" data-i18n="login.novoBotao">Agendar minha primeira aula →</a>
+            </div>
           </section>
         </div>
 

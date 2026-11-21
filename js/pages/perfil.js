@@ -10,8 +10,13 @@ import { ESCOLA } from '../config.js';
 import { exigirAuth, sair, atualizarMeuPerfil, ErroAuth } from '../auth.js';
 import { saldoCreditos } from '../creditos.js';
 import {
-  qs, montarShellPainel, toast, botaoCarregando, mascaraTelefone, avatarHTML,
+  qs, montarShellPainel, toast, botaoCarregando, mascaraTelefone, avatarHTML, paramUrl, escapar,
 } from '../ui.js';
+import {
+  perfilCompleto, documentoFormatado, rotuloDocumento, nomePais, nomeIdioma, mascaraCpf, PAISES,
+} from '../documentos.js';
+import { camposPessoaisHTML, ligarCamposPessoais, lerCamposPessoais } from '../campos-pessoais.js';
+import { t, idiomaAtual, definirIdioma } from '../i18n.js';
 
 const LADO_FOTO = 320;          // px — o maior avatar do sistema tem 112px
 const QUALIDADE_JPEG = 0.82;
@@ -153,6 +158,68 @@ async function iniciar() {
   window.addEventListener('beforeunload', (ev) => {
     if (alterado) { ev.preventDefault(); ev.returnValue = ''; }
   });
+
+  if (usuario.papel === 'aluno') montarPessoais();
+}
+
+/* --------------------------------------------------------------------------
+   Documento, nacionalidade e idioma (aluno)
+   -------------------------------------------------------------------------- */
+
+/** Só páginas internas podem ser destino do ?voltar=. */
+function destinoVoltar() {
+  const v = paramUrl('voltar');
+  return v && /^[a-z0-9_-]+\.html(\?[^#]*)?$/i.test(v) ? v : null;
+}
+
+function montarPessoais() {
+  const card = qs('#card-pessoais');
+  card.classList.remove('oculto');
+  const completo = perfilCompleto(usuario);
+
+  qs('#alerta-completar').innerHTML = completo ? '' : `
+    <div class="alerta alerta-aviso mb-16"><span>${escapar(t('perfil.completarAviso'))}</span></div>`;
+
+  // CPF gravado não muda pelo site; o resto (idioma, nacionalidade) sim.
+  qs('#resumo-pessoais').innerHTML = usuario.cpf || usuario.documento ? `
+    <div class="linha-resumo"><span>${escapar(rotuloDocumento(usuario))}</span><span class="negrito">${escapar(documentoFormatado(usuario))}</span></div>
+    <div class="linha-resumo"><span>${escapar(t('dados.nacionalidade'))}</span><span>${escapar(nomePais(usuario.nacionalidade, idiomaAtual()))}</span></div>
+    <div class="linha-resumo mb-16"><span>${escapar(t('dados.idioma'))}</span><span>${escapar(nomeIdioma(usuario.idioma))}</span></div>` : '';
+
+  const form = qs('#form-pessoais');
+  form.innerHTML = camposPessoaisHTML({
+    nacionalidade: PAISES.some((p) => p.id === usuario.nacionalidade) ? usuario.nacionalidade : (usuario.nacionalidade ? 'OUTRO' : ''),
+    nacionalidadeOutra: PAISES.some((p) => p.id === usuario.nacionalidade) ? '' : usuario.nacionalidade,
+    cpf: usuario.cpf ? mascaraCpf(usuario.cpf) : '',
+    documento: usuario.documento || '',
+    nascimento: usuario.nascimento || '',
+    idioma: usuario.idioma || idiomaAtual(),
+  });
+  if (usuario.cpf) {
+    const cpf = qs('#f-cpf', form);
+    cpf.disabled = true;
+    cpf.title = t('perfil.cpfTravado');
+  }
+  ligarCamposPessoais(form, (idioma) => definirIdioma(idioma));
+
+  qs('#btn-salvar-pessoais').onclick = async (ev) => {
+    const restaurar = botaoCarregando(ev.currentTarget, t('comum.salvando'));
+    try {
+      const pessoais = lerCamposPessoais(form);
+      if (usuario.cpf) pessoais.cpf = usuario.cpf;
+      usuario = await atualizarMeuPerfil({ pessoais, idioma: pessoais.idioma });
+      toast(t('perfil.pessoaisSalvos'), 'sucesso');
+      const voltar = destinoVoltar();
+      if (voltar) { location.href = voltar; return; }
+      montarPessoais();
+    } catch (err) {
+      toast(err instanceof ErroAuth ? err.message : t('comum.erroSalvar'), 'erro', 6000);
+    } finally {
+      restaurar();
+    }
+  };
+
+  if (paramUrl('completar') === '1') card.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 iniciar();

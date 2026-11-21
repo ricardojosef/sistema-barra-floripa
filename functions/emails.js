@@ -9,6 +9,9 @@
  *   agendamentos  criado (confirmado)           -> confirmação ao aluno + aviso ao professor
  *   agendamentos  confirmado -> cancelado       -> aviso ao aluno (+ professor, se foi o aluno)
  *   mensagens     criada                        -> recado da equipe ao aluno
+ *                 (inclui aviso de "sem aulas" e resposta de justificativa)
+ *   justificativas criada                       -> administradores analisam
+ *   agendamentos  professor trocado pelo admin  -> professor novo e antigo
  *
  * Como o gatilho é o próprio banco, ninguém consegue disparar e-mail pelo
  * navegador, e as regras do Firestore continuam valendo para tudo.
@@ -174,6 +177,9 @@ exports.emailCancelamento = onDocumentUpdated({ ...OPCOES, document: 'agendament
   const antes = evento.data?.before.data();
   const depois = evento.data?.after.data();
   if (!antes || !depois || antes.status !== 'confirmado' || depois.status !== 'cancelado') return;
+  // Aula cancelada por aviso de 'sem aulas': o aluno já recebe a mensagem
+  // pedindo para reagendar (emailMensagem), com todas as aulas dele juntas.
+  if (depois.canceladoPorAviso) return;
 
   const [aluno, { aula, prof }] = await Promise.all([usuario(depois.alunoId), detalharAula(depois)]);
 
@@ -200,4 +206,29 @@ exports.emailMensagem = onDocumentCreated({ ...OPCOES, document: 'mensagens/{id}
   if (!aluno) return;
   await enviar(evento, 'mensagem', aluno.email,
     modelos.novaMensagem({ aluno, mensagem, turma: mensagem.turma || null }));
+});
+
+exports.emailJustificativa = onDocumentCreated({ ...OPCOES, document: 'justificativas/{id}' }, async (evento) => {
+  const justificativa = evento.data?.data();
+  if (!justificativa) return;
+  const admins = await db.collection('usuarios').where('papel', '==', 'admin').where('ativo', '==', true).get();
+  await Promise.all(admins.docs.map((doc, i) => enviar(
+    evento, `justificativa-admin-${i}`, doc.get('email'),
+    modelos.justificativaRecebida({ admin: { id: doc.id, ...doc.data() }, justificativa }),
+  )));
+});
+
+exports.emailReatribuicao = onDocumentUpdated({ ...OPCOES, document: 'agendamentos/{id}' }, async (evento) => {
+  const antes = evento.data?.before.data();
+  const depois = evento.data?.after.data();
+  if (!antes || !depois || depois.status !== 'confirmado' || antes.professorId === depois.professorId) return;
+
+  const [novo, antigo, localNome] = await Promise.all([
+    professor(depois.professorId), professor(antes.professorId), nomeDoLocal(depois.localId),
+  ]);
+  const aula = { ...depois, localNome };
+  await Promise.all([
+    novo && enviar(evento, 'reatribuicao-novo', novo.email, modelos.professorReatribuido({ professor: novo, aula, entrou: true })),
+    antigo && enviar(evento, 'reatribuicao-antigo', antigo.email, modelos.professorReatribuido({ professor: antigo, aula, entrou: false })),
+  ]);
 });

@@ -1,20 +1,23 @@
 /**
- * agendar.js — calendário e escolha de horário.
+ * agendar.js — calendário e escolha de horário (aluno logado, com créditos).
  *
- * O calendário é montado com Date nativo (sem biblioteca). A ocupação do mês
- * inteiro vem de uma única consulta (resumoDoPeriodo), e só o dia selecionado
- * carrega o detalhe por professor.
+ * O aluno escolhe dia, horário e praia; o professor é atribuído pela escola
+ * e não aparece aqui. Antes de confirmar, o sistema exige cadastro completo
+ * (documento) e questionário de saúde vigente.
  */
 
 import { exigirAuth, sair } from '../auth.js';
 import { lotesVigentes, diasAteVencer } from '../creditos.js';
 import { listar } from '../store.js';
-import { horariosDoDia, resumoDoPeriodo, agendar, ErroAgenda } from '../agenda.js';
+import { agendar, ErroAgenda } from '../agenda.js';
 import { carregarContexto, nomeLocal } from '../precos.js';
+import { declaracaoValida } from '../saude.js';
+import { perfilCompleto } from '../documentos.js';
+import { criarSeletorAula, dataPorExtenso } from '../seletor-aula.js';
+import { t } from '../i18n.js';
 import {
-  qs, el, isoDeData, hojeISO, dataDeISO, formatarDataExtenso, faixaHorario,
-  MESES, SEMANA_CURTO, montarShellPainel, toast, botaoCarregando, abrirModal, escapar,
-  paramUrl, icone, iconeEl, vazio,
+  qs, montarShellPainel, toast, botaoCarregando, abrirModal, escapar,
+  paramUrl, icone, faixaHorario,
 } from '../ui.js';
 import { executarTour, passosAgendamento, marcarTutorialConcluido } from '../tutorial.js';
 
@@ -23,281 +26,43 @@ let contexto = null;
 let saldo = 0;
 /** true quando todos os créditos do aluno são restritos a sábado/domingo. */
 let soFimDeSemana = false;
-
-let mesVisivel = new Date();
-let diaSelecionado = null;
-let slotSelecionado = null;
 let tipoAula = 'grupo';
-let resumosDoMes = new Map();
-
-/* --------------------------------------------------------------------------
-   Calendário
-   -------------------------------------------------------------------------- */
-
-async function montarCalendario() {
-  const grade = qs('#calendario');
-  const ano = mesVisivel.getFullYear();
-  const mes = mesVisivel.getMonth();
-
-  qs('#mes-atual').textContent = `${MESES[mes]} de ${ano}`;
-
-  // Não deixa navegar para meses que já passaram.
-  const hoje = new Date();
-  const ehMesAtual = ano === hoje.getFullYear() && mes === hoje.getMonth();
-  qs('#mes-anterior').disabled = ehMesAtual;
-
-  grade.innerHTML = '';
-  SEMANA_CURTO.forEach((dia) => {
-    grade.append(el('div', { class: 'cab-dia', text: dia }));
-  });
-
-  const primeiroDia = new Date(ano, mes, 1);
-  const ultimoDia = new Date(ano, mes + 1, 0);
-
-  // Carrega a ocupação do mês de uma vez só.
-  grade.append(el('div', {
-    class: 'vazio',
-    style: 'grid-column:1/-1',
-    html: '<span class="spinner escuro"></span>',
-  }));
-
-  try {
-    resumosDoMes = await resumoDoPeriodo(
-      isoDeData(primeiroDia),
-      isoDeData(ultimoDia),
-      { tipo: tipoAula },
-    );
-  } catch (err) {
-    // Sem isto, uma falha de rede ou de permissão deixava o carregamento
-    // girando para sempre, sem o aluno saber o que fazer.
-    console.error('[agendar] falha ao carregar o calendário:', err);
-    grade.querySelector('.vazio')?.remove();
-    grade.append(el('div', { class: 'vazio', style: 'grid-column:1/-1' }, [
-      el('span', { class: 'vazio-icone' }, [iconeEl('alerta')]),
-      el('p', { text: 'Não foi possível carregar os horários. Verifique sua conexão e tente de novo.' }),
-      el('button', {
-        type: 'button', class: 'btn btn-secundario btn-peq mt-16', text: 'Tentar de novo',
-        onclick: () => montarCalendario(),
-      }),
-    ]));
-    return;
-  }
-
-  // Redesenha já com os dados.
-  grade.innerHTML = '';
-  SEMANA_CURTO.forEach((dia) => grade.append(el('div', { class: 'cab-dia', text: dia })));
-
-  // Espaços vazios até o primeiro dia do mês cair no dia da semana certo.
-  for (let i = 0; i < primeiroDia.getDay(); i += 1) {
-    grade.append(el('div', { class: 'dia-cel vazio' }));
-  }
-
-  const hojeIso = hojeISO();
-
-  for (let dia = 1; dia <= ultimoDia.getDate(); dia += 1) {
-    const data = new Date(ano, mes, dia);
-    const iso = isoDeData(data);
-    const resumo = resumosDoMes.get(iso);
-
-    const passou = iso < hojeIso;
-    const semVagas = resumo ? !resumo.temVaga : true;
-    // Créditos de plano mensal só valem sábado e domingo.
-    const diaDaSemana = data.getDay();
-    const bloqueadoPorPlano = soFimDeSemana && diaDaSemana !== 0 && diaDaSemana !== 6;
-    const indisponivel = passou || semVagas || bloqueadoPorPlano;
-
-    const cel = el('button', {
-      type: 'button',
-      class: [
-        'dia-cel',
-        indisponivel ? 'indisponivel' : 'disponivel',
-        iso === hojeIso ? 'hoje' : '',
-        iso === diaSelecionado ? 'selecionado' : '',
-        !passou && semVagas ? 'lotado-total' : '',
-      ].filter(Boolean).join(' '),
-      disabled: indisponivel,
-      // Ao passar o mouse: horários e locais abertos naquele dia.
-      title: bloqueadoPorPlano
-        ? 'Seu plano é válido apenas aos sábados e domingos'
-        : (!indisponivel && resumo
-          ? `${resumo.horarios.join(' · ')} — ${resumo.locais.map((l) => nomeLocal(contexto.mapaLocais, l)).join(', ')}`
-          : ''),
-      'aria-label': `${dia} de ${MESES[mes]}${
-        bloqueadoPorPlano ? ' — indisponível: seu plano vale só no fim de semana'
-          : indisponivel ? ' — indisponível'
-            : `, ${resumo?.vagasTotais || 0} vagas`}`,
-      dataset: { data: iso },
-    }, [el('span', { text: String(dia) })]);
-
-    if (!indisponivel) {
-      cel.append(el('span', { class: 'ponto' }));
-      cel.addEventListener('click', () => selecionarDia(iso));
-    }
-
-    grade.append(cel);
-  }
-}
-
-/* --------------------------------------------------------------------------
-   Horários do dia
-   -------------------------------------------------------------------------- */
-
-async function selecionarDia(iso) {
-  diaSelecionado = iso;
-  slotSelecionado = null;
-  qs('#area-confirmacao').classList.add('oculto');
-
-  // Marca a célula sem redesenhar o mês inteiro.
-  qs('#calendario').querySelectorAll('.dia-cel').forEach((cel) => {
-    cel.classList.toggle('selecionado', cel.dataset.data === iso);
-  });
-
-  const texto = formatarDataExtenso(iso, true);
-  qs('#dia-selecionado').textContent = texto.charAt(0).toUpperCase() + texto.slice(1);
-
-  const alvo = qs('#lista-slots');
-  alvo.innerHTML = '<div class="vazio"><span class="spinner escuro"></span></div>';
-
-  try {
-    const slots = await horariosDoDia(iso, { tipo: tipoAula });
-    montarResumoDoDia(slots);
-    montarSlots(slots);
-  } catch (err) {
-    console.error('[agendar] falha ao carregar horários:', err);
-    qs('#resumo-dia').innerHTML = '';
-    alvo.innerHTML = '<div class="vazio">Não foi possível carregar os horários. Tente de novo.</div>';
-  }
-}
-
-/** Faixa com os horários e locais abertos no dia escolhido. */
-function montarResumoDoDia(slots) {
-  const alvo = qs('#resumo-dia');
-  alvo.innerHTML = '';
-  const futuros = slots.filter((s) => !s.jaPassou);
-  if (!futuros.length) return;
-
-  const horarios = [...new Set(futuros.map((s) => s.horario))];
-  const locais = [...new Set(futuros.map((s) => nomeLocal(contexto.mapaLocais, s.localId)))];
-
-  alvo.append(
-    el('div', { class: 'resumo-dia-linha' }, [
-      el('span', { class: 'resumo-dia-rotulo com-icone' }, [iconeEl('relogio'), 'Horários']),
-      ...horarios.map((h) => el('span', { class: 'chip-info', text: h })),
-    ]),
-    el('div', { class: 'resumo-dia-linha' }, [
-      el('span', { class: 'resumo-dia-rotulo com-icone' }, [iconeEl('local'), 'Locais']),
-      ...locais.map((l) => el('span', { class: 'chip-info', text: l })),
-    ]),
-  );
-}
-
-/** Texto e estilo do selo de cada professor, conforme o tipo de aula. */
-function estadoDoSlot(slot) {
-  if (tipoAula === 'individual') {
-    if (slot.particularLivre) return { texto: 'Livre', classe: 'badge-sucesso', pode: true, dica: 'Horário livre para aula particular' };
-    if (slot.individual) return { texto: 'Reservado', classe: 'badge-perigo', pode: false, dica: 'Já reservado para outra aula particular' };
-    return {
-      texto: 'Turma', classe: 'badge-neutro', pode: false,
-      dica: `Já tem turma em grupo (${slot.ocupados}/${slot.capacidade}) — não cabe particular`,
-    };
-  }
-  if (slot.individual) return { texto: 'Particular', classe: 'badge-perigo', pode: false, dica: 'Reservado para aula particular' };
-  if (slot.grupoLotado) return { texto: 'Lotado', classe: 'badge-perigo', pode: false, dica: 'Turma completa' };
-  const restam = slot.vagas;
-  return {
-    texto: `${slot.ocupados}/${slot.capacidade}`,
-    classe: restam <= 2 ? 'badge-aviso' : 'badge-sucesso',
-    pode: true,
-    dica: restam === 1 ? 'Resta 1 vaga' : `Restam ${restam} vagas`,
-  };
-}
-
-function montarSlots(slots) {
-  const alvo = qs('#lista-slots');
-  alvo.innerHTML = '';
-
-  const utilizaveis = slots.filter((s) => !s.jaPassou);
-
-  if (!utilizaveis.length) {
-    alvo.innerHTML = '';
-    alvo.append(vazio('Não há mais horários disponíveis neste dia.', 'lua'));
-    return;
-  }
-
-  // Um bloco por horário; dentro dele, uma linha por professor.
-  const porHorario = new Map();
-  for (const slot of utilizaveis) {
-    if (!porHorario.has(slot.horario)) porHorario.set(slot.horario, []);
-    porHorario.get(slot.horario).push(slot);
-  }
-
-  for (const [horario, doHorario] of porHorario) {
-    const abertos = doHorario.filter((s) => estadoDoSlot(s).pode).length;
-    const grupo = el('section', { class: 'grupo-horario', 'aria-label': `Horário ${horario}` }, [
-      el('header', { class: 'grupo-horario-topo' }, [
-        el('span', { class: 'grupo-horario-hora', text: faixaHorario(horario, contexto.config.duracaoMin) }),
-        el('span', {
-          class: 'texto-min texto-cinza',
-          text: abertos
-            ? `${abertos} ${abertos === 1 ? 'professor disponível' : 'professores disponíveis'}`
-            : 'sem vagas',
-        }),
-      ]),
-    ]);
-
-    for (const slot of doHorario) {
-      const estado = estadoDoSlot(slot);
-      const percentual = tipoAula === 'individual'
-        ? (slot.ocupados > 0 ? 100 : 0)
-        : Math.min(100, (slot.ocupados / slot.capacidade) * 100);
-      const classeBarra = !estado.pode ? 'cheio' : percentual >= 60 ? 'medio' : '';
-
-      const botao = el('button', {
-        type: 'button',
-        class: `slot ${estado.pode ? '' : 'lotado'}`,
-        disabled: !estado.pode,
-        title: estado.dica,
-        'aria-label': `${horario}, professor ${slot.professorNome}, ${nomeLocal(contexto.mapaLocais, slot.localId)}: ${estado.dica}`,
-        dataset: { professor: slot.professorId, horario },
-      }, [
-        el('div', { class: 'detalhe' }, [
-          el('div', { class: 'prof', text: `Prof. ${slot.professorNome}` }),
-          el('div', { class: 'local com-icone' }, [iconeEl('local'), `${nomeLocal(contexto.mapaLocais, slot.localId)} · ${estado.dica}`]),
-          el('div', { class: 'vagas-barra' }, [
-            el('div', { class: `preenchido ${classeBarra}`, style: `width:${percentual}%` }),
-          ]),
-        ]),
-        el('span', { class: `badge ${estado.classe}`, text: estado.texto }),
-      ]);
-
-      if (estado.pode) botao.addEventListener('click', () => selecionarSlot(slot, botao));
-      grupo.append(botao);
-    }
-
-    alvo.append(grupo);
-  }
-}
-
-function selecionarSlot(slot, botao) {
-  slotSelecionado = slot;
-  qs('#lista-slots').querySelectorAll('.slot').forEach((s) => s.classList.remove('selecionado'));
-  botao.classList.add('selecionado');
-  qs('#area-confirmacao').classList.remove('oculto');
-  qs('#btn-confirmar').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-}
+let seletor = null;
+let slotSelecionado = null;
 
 /* --------------------------------------------------------------------------
    Confirmação
    -------------------------------------------------------------------------- */
 
+function aoSelecionar(slot) {
+  slotSelecionado = slot;
+  qs('#area-confirmacao').classList.toggle('oculto', !slot);
+  if (slot) {
+    qs('#confirmacao-texto').textContent = `${dataPorExtenso(slot.data)} · ${faixaHorario(slot.horario, contexto.config.duracaoMin)} · ${nomeLocal(contexto.mapaLocais, slot.localId)}`;
+    qs('#btn-confirmar').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+}
+
 async function confirmarAgendamento() {
-  if (!slotSelecionado || !diaSelecionado) {
+  if (!slotSelecionado) {
     toast('Escolha um dia e um horário.', 'aviso');
     return;
   }
-
   if (saldo < 1) {
     mostrarSemCreditos();
+    return;
+  }
+
+  // Questionário de saúde: obrigatório, renovado a cada 6 meses.
+  if (!(await declaracaoValida(usuario.id))) {
+    abrirModal({
+      titulo: t('saude.titulo'),
+      corpo: `<p>${escapar(t('agendar.saudePendente'))}</p>`,
+      botoes: [
+        { texto: t('comum.agoraNao'), classe: 'btn-claro' },
+        { texto: t('agendar.responderAgora'), classe: 'btn-primario', onClick: () => { location.href = 'saude.html?voltar=agendar.html'; } },
+      ],
+    });
     return;
   }
 
@@ -308,12 +73,11 @@ async function confirmarAgendamento() {
     await agendar({
       alunoId: usuario.id,
       alunoNome: usuario.nome,
-      professorId: slotSelecionado.professorId,
-      data: diaSelecionado,
+      data: slotSelecionado.data,
       horario: slotSelecionado.horario,
+      localId: slotSelecionado.localId,
       tipo: tipoAula,
     });
-
     location.href = 'dashboard.html?agendado=ok';
   } catch (err) {
     restaurar();
@@ -334,11 +98,7 @@ async function confirmarAgendamento() {
           </p>`,
         botoes: [
           { texto: 'Escolher outro dia', classe: 'btn-claro' },
-          {
-            texto: 'Ver planos',
-            classe: 'btn-primario',
-            onClick: () => { location.href = 'checkout.html'; },
-          },
+          { texto: 'Ver planos', classe: 'btn-primario', onClick: () => { location.href = 'checkout.html'; } },
         ],
       });
       return;
@@ -348,7 +108,7 @@ async function confirmarAgendamento() {
     console.error('[agendar] erro ao agendar:', err);
 
     // Estado pode ter mudado (alguém pegou a última vaga): recarrega o dia.
-    await selecionarDia(diaSelecionado);
+    await seletor.recarregar();
     await atualizarSaldo();
   }
 }
@@ -359,16 +119,11 @@ function mostrarSemCreditos() {
     corpo: `
       <p>Para agendar uma aula é preciso ter pelo menos 1 crédito disponível.</p>
       <p class="mt-16 texto-cinza texto-peq">
-        Escolha um pacote — o crédito entra na sua conta assim que o pagamento
-        for confirmado.
+        Escolha um pacote — você já pode escolher a aula junto com a compra.
       </p>`,
     botoes: [
       { texto: 'Agora não', classe: 'btn-claro' },
-      {
-        texto: 'Ver planos',
-        classe: 'btn-primario',
-        onClick: () => { location.href = 'checkout.html'; },
-      },
+      { texto: 'Comprar e agendar', classe: 'btn-primario', onClick: () => { location.href = 'reservar.html'; } },
     ],
   });
 }
@@ -380,7 +135,7 @@ function mostrarSemCreditos() {
 async function atualizarSaldo() {
   const lancamentos = await listar('creditos', { alunoId: usuario.id });
   const lotes = lotesVigentes(lancamentos);
-  saldo = lotes.reduce((t, l) => t + l.restante, 0);
+  saldo = lotes.reduce((total, l) => total + l.restante, 0);
 
   // Se TODOS os créditos forem de plano mensal, o aluno só pode agendar
   // no fim de semana — o calendário precisa refletir isso.
@@ -399,9 +154,10 @@ async function atualizarSaldo() {
         ${icone('creditos')}
         <span class="cresce">
           Você não tem créditos disponíveis. É possível ver os horários, mas
-          para confirmar o agendamento é preciso comprar um pacote.
+          para confirmar é preciso comprar um pacote — dá para escolher a aula
+          junto com a compra.
         </span>
-        <a href="checkout.html" class="negrito">Comprar →</a>
+        <a href="reservar.html" class="negrito">Comprar e agendar →</a>
       </div>`;
     return;
   }
@@ -418,7 +174,6 @@ async function atualizarSaldo() {
       </div>`;
   }
 
-  // Avisa quando há crédito perto de vencer.
   const proximo = lotes
     .filter((l) => l.expiraEm)
     .sort((a, b) => String(a.expiraEm).localeCompare(String(b.expiraEm)))[0];
@@ -453,17 +208,27 @@ async function iniciar() {
     aoSair: () => sair(),
   });
 
+  if (!perfilCompleto(usuario)) {
+    location.replace('perfil.html?completar=1&voltar=agendar.html');
+    return;
+  }
+
   contexto = await carregarContexto();
   await atualizarSaldo();
+  qs('#nota-cancelamento').textContent = t('agendar.notaCancelamento', { horas: contexto.config.horasMinimasCancelamento });
 
-  qs('#mes-anterior').addEventListener('click', async () => {
-    mesVisivel = new Date(mesVisivel.getFullYear(), mesVisivel.getMonth() - 1, 1);
-    await montarCalendario();
-  });
-
-  qs('#mes-proximo').addEventListener('click', async () => {
-    mesVisivel = new Date(mesVisivel.getFullYear(), mesVisivel.getMonth() + 1, 1);
-    await montarCalendario();
+  seletor = criarSeletorAula({
+    grade: qs('#calendario'),
+    rotuloMes: qs('#mes-atual'),
+    btnAnterior: qs('#mes-anterior'),
+    btnProximo: qs('#mes-proximo'),
+    lista: qs('#lista-slots'),
+    rotuloDia: qs('#dia-selecionado'),
+    resumoDia: qs('#resumo-dia'),
+    contexto,
+    tipo: () => tipoAula,
+    soFimDeSemana: () => soFimDeSemana,
+    aoSelecionar,
   });
 
   // O tipo pode ser trocado pelo campo "Tipo de aula" ou pelo seletor ao
@@ -476,10 +241,8 @@ async function iniciar() {
       b.classList.toggle('ativo', b.dataset.tipo === novo);
       b.setAttribute('aria-pressed', String(b.dataset.tipo === novo));
     });
-    slotSelecionado = null;
-    qs('#area-confirmacao').classList.add('oculto');
-    await montarCalendario();
-    if (diaSelecionado) await selecionarDia(diaSelecionado);
+    aoSelecionar(null);
+    await seletor.recarregar();
   };
 
   qs('#tipo-aula').addEventListener('change', (ev) => trocarTipo(ev.target.value));
@@ -490,12 +253,7 @@ async function iniciar() {
 
   qs('#btn-confirmar').addEventListener('click', confirmarAgendamento);
 
-  await montarCalendario();
-
-  // Já abre no primeiro dia com vaga, para poupar um clique.
-  const primeiroComVaga = Array.from(resumosDoMes.values())
-    .find((r) => r.temVaga && r.data >= hojeISO());
-  if (primeiroComVaga) await selecionarDia(primeiroComVaga.data);
+  await seletor.iniciar();
 
   // Parte 2 do tutorial: chega aqui a partir do painel.
   if (paramUrl('tutorial') === '1') {
@@ -515,10 +273,7 @@ async function rodarTutorialAgendamento() {
   const limparSelecao = () => {
     if (!selecionouExemplo) return;
     selecionouExemplo = false;
-    slotSelecionado = null;
-    qs('#lista-slots').querySelectorAll('.slot.selecionado')
-      .forEach((s) => s.classList.remove('selecionado'));
-    qs('#area-confirmacao').classList.add('oculto');
+    seletor.limparSelecao();
   };
 
   const ganchos = {
@@ -533,7 +288,6 @@ async function rodarTutorialAgendamento() {
   };
 
   await executarTour(passosAgendamento(ganchos), { rotuloEtapa: 'Agendamento' });
-  // Se o aluno saiu no meio, a seleção de exemplo não pode ficar para trás.
   limparSelecao();
   await marcarTutorialConcluido(usuario);
 }

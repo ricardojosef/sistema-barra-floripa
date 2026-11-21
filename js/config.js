@@ -34,15 +34,21 @@ export const CONFIG = {
 
   // Credenciais dos gateways (apenas chaves PÚBLICAS aqui; segredos no backend).
   pagamentos: {
-    mercadoPagoPublicKey: '',
+    // Public Key de PRODUÇÃO do Mercado Pago — é pública por natureza e pode
+    // ficar no site. O Access Token (secreto) fica só no servidor:
+    // `firebase functions:secrets:set MP_ACCESS_TOKEN` (docs/PAGAMENTOS.md).
+    mercadoPagoPublicKey: 'APP_USR-c13c2208-5c11-4eb1-b19a-3ba3f8a203d1',
+    // Vazio = botão PayPal escondido em produção.
     paypalClientId: '',
     pixChave: 'contato@barrafloripa.com.br',
     pixBeneficiario: 'BARRA FLORIPA SURF',
     pixCidade: 'FLORIANOPOLIS',
   },
 
-  // Endpoint do seu backend que cria preferências/ordens (modo 'real').
-  backendUrl: '',
+  // Servidor de pagamentos (Cloud Function `api`, em functions/pagamentos.js).
+  // Depois do primeiro `firebase deploy --only functions`, confira a URL que o
+  // terminal mostra; se for diferente desta, cole aqui (sem barra no final).
+  backendUrl: 'https://southamerica-east1-barra-floripa.cloudfunctions.net/api',
 };
 
 /** Dados da escola exibidos na landing e no rodapé. */
@@ -56,6 +62,11 @@ export const ESCOLA = {
   instagram: 'barra.floripa.surf',
   endereco: 'Tv. Manoel Florentino Vieira, 0030 - Barra da Lagoa, Florianópolis - SC, 88061-080',
   mapsUrl: 'https://www.google.com/maps/place/Barra+Floripa+Surf+School/@-27.5758361,-48.4258321,17z',
+  /**
+   * Convite do grupo de WhatsApp dos alunos (botão no painel do aluno).
+   * O administrador troca pelo painel (aba Horários); aqui é só o padrão.
+   */
+  grupoWhatsapp: '',
 };
 
 /**
@@ -69,6 +80,21 @@ export const DEFAULTS = {
   capacidadeGrupo: 5,
   /** Horas mínimas de antecedência para o aluno cancelar sozinho. */
   horasMinimasCancelamento: 12,
+
+  /** Meses de validade do questionário de saúde + termo de responsabilidade. */
+  validadeDeclaracaoMeses: 6,
+
+  /**
+   * Remuneração dos professores pelas aulas dadas. O administrador define
+   * os valores (padrão da escola e, se quiser, por professor).
+   * Em grupo o valor é POR ALUNO na turma; particular é por aula.
+   */
+  remuneracao: {
+    porAlunoGrupo: 40,
+    porAulaParticular: 120,
+    /** Aluno que faltou sem justificativa conta: o professor estava na praia. */
+    contarAusentes: true,
+  },
 
   professores: [
     { id: 'prof-laudinei', nome: 'Laudinei Neves', email: 'laudinei@barrafloripa.com.br', papel: 'admin', ordem: 1 },

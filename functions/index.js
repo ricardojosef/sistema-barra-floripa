@@ -11,6 +11,7 @@ const { setGlobalOptions } = require('firebase-functions/v2');
 setGlobalOptions({ region: 'southamerica-east1' });
 
 Object.assign(exports, require('./emails'));
+Object.assign(exports, require('./pagamentos'));
 
-// Descomente quando criar functions/pagamentos.js (GUIA.md, seção 6.6).
-// Object.assign(exports, require('./pagamentos'));
+// WhatsApp (opcional) — veja docs/NOTIFICACOES.md antes de ligar.
+// Object.assign(exports, require('./whatsapp'));

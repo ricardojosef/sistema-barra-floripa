@@ -42,16 +42,32 @@
       <!-- ETAPA 2: pagamento -->
       <section id="etapa-pagamento" class="oculto">
         <div class="painel-cabecalho">
-          <a href="checkout.html" class="texto-peq">← Escolher outro plano</a>
-          <h1 class="mt-8">Finalizar compra</h1>
-          <p>Escolha como prefere pagar.</p>
+          <a href="checkout.html" class="texto-peq" id="link-voltar" data-i18n="checkout.outroPlano">← Escolher outro plano</a>
+          <h1 class="mt-8" data-i18n="checkout.titulo">Finalizar compra</h1>
+          <p data-i18n="checkout.subtitulo">Escolha como prefere pagar.</p>
         </div>
+
+        <!-- Etapas do fluxo de reserva (só quando veio de reservar.html) -->
+        <ol class="passos-fluxo oculto" id="passos"></ol>
 
         <div id="alerta-area"></div>
 
-        <div class="checkout-grade">
+        <!-- Questionário de saúde: obrigatório antes de pagar -->
+        <div class="card mb-24 oculto" id="card-saude">
+          <div class="card-titulo"><h3 class="com-icone"><span data-icone="saude"></span><span data-i18n="saude.titulo">Saúde e termo de responsabilidade</span></h3></div>
+          <p class="texto-peq texto-cinza mb-16" data-i18n="checkout.saudeObrigatoria">Antes do primeiro pagamento (e a cada 6 meses), responda o questionário de saúde e assine o termo.</p>
+          <div id="form-saude"></div>
+        </div>
+
+        <div class="checkout-grade" id="grade-pagamento">
           <!-- Métodos -->
           <div>
+            <div class="card mb-16">
+              <label class="checkbox-linha" id="linha-termos">
+                <input type="checkbox" id="aceite-termos">
+                <span data-i18n-html="checkout.aceite">Li e aceito os <a href="termos.html" target="_blank" rel="noopener">termos de uso e a política de cancelamento</a>: cancelo pelo site até 12h antes; depois disso, falta sem justificativa aprovada faz perder o crédito.</span>
+              </label>
+            </div>
             <div class="card">
               <div class="card-titulo"><h3>Forma de pagamento</h3></div>
 
@@ -142,10 +158,10 @@
                 <div class="texto-centro">
                   <div class="icone-metodo" data-icone="carrinho"></div>
                   <h3 class="mt-8">Mercado Pago</h3>
-                  <p class="texto-cinza texto-peq mt-8 mb-24">
+                  <p class="texto-cinza texto-peq mt-8 mb-24" data-i18n="checkout.mpTexto">
                     Você será levado ao ambiente seguro do Mercado Pago, onde pode
-                    pagar com saldo, cartão ou boleto. Ao concluir, volta para cá
-                    e os créditos entram na sua conta.
+                    pagar com PIX, cartão (até 12x) ou boleto. Ao concluir, volta
+                    para cá e os créditos entram na sua conta.
                   </p>
                   <button class="btn btn-primario btn-bloco" id="btn-mercadopago" type="button">
                     Ir para o Mercado Pago
@@ -173,12 +189,37 @@
           <!-- Resumo -->
           <aside class="checkout-resumo">
             <div class="card">
-              <div class="card-titulo"><h3>Resumo do pedido</h3></div>
+              <div class="card-titulo"><h3 data-i18n="reserva.resumo.titulo">Resumo do pedido</h3></div>
               <div id="resumo-conteudo"></div>
+
+              <!-- Cupom de desconto -->
+              <form class="cupom-area mt-16" id="form-cupom" novalidate>
+                <label for="cupom-codigo" class="texto-peq negrito com-icone"><span data-icone="cupom"></span><span data-i18n="checkout.cupom">Cupom de desconto</span></label>
+                <div class="cupom-linha">
+                  <input type="text" id="cupom-codigo" autocomplete="off" maxlength="30" data-i18n-placeholder="checkout.cupomDica" placeholder="Digite o código">
+                  <button class="btn btn-secundario btn-peq" type="submit" id="btn-cupom" data-i18n="checkout.aplicar">Aplicar</button>
+                </div>
+                <div id="cupom-status" class="texto-min mt-8"></div>
+              </form>
 
               <div class="alerta alerta-info mt-16 texto-min" id="aviso-modo"></div>
             </div>
+            <div class="card mt-16" id="politica-resumo"></div>
           </aside>
+        </div>
+      </section>
+
+      <!-- Aguardando a confirmação do Mercado Pago (volta do pagamento) -->
+      <section id="etapa-aguardando" class="oculto">
+        <div class="card">
+          <div class="sucesso-pagamento">
+            <span class="spinner escuro g"></span>
+            <h1 class="mt-16" data-i18n="checkout.aguardandoTitulo">Confirmando seu pagamento…</h1>
+            <p class="texto-cinza mt-8" id="aguardando-detalhe" data-i18n="checkout.aguardandoTexto">Assim que o Mercado Pago confirmar, seus créditos entram e a aula escolhida é agendada. PIX costuma levar segundos; boleto pode levar até 2 dias úteis.</p>
+            <div class="flex centro quebra gap-12 mt-24">
+              <a href="dashboard.html" class="btn btn-claro" data-i18n="checkout.irArea">Ir para minha área</a>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -187,11 +228,12 @@
         <div class="card">
           <div class="sucesso-pagamento">
             <div class="icone-ok" data-icone="check"></div>
-            <h1>Pagamento confirmado!</h1>
+            <h1 data-i18n="checkout.sucessoTitulo">Pagamento confirmado!</h1>
             <p class="texto-cinza mt-8" id="sucesso-detalhe">—</p>
+            <div id="sucesso-aula" class="mt-16"></div>
             <div class="flex centro quebra gap-12 mt-24">
-              <a href="agendar.html" class="btn btn-primario btn-g">Agendar minha aula</a>
-              <a href="dashboard.html" class="btn btn-claro btn-g">Ir para minha área</a>
+              <a href="agendar.html" class="btn btn-primario btn-g" id="btn-sucesso-agendar" data-i18n="checkout.agendarAula">Agendar minha aula</a>
+              <a href="dashboard.html" class="btn btn-claro btn-g" data-i18n="checkout.irArea">Ir para minha área</a>
             </div>
           </div>
         </div>

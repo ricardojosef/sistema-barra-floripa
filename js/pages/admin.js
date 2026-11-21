@@ -13,12 +13,22 @@ import { obterPacotes, obterLocais, obterConfig } from '../precos.js';
 import {
   listarEquipe, adicionarProfessor, removerProfessor, aulasFuturasDoProfessor, ErroEquipe,
 } from '../equipe.js';
-import { listarAvisos, criarAviso, alternarAviso, removerAviso, contarLeituras, descreverJanela } from '../avisos.js';
+import {
+  listarAvisos, criarAviso, alternarAviso, removerAviso, contarLeituras, descreverJanela,
+  publicarAvisoSemAula, intervaloDeDatas,
+} from '../avisos.js';
+import {
+  listarCupons, criarCupom, alternarCupom, removerCupom, descreverCupom, ErroCupom,
+} from '../cupons.js';
+import {
+  listarJustificativas, aprovarJustificativa, recusarJustificativa, abrirAnexo, ErroJustificativa,
+} from '../justificativas.js';
+import { DEFAULTS } from '../config.js';
 import { recalcularVagas } from '../agenda.js';
 import { lotesVigentes, lancarCreditoAvulso, rotuloMotivo } from '../creditos.js';
 import {
   qs, qsa, el, formatarBRL, formatarData, isoDeData, escapar, hojeISO, montarShellPainel,
-  toast, confirmar, botaoCarregando, vazio, iconeEl,
+  toast, confirmar, botaoCarregando, vazio, iconeEl, abrirModal, formatarDataExtenso,
 } from '../ui.js';
 
 let usuario = null;
@@ -50,8 +60,11 @@ async function montarEstatisticas() {
    Professores
    -------------------------------------------------------------------------- */
 
+let remuneracaoPadrao = { ...DEFAULTS.remuneracao };
+
 async function montarProfessores() {
   const alvo = qs('#lista-professores');
+  remuneracaoPadrao = (await obterConfig()).remuneracao;
   // Professores retirados não aparecem aqui; continuam só no histórico.
   const professores = await listarEquipe();
 
@@ -90,6 +103,20 @@ async function montarProfessores() {
         el('label', { text: 'Ordem na grade' }),
         el('input', { type: 'number', min: '1', value: String(professor.ordem ?? 1), dataset: { campo: 'ordem' } }),
       ]),
+      el('div', { class: 'campo' }, [
+        el('label', { text: 'R$ por aluno (grupo)' }),
+        el('input', {
+          type: 'number', min: '0', step: '0.01', placeholder: `padrão ${remuneracaoPadrao.porAlunoGrupo}`,
+          value: professor.remuneracao?.porAlunoGrupo ?? '', dataset: { campo: 'remGrupo' },
+        }),
+      ]),
+      el('div', { class: 'campo' }, [
+        el('label', { text: 'R$ por particular' }),
+        el('input', {
+          type: 'number', min: '0', step: '0.01', placeholder: `padrão ${remuneracaoPadrao.porAulaParticular}`,
+          value: professor.remuneracao?.porAulaParticular ?? '', dataset: { campo: 'remParticular' },
+        }),
+      ]),
       acoes,
     ]));
   }
@@ -122,7 +149,7 @@ async function retirarProfessor(professor) {
   // Mostra o impacto antes de confirmar: quantas aulas serão canceladas.
   const futuras = await aulasFuturasDoProfessor(professor.id);
   const impacto = futuras.length
-    ? `${futuras.length} ${futuras.length === 1 ? 'aula futura será cancelada' : 'aulas futuras serão canceladas'} e o crédito volta para cada aluno.`
+    ? `${futuras.length} ${futuras.length === 1 ? 'aula futura será passada' : 'aulas futuras serão passadas'} para outro professor do mesmo horário (sem vaga, é cancelada com o crédito devolvido).`
     : 'Ele não tem aulas futuras marcadas.';
 
   const confirmou = await confirmar({
@@ -134,14 +161,11 @@ async function retirarProfessor(professor) {
   if (!confirmou) return;
 
   try {
-    const { aulasCanceladas } = await removerProfessor(professor.id);
-    toast(
-      aulasCanceladas
-        ? `${professor.nome} saiu do quadro. ${aulasCanceladas} aula(s) cancelada(s) com estorno.`
-        : `${professor.nome} saiu do quadro de professores.`,
-      'sucesso',
-      5000,
-    );
+    const { aulasCanceladas, aulasRealocadas } = await removerProfessor(professor.id);
+    const partes = [];
+    if (aulasRealocadas) partes.push(`${aulasRealocadas} aula(s) passaram para outros professores`);
+    if (aulasCanceladas) partes.push(`${aulasCanceladas} cancelada(s) com estorno`);
+    toast(`${professor.nome} saiu do quadro.${partes.length ? ` ${partes.join('; ')}.` : ''}`, 'sucesso', 6000);
     await Promise.all([montarProfessores(), montarEstatisticas()]);
   } catch (err) {
     toast(err instanceof ErroEquipe ? err.message : 'Não foi possível retirar o professor.', 'erro', 6000);
@@ -164,7 +188,15 @@ async function salvarProfessores(btn) {
         return;
       }
 
-      await atualizar('professores', id, { nome, ordem, ativo });
+      // Remuneração própria: campo em branco volta ao padrão da escola.
+      const numeroOuNulo = (v) => (String(v).trim() === '' ? null : Math.max(0, Number(v)));
+      const remGrupo = numeroOuNulo(qs('[data-campo="remGrupo"]', linha).value);
+      const remParticular = numeroOuNulo(qs('[data-campo="remParticular"]', linha).value);
+      const remuneracao = {};
+      if (remGrupo !== null) remuneracao.porAlunoGrupo = remGrupo;
+      if (remParticular !== null) remuneracao.porAulaParticular = remParticular;
+
+      await atualizar('professores', id, { nome, ordem, ativo, remuneracao });
 
       // Mantém o nome do usuário em sincronia com o do professor.
       // Se o usuário correspondente não existir (dado inconsistente), o
@@ -633,6 +665,9 @@ async function montarAvisos() {
         }),
       ]),
       el('p', { class: 'texto-peq texto-cinza', text: aviso.mensagem }),
+      aviso.datasSemAula?.length
+        ? el('p', { class: 'texto-min texto-perigo mt-8', text: `Sem aulas em ${aviso.datasSemAula.map(formatarData).join(', ')} (agendamento bloqueado). Excluir o aviso libera as datas.` })
+        : null,
       el('p', {
         class: 'texto-min texto-cinza mt-8',
         text: `${descreverJanela(aviso)} · ${leituras} ${leituras === 1 ? 'aluno confirmou' : 'alunos confirmaram'} a leitura`,
@@ -691,23 +726,60 @@ async function publicarAviso(ev) {
     return;
   }
 
+  // "Não haverá aulas": datas bloqueadas + aulas canceladas com estorno.
+  const semAula = qs('#aviso-sem-aula').checked;
+  const datas = semAula ? intervaloDeDatas(qs('#sem-aula-de').value, qs('#sem-aula-ate').value) : [];
+  if (semAula && !datas.length) {
+    toast('Informe a data em que não haverá aulas.', 'aviso');
+    return;
+  }
+  if (semAula && datas[0] < hojeISO()) {
+    toast('A data sem aulas não pode estar no passado.', 'erro');
+    return;
+  }
+
+  if (semAula) {
+    const afetadas = (await listar('agendamentos', { status: 'confirmado' })).filter((a) => datas.includes(a.data));
+    const confirmou = await confirmar({
+      titulo: 'Cancelar as aulas dessas datas?',
+      mensagem: `Não haverá aulas em ${datas.map(formatarData).join(', ')}. ${afetadas.length} ${afetadas.length === 1 ? 'aula marcada será cancelada' : 'aulas marcadas serão canceladas'} com o crédito devolvido, e cada aluno receberá mensagem para reagendar.`,
+      textoOk: 'Publicar e cancelar',
+      perigo: true,
+    });
+    if (!confirmou) return;
+  }
+
+  const btn = qs('#form-aviso button[type=submit]');
+  const restaurar = botaoCarregando(btn, semAula ? 'Cancelando aulas...' : 'Publicando...');
   try {
-    await criarAviso({
+    const aviso = await criarAviso({
       titulo,
       mensagem,
-      tipo,
+      tipo: semAula && tipo === 'info' ? 'urgente' : tipo,
       // Fim do dia, para o aviso valer durante toda a data escolhida.
       inicioEm: inicio ? new Date(`${inicio}T00:00:00`).toISOString() : null,
-      fimEm: fim ? new Date(`${fim}T23:59:59`).toISOString() : null,
+      // Sem data final, o aviso de "sem aula" some depois do último dia bloqueado.
+      fimEm: fim ? new Date(`${fim}T23:59:59`).toISOString()
+        : (semAula ? new Date(`${datas[datas.length - 1]}T23:59:59`).toISOString() : null),
       criadoPor: usuario.id,
+      datasSemAula: datas,
     });
 
+    if (semAula) {
+      const r = await publicarAvisoSemAula({ aviso, datas, admin: usuario });
+      toast(`Aviso publicado. ${r.canceladas} aula(s) cancelada(s), ${r.alunos} aluno(s) avisado(s)${r.falhas ? ` — ${r.falhas} falha(s), confira a aba Turmas` : ''}.`, r.falhas ? 'aviso' : 'sucesso', 8000);
+    } else {
+      toast('Aviso publicado! Os alunos verão no próximo acesso.', 'sucesso', 4500);
+    }
+
     qs('#form-aviso').reset();
-    toast('Aviso publicado! Os alunos verão no próximo acesso.', 'sucesso', 4500);
-    await montarAvisos();
+    qs('#campos-sem-aula').classList.add('oculto');
+    await Promise.all([montarAvisos(), montarEstatisticas()]);
   } catch (err) {
     console.error('[admin] erro ao publicar aviso:', err);
     toast(err.message || 'Não foi possível publicar o aviso.', 'erro');
+  } finally {
+    restaurar();
   }
 }
 
@@ -751,6 +823,11 @@ async function montarHorarios() {
   qs('#cfg-capacidade').value = String(config.capacidadeGrupo);
   qs('#cfg-duracao').value = String(config.duracaoMin);
   qs('#cfg-cancelamento').value = String(config.horasMinimasCancelamento);
+  qs('#cfg-rem-grupo').value = String(config.remuneracao.porAlunoGrupo);
+  qs('#cfg-rem-particular').value = String(config.remuneracao.porAulaParticular);
+  qs('#cfg-rem-ausentes').checked = config.remuneracao.contarAusentes !== false;
+  qs('#cfg-grupo-whatsapp').value = config.grupoWhatsapp || '';
+  qs('#cfg-validade-declaracao').value = String(config.validadeDeclaracaoMeses);
 }
 
 /** Grava campos no documento `config/app`, criando-o se ainda não existir. */
@@ -787,6 +864,13 @@ async function salvarHorarios(btn) {
       capacidadeGrupo: capacidade,
       duracaoMin: duracao,
       horasMinimasCancelamento: Number.isFinite(cancelamento) ? cancelamento : 12,
+      remuneracao: {
+        porAlunoGrupo: Math.max(0, Number(qs('#cfg-rem-grupo').value) || 0),
+        porAulaParticular: Math.max(0, Number(qs('#cfg-rem-particular').value) || 0),
+        contarAusentes: qs('#cfg-rem-ausentes').checked,
+      },
+      grupoWhatsapp: qs('#cfg-grupo-whatsapp').value.trim(),
+      validadeDeclaracaoMeses: Math.min(24, Math.max(1, Number(qs('#cfg-validade-declaracao').value) || 6)),
     });
     toast('Configurações salvas.', 'sucesso');
     await montarHorarios();
@@ -837,6 +921,179 @@ async function reiniciarDemo() {
 }
 
 /* --------------------------------------------------------------------------
+   Cupons de desconto
+   -------------------------------------------------------------------------- */
+
+async function montarCupons() {
+  // Planos que o cupom pode limitar.
+  const pacotes = await obterPacotes({ incluirInativos: false });
+  qs('#cupom-pacotes').innerHTML = '';
+  for (const p of pacotes) {
+    qs('#cupom-pacotes').append(el('label', { class: 'checkbox-linha chip-check' }, [
+      el('input', { type: 'checkbox', value: p.id }),
+      el('span', { text: p.nome }),
+    ]));
+  }
+
+  const alvo = qs('#lista-cupons');
+  const cupons = await listarCupons();
+  alvo.innerHTML = '';
+  if (!cupons.length) {
+    alvo.append(vazio('Nenhum cupom criado ainda.', 'cupom'));
+    return;
+  }
+  const nomes = new Map(pacotes.map((p) => [p.id, p.nome]));
+  for (const c of cupons) {
+    const esgotado = c.usosMaximos && Number(c.usos || 0) >= Number(c.usosMaximos);
+    const vencido = c.validoAte && c.validoAte < hojeISO();
+    const ativo = c.ativo !== false && !esgotado && !vencido;
+    alvo.append(el('div', { class: 'linha-cupom' }, [
+      el('div', { class: 'cresce' }, [
+        el('div', { class: 'flex itens-centro gap-8 quebra' }, [
+          el('strong', { class: 'codigo-cupom', text: c.codigo }),
+          el('span', { class: `badge ${ativo ? 'badge-sucesso' : 'badge-neutro'}`, text: ativo ? 'Ativo' : (esgotado ? 'Esgotado' : vencido ? 'Vencido' : 'Desativado') }),
+        ]),
+        el('div', { class: 'texto-peq', text: `${descreverCupom(c)}${c.descricao ? ` · ${c.descricao}` : ''}` }),
+        el('div', {
+          class: 'texto-min texto-cinza',
+          text: [
+            `${c.usos || 0}${c.usosMaximos ? `/${c.usosMaximos}` : ''} uso(s)`,
+            c.validoAte ? `até ${formatarData(c.validoAte)}` : 'sem prazo',
+            c.pacotes?.length ? `só ${c.pacotes.map((id) => nomes.get(id) || id).join(', ')}` : 'todos os planos',
+          ].join(' · '),
+        }),
+      ]),
+      el('button', {
+        type: 'button', class: 'btn btn-claro btn-peq', text: c.ativo === false ? 'Reativar' : 'Desativar',
+        onclick: async () => { await alternarCupom(c.id, c.ativo === false); await montarCupons(); },
+      }),
+      el('button', {
+        type: 'button', class: 'btn btn-fantasma btn-peq', text: 'Excluir',
+        onclick: async () => {
+          if (!(await confirmar({ titulo: 'Excluir cupom', mensagem: `Excluir o cupom ${c.codigo}?`, textoOk: 'Excluir', perigo: true }))) return;
+          await removerCupom(c.id);
+          toast('Cupom excluído.', 'sucesso');
+          await montarCupons();
+        },
+      }),
+    ]));
+  }
+}
+
+async function criarCupomUI(ev) {
+  ev.preventDefault();
+  const btn = qs('#form-cupom button[type=submit]');
+  const restaurar = botaoCarregando(btn, 'Criando...');
+  try {
+    const cupom = await criarCupom({
+      codigo: qs('#cupom-codigo').value,
+      tipo: qs('#cupom-tipo').value,
+      valor: qs('#cupom-valor').value,
+      validoAte: qs('#cupom-validade').value || null,
+      usosMaximos: qs('#cupom-limite').value || null,
+      descricao: qs('#cupom-descricao').value,
+      pacotes: qsa('#cupom-pacotes input:checked').map((i) => i.value),
+    });
+    qs('#form-cupom').reset();
+    toast(`Cupom ${cupom.codigo} criado.`, 'sucesso');
+    await montarCupons();
+  } catch (err) {
+    toast(err instanceof ErroCupom ? err.message : 'Não foi possível criar o cupom.', 'erro', 6000);
+    if (!(err instanceof ErroCupom)) console.error('[admin] erro ao criar cupom:', err);
+  } finally {
+    restaurar();
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Justificativas (análise do administrador)
+   -------------------------------------------------------------------------- */
+
+let justificativas = [];
+let filtroJustificativas = 'pendente';
+
+async function montarJustificativas() {
+  justificativas = await listarJustificativas();
+  const pendentes = justificativas.filter((j) => j.status === 'pendente').length;
+  const badge = qs('#badge-justificativas');
+  badge.textContent = String(pendentes);
+  badge.classList.toggle('oculto', pendentes === 0);
+  renderizarJustificativas();
+}
+
+function renderizarJustificativas() {
+  const alvo = qs('#lista-justificativas');
+  const lista = justificativas.filter((j) => j.status === filtroJustificativas);
+  alvo.innerHTML = '';
+  if (!lista.length) {
+    alvo.append(vazio(filtroJustificativas === 'pendente' ? 'Nenhuma justificativa esperando análise.' : 'Nada por aqui.', 'anexo'));
+    return;
+  }
+  for (const j of lista) {
+    const card = el('article', { class: 'card-justificativa' }, [
+      el('div', { class: 'flex entre itens-centro gap-8 quebra' }, [
+        el('strong', { text: j.alunoNome }),
+        el('span', { class: 'texto-min texto-cinza', text: `enviada em ${formatarData(String(j.criadoEm).slice(0, 10))}` }),
+      ]),
+      el('div', { class: 'texto-peq mt-8', text: `Aula de ${formatarDataExtenso(j.aula.data)} às ${j.aula.horario}${j.aula.tipo === 'individual' ? ' (particular)' : ''}` }),
+      el('p', { class: 'mensagem-texto mt-8', text: j.texto }),
+      j.anexo ? el('button', {
+        type: 'button', class: 'btn btn-claro btn-peq com-icone mt-8', onclick: () => abrirAnexo(j.anexo),
+      }, [iconeEl('anexo'), `Ver anexo (${j.anexo.tipo === 'application/pdf' ? 'PDF' : 'imagem'})`]) : el('p', { class: 'texto-min texto-cinza mt-8', text: 'Sem anexo.' }),
+      j.resposta ? el('p', { class: 'texto-min mt-8', text: `Resposta: ${j.resposta}` }) : null,
+    ]);
+
+    if (j.status === 'pendente') {
+      card.append(el('div', { class: 'flex gap-8 quebra mt-16' }, [
+        el('button', { type: 'button', class: 'btn btn-primario btn-peq', text: 'Aprovar e devolver crédito', onclick: () => analisar(j, true) }),
+        el('button', { type: 'button', class: 'btn btn-fantasma btn-peq texto-perigo', text: 'Recusar', onclick: () => analisar(j, false) }),
+      ]));
+    }
+    alvo.append(card);
+  }
+}
+
+async function analisar(j, aprovar) {
+  const corpo = el('div');
+  corpo.innerHTML = `
+    <p class="texto-peq mb-16">${aprovar
+    ? 'A aula será cancelada pela escola e o crédito volta para o aluno.'
+    : 'O crédito continua como usado. Explique o motivo ao aluno.'}</p>
+    <div class="campo">
+      <label for="resposta-just">${aprovar ? 'Mensagem ao aluno (opcional)' : 'Motivo da recusa'}</label>
+      <textarea id="resposta-just" rows="3" maxlength="600"></textarea>
+    </div>`;
+  const { caixa, fechar } = abrirModal({
+    titulo: aprovar ? `Aprovar justificativa de ${j.alunoNome}` : `Recusar justificativa de ${j.alunoNome}`,
+    corpo,
+    botoes: [
+      { texto: 'Voltar', classe: 'btn-claro' },
+      {
+        texto: aprovar ? 'Aprovar' : 'Recusar',
+        classe: aprovar ? 'btn-primario' : 'btn-perigo',
+        autoFechar: false,
+        onClick: async () => {
+          const btn = caixa.querySelector('.modal-rodape .btn:last-child');
+          const restaurar = botaoCarregando(btn, 'Salvando...');
+          const resposta = qs('#resposta-just', caixa).value;
+          try {
+            if (aprovar) await aprovarJustificativa(j, usuario, resposta);
+            else await recusarJustificativa(j, usuario, resposta);
+            fechar();
+            toast(aprovar ? 'Justificativa aprovada. Crédito devolvido.' : 'Justificativa recusada.', 'sucesso');
+            await Promise.all([montarJustificativas(), montarEstatisticas()]);
+          } catch (err) {
+            restaurar();
+            toast(err instanceof ErroJustificativa || err?.name === 'ErroAgenda' ? err.message : 'Não foi possível salvar a análise.', 'erro', 6000);
+            console.error('[admin] erro ao analisar justificativa:', err);
+          }
+        },
+      },
+    ],
+  });
+}
+
+/* --------------------------------------------------------------------------
    Inicialização
    -------------------------------------------------------------------------- */
 
@@ -853,7 +1110,8 @@ async function iniciar() {
   qsa('#abas-admin .aba').forEach((btn) => {
     btn.addEventListener('click', () => {
       qsa('#abas-admin .aba').forEach((b) => b.classList.toggle('ativa', b === btn));
-      qsa('.painel-aba').forEach((p) => p.classList.toggle('ativo', p.dataset.painel === btn.dataset.aba));
+      qsa('.painel-conteudo > .painel-aba').forEach((p) => p.classList.toggle('ativo', p.dataset.painel === btn.dataset.aba));
+      history.replaceState(null, '', `admin.html#${btn.dataset.aba}`);
     });
   });
 
@@ -865,6 +1123,15 @@ async function iniciar() {
   qs('#form-professor').addEventListener('submit', adicionarProfessorUI);
   qs('#form-local').addEventListener('submit', adicionarLocal);
   qs('#form-aviso').addEventListener('submit', publicarAviso);
+  qs('#aviso-sem-aula').addEventListener('change', (ev) => {
+    qs('#campos-sem-aula').classList.toggle('oculto', !ev.target.checked);
+  });
+  qs('#form-cupom').addEventListener('submit', criarCupomUI);
+  qsa('#filtro-justificativas .aba').forEach((b) => b.addEventListener('click', () => {
+    filtroJustificativas = b.dataset.status;
+    qsa('#filtro-justificativas .aba').forEach((x) => x.classList.toggle('ativa', x === b));
+    renderizarJustificativas();
+  }));
   qs('#btn-reiniciar').addEventListener('click', reiniciarDemo);
   qs('#btn-recalcular-vagas').addEventListener('click', (ev) => recalcularVagasUI(ev.currentTarget));
   qs('#form-ajuste').addEventListener('submit', lancarAjuste);
@@ -899,7 +1166,12 @@ async function iniciar() {
       montarLocais(),
       montarAvisos(),
       montarHorarios(),
+      montarCupons(),
+      montarJustificativas(),
     ]);
+    // Link direto para uma aba (ex.: e-mail "nova justificativa" -> admin.html#justificativas).
+    const aba = location.hash.replace('#', '');
+    qs(`#abas-admin .aba[data-aba="${aba}"]`)?.click();
   } catch (err) {
     console.error('[admin] falha ao carregar o painel:', err);
     toast('Alguns dados não carregaram. Recarregue a página.', 'erro');

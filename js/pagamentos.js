@@ -12,9 +12,10 @@
  */
 
 import { CONFIG } from './config.js';
-import { criar, transacao } from './store.js';
+import { criar, transacao, driverAtual } from './store.js';
 import { obterPacote } from './precos.js';
 import { lancarCredito } from './creditos.js';
+import { calcularDesconto, registrarUsoCupom } from './cupons.js';
 import { esperar, icone } from './ui.js';
 
 export class ErroPagamento extends Error {
@@ -25,30 +26,58 @@ export class ErroPagamento extends Error {
   }
 }
 
-export const METODOS = [
+/** Métodos simulados (modo demonstração). */
+const METODOS_DEMO = [
   { id: 'pix', nome: 'PIX', icone: 'raio', descricao: 'Aprovação na hora' },
   { id: 'cartao', nome: 'Cartão', icone: 'planos', descricao: 'Crédito em até 12x' },
   { id: 'mercadopago', nome: 'Mercado Pago', icone: 'carrinho', descricao: 'Saldo, cartão ou boleto' },
   { id: 'paypal', nome: 'PayPal', icone: 'globo', descricao: 'Conta PayPal' },
 ];
 
-export const nomeMetodo = (id) => METODOS.find((m) => m.id === id)?.nome || id;
+/**
+ * Produção: cada meio de pagamento existe num lugar só. PIX, cartão e boleto
+ * pelo Mercado Pago (ambiente seguro dele, sem cartão digitado no site);
+ * PayPal só aparece quando o Client ID estiver configurado.
+ */
+const METODOS_REAIS = [
+  { id: 'mercadopago', nome: 'PIX, cartão ou boleto', icone: 'carrinho', descricao: 'Pelo Mercado Pago' },
+  ...(CONFIG.pagamentos.paypalClientId
+    ? [{ id: 'paypal', nome: 'PayPal', icone: 'globo', descricao: 'Conta PayPal (internacional)' }]
+    : []),
+];
+
+export const METODOS = CONFIG.MODO_PAGAMENTO === 'real' ? METODOS_REAIS : METODOS_DEMO;
+
+export const nomeMetodo = (id) => [...METODOS_DEMO, ...METODOS_REAIS].find((m) => m.id === id)?.nome || id;
 
 /* --------------------------------------------------------------------------
    Compras
    -------------------------------------------------------------------------- */
 
-/** Cria a compra com status 'pendente'. Nenhum crédito é emitido aqui. */
-export async function criarCompra({ alunoId, pacoteId, metodo }) {
+/**
+ * Cria a compra com status 'pendente'. Nenhum crédito é emitido aqui.
+ * `cupom`: documento do cupom já validado (cupons.js) ou null.
+ * `reserva`: aula escolhida no fluxo de reserva ({ data, horario, localId, tipo }) ou null.
+ */
+export async function criarCompra({ alunoId, pacoteId, metodo, cupom = null, reserva = null }) {
   const pacote = await obterPacote(pacoteId);
   if (!pacote) throw new ErroPagamento('PACOTE_INVALIDO', 'Plano não encontrado.');
   if (pacote.ativo === false) throw new ErroPagamento('PACOTE_INATIVO', 'Este plano não está mais disponível.');
+
+  const preco = Number(pacote.preco);
+  const { desconto, valorFinal } = cupom ? calcularDesconto(cupom, preco) : { desconto: 0, valorFinal: preco };
 
   return criar('compras', {
     alunoId,
     pacoteId: pacote.id,
     nomePacote: pacote.nome,
-    valor: pacote.preco,
+    valorOriginal: preco,
+    desconto,
+    cupomCodigo: cupom?.codigo || null,
+    valor: valorFinal,
+    reserva: reserva || null,
+    reservaStatus: reserva ? 'pendente' : null,
+    aceiteTermosEm: new Date().toISOString(),
     creditos: pacote.creditos,
     // Regras do pacote viajam junto com a compra: assim, se o admin alterar
     // o catálogo depois, quem já comprou mantém as condições contratadas.
@@ -100,6 +129,9 @@ export async function confirmarPagamento(compraId, referencia = null) {
     }
 
     await lancarCredito(ops, {
+      // Mesmo id que o servidor usa: a compra só credita uma vez, venha a
+      // confirmação do navegador (demonstração) ou do webhook (produção).
+      id: `compra_${compraId}`,
       alunoId: compra.alunoId,
       delta: Number(compra.creditos) || 0,
       motivo: 'compra',
@@ -111,7 +143,13 @@ export async function confirmarPagamento(compraId, referencia = null) {
       expiraEm,
     });
 
-    return { compra: atualizada, jaEstavaPaga: false };
+    return { compra: { ...compra, ...atualizada }, jaEstavaPaga: false };
+  }).then(async (resultado) => {
+    // Demonstração: o próprio navegador conta o uso do cupom.
+    if (!resultado.jaEstavaPaga && resultado.compra.cupomCodigo) {
+      await registrarUsoCupom(resultado.compra.cupomCodigo);
+    }
+    return resultado;
   });
 }
 
@@ -330,6 +368,7 @@ export function opcoesParcelamento(valor, maxParcelas = 12, minimoParcela = 50) 
   return opcoes;
 }
 
+
 /* --------------------------------------------------------------------------
    Processamento
    -------------------------------------------------------------------------- */
@@ -337,12 +376,14 @@ export function opcoesParcelamento(valor, maxParcelas = 12, minimoParcela = 50) 
 /**
  * Processa o pagamento conforme o modo configurado.
  *
- * No modo 'mock' simula a latência do gateway e confirma. No modo 'real'
- * cada método tem seu caminho — veja os stubs abaixo e o guia.
+ * 'mock': simula a latência do gateway e confirma no próprio navegador.
+ * 'real': o servidor (functions/pagamentos.js) cria a cobrança; o aluno
+ *         paga no Mercado Pago e volta para checkout.html?compra=<id>, onde
+ *         a tela espera o webhook marcar a compra como paga.
  */
-export async function processarPagamento({ compra, metodo, dadosCartao = null }) {
+export async function processarPagamento({ compra, metodo }) {
   if (CONFIG.MODO_PAGAMENTO === 'real') {
-    return processarPagamentoReal({ compra, metodo, dadosCartao });
+    return processarPagamentoReal({ compra, metodo });
   }
 
   // Simula o tempo de resposta de um gateway de verdade.
@@ -351,65 +392,92 @@ export async function processarPagamento({ compra, metodo, dadosCartao = null })
   return confirmarPagamento(compra.id, referencia);
 }
 
-/**
- * Stubs de integração real. Cada um está comentado com o que fazer.
- * Nenhum funciona sem backend, e isso é proposital: criar preferência de
- * pagamento ou capturar ordem exige chave secreta, que não pode ir para o
- * navegador.
- */
-async function processarPagamentoReal({ compra, metodo }) {
+/** Chama uma rota do servidor de pagamentos com o login do aluno. */
+export async function chamarServidor(rota, corpo) {
   if (!CONFIG.backendUrl) {
-    throw new ErroPagamento(
-      'SEM_BACKEND',
-      'MODO_PAGAMENTO está como "real", mas CONFIG.backendUrl está vazio. Configure o backend antes de cobrar de verdade.',
-    );
+    throw new ErroPagamento('SEM_BACKEND', 'O servidor de pagamentos ainda não foi configurado (CONFIG.backendUrl).');
+  }
+  const token = await driverAtual().tokenAtual?.();
+  if (!token) throw new ErroPagamento('SEM_SESSAO', 'Sua sessão expirou. Entre novamente para pagar.');
+
+  let resp;
+  try {
+    resp = await fetch(`${CONFIG.backendUrl}${rota}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify(corpo),
+    });
+  } catch {
+    throw new ErroPagamento('REDE', 'Não foi possível falar com o servidor de pagamentos. Verifique a internet.');
+  }
+  const dados = await resp.json().catch(() => ({}));
+  if (!resp.ok) throw new ErroPagamento('SERVIDOR', dados.erro || 'O servidor de pagamentos recusou a operação.');
+  return dados;
+}
+
+async function processarPagamentoReal({ compra, metodo }) {
+  // Cupom de 100%: não há o que cobrar; o servidor confere e credita.
+  if (Number(compra.valor) === 0) {
+    await chamarServidor('/compra/gratuita', { compraId: compra.id });
+    return { aguardando: true };
   }
 
-  switch (metodo) {
-    case 'pix': {
-      // O backend chama a API do PSP (Mercado Pago, Gerencianet, etc.),
-      // devolve o QR dinâmico e fica aguardando o webhook de confirmação.
-      const resp = await fetch(`${CONFIG.backendUrl}/pix/cobranca`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ compraId: compra.id, valor: compra.valor }),
-      });
-      if (!resp.ok) throw new ErroPagamento('PIX_FALHOU', 'Não foi possível gerar a cobrança PIX.');
-      return resp.json(); // { qrCode, copiaECola, txid }
-    }
-
-    case 'cartao': {
-      // NUNCA envie o número do cartão para o seu backend sem tokenizar antes.
-      // Use o SDK do gateway para gerar um token no navegador e mande só o token.
-      const resp = await fetch(`${CONFIG.backendUrl}/cartao/cobrar`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ compraId: compra.id }),
-      });
-      if (!resp.ok) throw new ErroPagamento('CARTAO_RECUSADO', 'Pagamento não autorizado pela operadora.');
-      return resp.json();
-    }
-
-    case 'mercadopago': {
-      // Checkout Pro: o backend cria a "preference" e devolve o init_point.
-      const resp = await fetch(`${CONFIG.backendUrl}/mercadopago/preference`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ compraId: compra.id }),
-      });
-      if (!resp.ok) throw new ErroPagamento('MP_FALHOU', 'Não foi possível abrir o Mercado Pago.');
-      const { initPoint } = await resp.json();
-      location.href = initPoint; // o aluno volta pela back_url
-      return new Promise(() => {});
-    }
-
-    case 'paypal': {
-      // O botão do PayPal é renderizado pelo SDK; o onApprove chama o backend,
-      // que captura a ordem e credita as aulas. Veja docs/GUIA.md.
-      throw new ErroPagamento('PAYPAL_SDK', 'O PayPal real é processado pelos botões do SDK, não por esta função.');
-    }
-
-    default:
-      throw new ErroPagamento('METODO_INVALIDO', 'Método de pagamento desconhecido.');
+  if (metodo === 'mercadopago') {
+    // Checkout Pro: o servidor cria a preferência (com o preço do catálogo e
+    // o cupom conferidos lá) e devolve o endereço da tela do Mercado Pago.
+    const { initPoint } = await chamarServidor('/mercadopago/preference', { compraId: compra.id });
+    if (!initPoint) throw new ErroPagamento('MP_FALHOU', 'Não foi possível abrir o Mercado Pago.');
+    location.href = initPoint; // o aluno volta pela back_url (checkout.html?compra=...)
+    return new Promise(() => {});
   }
+
+  if (metodo === 'paypal') {
+    throw new ErroPagamento('PAYPAL_SDK', 'O PayPal é pago pelos botões do próprio PayPal, logo abaixo.');
+  }
+
+  throw new ErroPagamento('METODO_INVALIDO', 'Método de pagamento indisponível.');
+}
+
+/* --------------------------------------------------------------------------
+   PayPal (produção) — botões do SDK oficial
+   -------------------------------------------------------------------------- */
+
+let promessaPaypal = null;
+
+function carregarSdkPaypal() {
+  if (window.paypal?.Buttons) return Promise.resolve(window.paypal);
+  if (promessaPaypal) return promessaPaypal;
+  promessaPaypal = new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    // disable-funding=card: cartão é sempre pelo Mercado Pago (sem sobreposição).
+    s.src = `https://www.paypal.com/sdk/js?client-id=${encodeURIComponent(CONFIG.pagamentos.paypalClientId)}`
+      + '&currency=BRL&intent=capture&disable-funding=card,credit';
+    s.onload = () => resolve(window.paypal);
+    s.onerror = () => { promessaPaypal = null; reject(new ErroPagamento('PAYPAL', 'Não foi possível carregar o PayPal.')); };
+    document.head.append(s);
+  });
+  return promessaPaypal;
+}
+
+/**
+ * Desenha os botões do PayPal em `container`. `obterCompra` cria (ou
+ * devolve) a compra pendente; `aoAprovar` roda depois da captura.
+ */
+export async function montarBotoesPaypal(container, { obterCompra, aoAprovar, aoErro }) {
+  const paypal = await carregarSdkPaypal();
+  container.innerHTML = '';
+  let compraAtual = null;
+  await paypal.Buttons({
+    style: { layout: 'vertical', color: 'gold', shape: 'rect', label: 'paypal' },
+    createOrder: async () => {
+      compraAtual = await obterCompra('paypal');
+      const { id } = await chamarServidor('/paypal/ordem', { compraId: compraAtual.id });
+      return id;
+    },
+    onApprove: async ({ orderID }) => {
+      await chamarServidor('/paypal/capturar', { orderId: orderID });
+      await aoAprovar(compraAtual);
+    },
+    onError: (err) => aoErro?.(err),
+  }).render(container);
 }

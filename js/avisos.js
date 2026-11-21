@@ -8,7 +8,9 @@
  */
 
 import { listar, criar, obter, atualizar, remover } from './store.js';
-import { abrirModal, escapar, formatarData, icone as svgIcone } from './ui.js';
+import {
+  abrirModal, escapar, formatarData, icone as svgIcone, dataDeISO, isoDeData,
+} from './ui.js';
 
 /** Id determinístico da confirmação de leitura. */
 const idLeitura = (alunoId, avisoId) => `${alunoId}_${avisoId}`;
@@ -78,6 +80,11 @@ export async function mostrarAvisosPendentes(alunoId) {
         <div class="icone-aviso">${icone}</div>
         <h3 class="texto-centro mb-8">${escapar(aviso.titulo)}</h3>
         <p class="texto-centro texto-cinza">${escapar(aviso.mensagem)}</p>
+        ${aviso.datasSemAula?.length ? `
+        <div class="alerta alerta-perigo mt-16">
+          <span class="cresce"><strong>Não haverá aulas em ${escapar(aviso.datasSemAula.map(formatarData).join(', '))}.</strong>
+          Quem tinha aula marcada recebeu o crédito de volta — reagende em <a href="agendar.html">Agendar aula</a>.</span>
+        </div>` : ''}
         ${contador}`,
       botoes: [
         { texto: 'Entendi', classe: 'btn-primario', valor: 'lido' },
@@ -108,7 +115,9 @@ export async function listarAvisos() {
   return todos.map((a) => ({ ...a, vigente: avisoVigente(a, agora) }));
 }
 
-export function criarAviso({ titulo, mensagem, tipo = 'info', inicioEm = null, fimEm = null, criadoPor = null }) {
+export function criarAviso({
+  titulo, mensagem, tipo = 'info', inicioEm = null, fimEm = null, criadoPor = null, datasSemAula = [],
+}) {
   const tituloNorm = String(titulo || '').trim();
   const mensagemNorm = String(mensagem || '').trim();
   if (!tituloNorm) throw new Error('Informe o título do aviso.');
@@ -121,6 +130,7 @@ export function criarAviso({ titulo, mensagem, tipo = 'info', inicioEm = null, f
     ativo: true,
     inicioEm: inicioEm || new Date().toISOString(),
     fimEm: fimEm || null,
+    datasSemAula,
     criadoPor,
     criadoEm: new Date().toISOString(),
   });
@@ -132,12 +142,98 @@ export const atualizarAviso = (avisoId, campos) => atualizar('avisos', avisoId, 
 
 /**
  * Remove o aviso e as confirmações de leitura associadas, para não deixar
- * registros órfãos apontando para um aviso que não existe mais.
+ * registros órfãos apontando para um aviso que não existe mais. Se o aviso
+ * bloqueava datas, elas voltam a aceitar agendamento (as aulas canceladas
+ * continuam canceladas — o crédito já foi devolvido).
  */
 export async function removerAviso(avisoId) {
   const leituras = await listar('avisosLidos', { avisoId });
   for (const leitura of leituras) await remover('avisosLidos', leitura.id);
+  await liberarDatasDoAviso(avisoId);
   return remover('avisos', avisoId);
+}
+
+/* --------------------------------------------------------------------------
+   Datas sem aula (tempestade, indisponibilidade)
+   -------------------------------------------------------------------------- */
+
+/** Lista de datas 'YYYY-MM-DD' entre `de` e `ate`, inclusive (máx. 31). */
+export function intervaloDeDatas(de, ate) {
+  if (!de) return [];
+  const fim = ate && ate >= de ? ate : de;
+  const datas = [];
+  const cursor = dataDeISO(de);
+  while (isoDeData(cursor) <= fim && datas.length < 31) {
+    datas.push(isoDeData(cursor));
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  return datas;
+}
+
+async function gravarDiasSemAula(transformar) {
+  const config = await obter('config', 'app');
+  const atuais = Array.isArray(config?.diasSemAula) ? config.diasSemAula : [];
+  const hoje = isoDeData(new Date());
+  // Datas que já passaram não servem para nada: saem da lista.
+  const novos = transformar(atuais).filter((d) => d.data >= hoje);
+  if (config) await atualizar('config', 'app', { diasSemAula: novos });
+  else await criar('config', { id: 'app', diasSemAula: novos });
+}
+
+async function liberarDatasDoAviso(avisoId) {
+  try {
+    await gravarDiasSemAula((atuais) => atuais.filter((d) => d.avisoId !== avisoId));
+  } catch (err) {
+    console.warn('[avisos] não foi possível liberar as datas do aviso:', err);
+  }
+}
+
+/**
+ * Publica um aviso de "não haverá aulas":
+ *  1. bloqueia as datas para novos agendamentos;
+ *  2. cancela as aulas já marcadas nelas, devolvendo o crédito de cada aluno;
+ *  3. manda a cada aluno afetado uma mensagem explícita pedindo para
+ *     reagendar (a mensagem também sai por e-mail, pelo servidor).
+ */
+export async function publicarAvisoSemAula({ aviso, datas, admin }) {
+  const { cancelarDatas } = await import('./agenda.js');
+  const { enviarMensagem } = await import('./mensagens.js');
+
+  await gravarDiasSemAula((atuais) => [
+    ...atuais.filter((d) => !datas.includes(d.data)),
+    ...datas.map((data) => ({ data, motivo: aviso.titulo, avisoId: aviso.id })),
+  ]);
+
+  const { canceladas, falhas } = await cancelarDatas(
+    datas,
+    { id: admin.id, nome: admin.nome, papel: admin.papel },
+    `Sem aulas: ${aviso.titulo}`,
+    { canceladoPorAviso: aviso.id },
+  );
+
+  // Uma mensagem por aluno, listando todas as aulas dele que caíram.
+  const porAluno = new Map();
+  for (const aula of canceladas) {
+    const lista = porAluno.get(aula.alunoId) || { nome: aula.alunoNome, aulas: [] };
+    lista.aulas.push(aula);
+    porAluno.set(aula.alunoId, lista);
+  }
+  for (const [alunoId, { nome, aulas }] of porAluno) {
+    const quais = aulas.map((a) => `• ${formatarData(a.data)} às ${a.horario}`).join('\n');
+    try {
+      await enviarMensagem({
+        destinatarios: [{ id: alunoId, nome }],
+        texto: `⚠️ ${aviso.titulo}\n\n${aviso.mensagem}\n\n`
+          + `${aulas.length === 1 ? 'Sua aula foi cancelada' : 'Suas aulas foram canceladas'}:\n${quais}\n\n`
+          + `${aulas.length === 1 ? 'O crédito já voltou' : 'Os créditos já voltaram'} para a sua conta. `
+          + 'Por favor, REAGENDE pelo site em "Agendar aula".',
+      });
+    } catch (err) {
+      console.warn(`[avisos] não foi possível avisar ${nome}:`, err);
+    }
+  }
+
+  return { canceladas: canceladas.length, alunos: porAluno.size, falhas: falhas.length };
 }
 
 /** Quantos alunos já confirmaram a leitura — útil no painel do admin. */

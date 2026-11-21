@@ -24,7 +24,7 @@
     <main class="painel-conteudo">
       <div class="painel-cabecalho">
         <h1>Administração</h1>
-        <p>Configure professores, créditos dos alunos, preços, locais, avisos e horários da escola.</p>
+        <p>Configure professores, alunos, justificativas, cupons, preços, locais, avisos e horários da escola.</p>
       </div>
 
       <!-- Visão geral -->
@@ -53,6 +53,8 @@
       <div class="abas" id="abas-admin">
         <button class="aba ativa" data-aba="professores" type="button"><span data-icone="grupo"></span>Professores</button>
         <button class="aba" data-aba="alunos" type="button"><span data-icone="creditos"></span>Alunos</button>
+        <button class="aba" data-aba="justificativas" type="button"><span data-icone="anexo"></span>Justificativas <span class="badge-menu oculto" id="badge-justificativas"></span></button>
+        <button class="aba" data-aba="cupons" type="button"><span data-icone="cupom"></span>Cupons</button>
         <button class="aba" data-aba="precos" type="button"><span data-icone="moeda"></span>Preços</button>
         <button class="aba" data-aba="locais" type="button"><span data-icone="local"></span>Locais</button>
         <button class="aba" data-aba="avisos" type="button"><span data-icone="megafone"></span>Avisos</button>
@@ -69,8 +71,11 @@
             O nome editado aqui aparece imediatamente na agenda dos alunos e no
             painel dos professores. <strong>Ativo</strong> desligado tira o
             professor da grade temporariamente (férias, lesão).
-            <strong>Retirar</strong> encerra o acesso dele ao sistema e cancela
-            as aulas futuras, devolvendo o crédito aos alunos.
+            <strong>Retirar</strong> encerra o acesso dele ao sistema; as aulas
+            futuras passam para outro professor do mesmo horário (ou, se ninguém
+            puder assumir, são canceladas com o crédito devolvido).
+            <strong>Remuneração</strong>: valores deste professor para o saldo
+            dele (em branco = padrão da escola, definido na aba Horários).
           </p>
           <div id="lista-professores"></div>
           <button class="btn btn-primario mt-16" id="btn-salvar-professores" type="button">
@@ -177,6 +182,78 @@
         </div>
       </section>
 
+      <!-- JUSTIFICATIVAS -->
+      <section class="painel-aba" data-painel="justificativas">
+        <div class="card">
+          <div class="card-titulo"><h3>Justificativas de falta e cancelamento</h3></div>
+          <p class="texto-peq texto-cinza mb-16">
+            Enviadas pelos alunos depois do prazo de cancelamento ou após uma
+            falta. <strong>Aprovar</strong> cancela a aula pela escola e devolve o
+            crédito. <strong>Recusar</strong> mantém o crédito como usado. O aluno
+            recebe a resposta por mensagem e e-mail.
+          </p>
+          <div class="abas mb-16" id="filtro-justificativas">
+            <button class="aba ativa" type="button" data-status="pendente">Pendentes</button>
+            <button class="aba" type="button" data-status="aprovada">Aprovadas</button>
+            <button class="aba" type="button" data-status="recusada">Recusadas</button>
+          </div>
+          <div id="lista-justificativas"></div>
+        </div>
+      </section>
+
+      <!-- CUPONS -->
+      <section class="painel-aba" data-painel="cupons">
+        <div class="painel-colunas">
+          <div class="card">
+            <div class="card-titulo"><h3>Cupons de desconto</h3></div>
+            <div id="lista-cupons"></div>
+          </div>
+          <div class="card">
+            <div class="card-titulo"><h3>Novo cupom</h3></div>
+            <form id="form-cupom" novalidate>
+              <div class="linha-campos duas">
+                <div class="campo">
+                  <label for="cupom-codigo">Código</label>
+                  <input type="text" id="cupom-codigo" maxlength="20" placeholder="Ex.: VERAO10" style="text-transform:uppercase">
+                </div>
+                <div class="campo">
+                  <label for="cupom-tipo">Tipo</label>
+                  <select id="cupom-tipo">
+                    <option value="percentual">Percentual (%)</option>
+                    <option value="valor">Valor fixo (R$)</option>
+                  </select>
+                </div>
+              </div>
+              <div class="linha-campos duas">
+                <div class="campo">
+                  <label for="cupom-valor">Desconto</label>
+                  <input type="number" id="cupom-valor" min="1" step="0.01" placeholder="10">
+                </div>
+                <div class="campo">
+                  <label for="cupom-validade">Válido até <span class="dica">opcional</span></label>
+                  <input type="date" id="cupom-validade">
+                </div>
+              </div>
+              <div class="linha-campos duas">
+                <div class="campo">
+                  <label for="cupom-limite">Limite de usos <span class="dica">vazio = sem limite</span></label>
+                  <input type="number" id="cupom-limite" min="1">
+                </div>
+                <div class="campo">
+                  <label for="cupom-descricao">Descrição <span class="dica">aparece para o aluno</span></label>
+                  <input type="text" id="cupom-descricao" maxlength="120" placeholder="Ex.: Promoção de verão">
+                </div>
+              </div>
+              <div class="campo">
+                <label>Vale para <span class="dica">nenhum marcado = todos os planos</span></label>
+                <div id="cupom-pacotes" class="flex quebra gap-8"></div>
+              </div>
+              <button class="btn btn-primario btn-bloco" type="submit">Criar cupom</button>
+            </form>
+          </div>
+        </div>
+      </section>
+
       <!-- PREÇOS -->
       <section class="painel-aba" data-painel="precos">
         <div class="card">
@@ -257,6 +334,27 @@
                   <option value="urgente">Urgente</option>
                 </select>
               </div>
+              <div class="caixa-sem-aula">
+                <label class="checkbox-linha">
+                  <input type="checkbox" id="aviso-sem-aula">
+                  <span><strong>Não haverá aulas</strong> (tempestade, indisponibilidade)</span>
+                </label>
+                <div class="linha-campos duas mt-8 oculto" id="campos-sem-aula">
+                  <div class="campo">
+                    <label for="sem-aula-de">Sem aulas em</label>
+                    <input type="date" id="sem-aula-de">
+                  </div>
+                  <div class="campo">
+                    <label for="sem-aula-ate">Até <span class="dica">opcional</span></label>
+                    <input type="date" id="sem-aula-ate">
+                  </div>
+                  <p class="texto-min texto-cinza" style="grid-column:1/-1">
+                    Ao publicar: as datas ficam bloqueadas para agendamento, todas as
+                    aulas marcadas nelas são canceladas com o crédito devolvido, e cada
+                    aluno afetado recebe mensagem (e e-mail) pedindo para reagendar.
+                  </p>
+                </div>
+              </div>
               <div class="linha-campos duas">
                 <div class="campo">
                   <label for="aviso-inicio">Exibir a partir de</label>
@@ -303,6 +401,39 @@
             <label for="cfg-cancelamento">Antecedência mínima para o aluno cancelar (horas)</label>
             <input type="number" id="cfg-cancelamento" min="0" max="72">
             <span class="dica">Professores e administradores podem cancelar a qualquer momento.</span>
+          </div>
+
+          <h4 class="mt-24 mb-8">Remuneração padrão dos professores</h4>
+          <p class="texto-peq texto-cinza mb-8">
+            Base do "saldo a receber" de cada professor. Na aba Professores dá
+            para definir valores próprios por professor.
+          </p>
+          <div class="linha-campos duas">
+            <div class="campo">
+              <label for="cfg-rem-grupo">Por aluno em turma de grupo (R$)</label>
+              <input type="number" id="cfg-rem-grupo" min="0" step="0.01">
+            </div>
+            <div class="campo">
+              <label for="cfg-rem-particular">Por aula particular (R$)</label>
+              <input type="number" id="cfg-rem-particular" min="0" step="0.01">
+            </div>
+          </div>
+          <label class="checkbox-linha mb-16">
+            <input type="checkbox" id="cfg-rem-ausentes">
+            <span>Aluno que faltou sem justificativa conta para o professor</span>
+          </label>
+
+          <h4 class="mt-16 mb-8">Alunos</h4>
+          <div class="linha-campos duas">
+            <div class="campo">
+              <label for="cfg-grupo-whatsapp">Link do grupo de WhatsApp dos alunos</label>
+              <input type="url" id="cfg-grupo-whatsapp" placeholder="https://chat.whatsapp.com/...">
+              <span class="dica">Aparece no painel do aluno depois que ele agenda a primeira aula.</span>
+            </div>
+            <div class="campo">
+              <label for="cfg-validade-declaracao">Validade do questionário de saúde (meses)</label>
+              <input type="number" id="cfg-validade-declaracao" min="1" max="24">
+            </div>
           </div>
 
           <button class="btn btn-primario mt-8" id="btn-salvar-horarios" type="button">

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agendar aula — Barra Floripa Surf School</title>
+  <meta name="description" content="Escolha seu plano, o dia e o horário da sua aula de surf na Barra da Lagoa. Cadastro e pagamento em poucos passos.">
+  <meta name="theme-color" content="#FD711D">
+  <link rel="icon" href="logomenor-barrafloripa.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/pages.css">
+  <link rel="stylesheet" href="css/tema.css">
+</head>
+<body class="painel pagina-fluxo" data-page="reservar">
+
+  <header class="topo" id="topo"></header>
+
+  <main class="fluxo">
+    <div class="painel-cabecalho fluxo-cabecalho">
+      <div class="container">
+        <h1 data-i18n="reserva.titulo">Agende sua aula</h1>
+        <p data-i18n="reserva.subtitulo">Escolha o plano e o horário. O cadastro é feito no caminho — em poucos minutos você está na água.</p>
+      </div>
+    </div>
+
+    <div class="container">
+      <ol class="passos-fluxo" id="passos" aria-label="Etapas"></ol>
+
+      <div class="fluxo-grade">
+        <section class="card fluxo-etapa" id="etapa" aria-live="polite">
+          <div class="vazio"><span class="spinner escuro"></span></div>
+        </section>
+
+        <aside class="fluxo-lateral">
+          <div class="card" id="resumo-pedido"></div>
+          <div class="card mt-16" id="politica-resumo"></div>
+        </aside>
+      </div>
+    </div>
+  </main>
+
+  <footer id="rodape"></footer>
+
+  <script type="module" src="js/pages/reservar.js"></script>
+</body>
+</html>

@@ -7,11 +7,12 @@
 
 import { CONFIG, ESCOLA, SENHA_DEMO } from '../config.js';
 import { inicializarStore, listar } from '../store.js';
-import { entrar, cadastrar, entrarComGoogle, carregarUsuario, painelDoPapel, ErroAuth } from '../auth.js';
+import { entrar, entrarComGoogle, carregarUsuario, painelDoPapel, ErroAuth } from '../auth.js';
 import {
   qs, qsa, el, escapar, paramUrl, toast, abrirModal, botaoCarregando,
   montarTopoPublico, mascaraTelefone, iconeEl, hidratarIcones,
 } from '../ui.js';
+import { aplicarTraducoes } from '../i18n.js';
 
 let perfilSelecionado = 'aluno';
 
@@ -136,7 +137,8 @@ function destinoSeguro(usuario) {
 
   // Não devolve o aluno para uma página que ele não pode acessar.
   const paginasPorPapel = {
-    aluno: ['dashboard.html', 'agendar.html', 'checkout.html', 'creditos.html', 'historico.html'],
+    aluno: ['dashboard.html', 'agendar.html', 'checkout.html', 'creditos.html', 'historico.html',
+      'saude.html', 'perfil.html', 'mensagens.html', 'reservar.html'],
     professor: ['professor.html'],
     admin: ['professor.html', 'admin.html'],
   };
@@ -182,45 +184,6 @@ async function aoEnviarLogin(ev) {
     restaurar();
     mostrarAlerta(err instanceof ErroAuth ? err.message : 'Não foi possível entrar. Tente novamente.');
     if (!(err instanceof ErroAuth)) console.error('[login] erro ao entrar:', err);
-  }
-}
-
-async function aoEnviarCadastro(ev) {
-  ev.preventDefault();
-  mostrarAlerta(null);
-
-  const nome = qs('#cad-nome').value.trim();
-  const email = qs('#cad-email').value.trim();
-  const telefone = qs('#cad-telefone').value.trim();
-  const senha = qs('#cad-senha').value;
-  const senha2 = qs('#cad-senha2').value;
-  const termos = qs('#cad-termos').checked;
-
-  const erros = {
-    'cad-nome': nome.length < 3,
-    'cad-email': !emailValido(email),
-    'cad-senha': senha.length < 6,
-    'cad-senha2': senha !== senha2 || !senha2,
-  };
-  Object.entries(erros).forEach(([id, temErro]) => marcarErro(id, temErro));
-
-  if (Object.values(erros).some(Boolean)) return;
-  if (!termos) {
-    mostrarAlerta('É preciso aceitar os termos de uso para criar a conta.');
-    return;
-  }
-
-  const btn = qs('#btn-cadastrar');
-  const restaurar = botaoCarregando(btn, 'Criando conta...');
-
-  try {
-    const usuario = await cadastrar({ nome, email, telefone, senha });
-    toast('Conta criada! Boas-vindas à Barra Floripa.', 'sucesso', 1800);
-    setTimeout(() => { location.href = painelDoPapel(usuario.papel); }, 600);
-  } catch (err) {
-    restaurar();
-    mostrarAlerta(err instanceof ErroAuth ? err.message : 'Não foi possível criar a conta.');
-    if (!(err instanceof ErroAuth)) console.error('[login] erro ao cadastrar:', err);
   }
 }
 
@@ -301,6 +264,7 @@ async function aoClicarGoogle() {
    -------------------------------------------------------------------------- */
 
 async function iniciar() {
+  aplicarTraducoes();
   montarTopoPublico(null);
   hidratarIcones();
   qs('#link-whatsapp').href = `https://wa.me/${ESCOLA.whatsapp}`;
@@ -324,17 +288,11 @@ async function iniciar() {
 
   // Formulários
   qs('#form-login').addEventListener('submit', aoEnviarLogin);
-  qs('#form-cadastro').addEventListener('submit', aoEnviarCadastro);
   qs('#btn-google-login').addEventListener('click', aoClicarGoogle);
-  qs('#btn-google-cadastro').addEventListener('click', aoClicarGoogle);
 
   // Limpa o estado de erro assim que o usuário corrige o campo
   qsa('input').forEach((input) => {
     input.addEventListener('input', () => input.closest('.campo')?.classList.remove('erro'));
-  });
-
-  qs('#cad-telefone').addEventListener('input', (ev) => {
-    ev.target.value = mascaraTelefone(ev.target.value);
   });
 
   // Estado inicial vindo da URL (?aba=cadastro, ?perfil=professor)

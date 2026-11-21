@@ -5,6 +5,7 @@
 
 import { ESCOLA } from './config.js';
 import { icone, iconeEl, temIcone, hidratarIcones } from './icones.js';
+import { t, seletorIdiomaHTML, ligarSeletorIdioma, aplicarTraducoes } from './i18n.js';
 
 export { icone, iconeEl, hidratarIcones };
 
@@ -372,30 +373,34 @@ export function montarTopoPublico(usuario = null) {
     <div class="container topo-inner">
       ${marcaHTML()}
       <nav class="nav-publica" aria-label="Navegação principal">
-        <a href="index.html#sobre">Sobre</a>
-        <a href="index.html#aulas">Aulas</a>
-        <a href="index.html#produtos">Produtos</a>
+        <a href="index.html#sobre">${t('nav.sobre')}</a>
+        <a href="index.html#aulas">${t('nav.aulas')}</a>
+        <a href="index.html#politica">${t('nav.politica')}</a>
+        <a href="index.html#produtos">${t('nav.produtos')}</a>
       </nav>
       <div class="topo-acoes">
+        ${seletorIdiomaHTML('topo-idioma')}
         ${usuario
-          ? `<a href="${linkPainel}" class="btn btn-primario btn-peq">Minha Área</a>`
-          : `<a href="login.html" class="btn btn-secundario btn-peq">Entrar</a>
-             <a href="login.html?aba=cadastro" class="btn btn-primario btn-peq">Agendar Aula</a>`}
+          ? `<a href="${linkPainel}" class="btn btn-primario btn-peq">${t('nav.minhaArea')}</a>`
+          : `<a href="login.html" class="btn btn-secundario btn-peq">${t('nav.entrar')}</a>
+             <a href="reservar.html" class="btn btn-primario btn-peq">${t('nav.agendar')}</a>`}
         <button class="btn-menu" id="btn-menu" aria-label="Abrir menu" aria-expanded="false">
           <span></span><span></span><span></span>
         </button>
       </div>
     </div>
     <div class="menu-mobile" id="menu-mobile">
-      <a href="index.html#sobre">Sobre</a>
-      <a href="index.html#aulas">Aulas</a>
-      <a href="index.html#produtos">Produtos</a>
-      <a href="index.html#local">Onde fica</a>
-      <a href="index.html#depoimentos">Depoimentos</a>
+      <a href="index.html#sobre">${t('nav.sobre')}</a>
+      <a href="index.html#aulas">${t('nav.aulas')}</a>
+      <a href="index.html#politica">${t('nav.politica')}</a>
+      <a href="index.html#produtos">${t('nav.produtos')}</a>
+      <a href="index.html#local">${t('nav.ondeFica')}</a>
+      <a href="index.html#depoimentos">${t('nav.depoimentos')}</a>
+      ${seletorIdiomaHTML('menu-idioma')}
       ${usuario
-        ? `<a href="${linkPainel}" class="btn btn-primario">Minha Área</a>`
-        : `<a href="login.html" class="btn btn-secundario">Entrar</a>
-           <a href="login.html?aba=cadastro" class="btn btn-primario">Agendar Aula</a>`}
+        ? `<a href="${linkPainel}" class="btn btn-primario">${t('nav.minhaArea')}</a>`
+        : `<a href="login.html" class="btn btn-secundario">${t('nav.entrar')}</a>
+           <a href="reservar.html" class="btn btn-primario">${t('nav.agendar')}</a>`}
     </div>`;
 
   const btn = qs('#btn-menu', alvo);
@@ -403,6 +408,13 @@ export function montarTopoPublico(usuario = null) {
   btn?.addEventListener('click', () => {
     const aberto = menu.classList.toggle('aberto');
     btn.setAttribute('aria-expanded', String(aberto));
+  });
+
+  // Trocar o idioma redesenha topo e rodapé; o resto da página se traduz
+  // pelos atributos data-i18n (aplicarTraducoes).
+  ligarSeletorIdioma(alvo, () => {
+    montarTopoPublico(usuario);
+    if (qs('#rodape')?.innerHTML) montarRodape();
   });
 }
 
@@ -416,24 +428,22 @@ export function montarRodape() {
       <div class="rodape-grade">
         <div>
           ${marcaHTML()}
-          <p class="mt-16 texto-peq">
-            Aprenda a surfar com segurança e técnica na melhor escola de
-            Florianópolis. Transformando vidas através do surf desde
-            ${ESCOLA.desde}.
-          </p>
+          <p class="mt-16 texto-peq">${t('rodape.texto', { ano: ESCOLA.desde })}</p>
         </div>
         <div>
-          <h4>Navegação</h4>
+          <h4>${t('rodape.navegacao')}</h4>
           <ul>
-            <li><a href="index.html#sobre">Sobre a escola</a></li>
-            <li><a href="index.html#aulas">Nossas aulas</a></li>
-            <li><a href="index.html#produtos">Produtos</a></li>
-            <li><a href="login.html">Área do aluno</a></li>
-            <li><a href="login.html?perfil=professor">Área do professor</a></li>
+            <li><a href="index.html#sobre">${t('rodape.sobre')}</a></li>
+            <li><a href="index.html#aulas">${t('rodape.aulas')}</a></li>
+            <li><a href="reservar.html">${t('nav.agendar')}</a></li>
+            <li><a href="termos.html">${t('rodape.termos')}</a></li>
+            <li><a href="termos.html#cancelamento">${t('rodape.cancelamento')}</a></li>
+            <li><a href="login.html">${t('rodape.areaAluno')}</a></li>
+            <li><a href="login.html?perfil=professor">${t('rodape.areaProfessor')}</a></li>
           </ul>
         </div>
         <div>
-          <h4>Contato</h4>
+          <h4>${t('rodape.contato')}</h4>
           <ul>
             <li>${ESCOLA.endereco}</li>
             <li><a href="https://wa.me/${ESCOLA.whatsapp}" target="_blank" rel="noopener">WhatsApp ${ESCOLA.telefone}</a></li>
@@ -443,8 +453,8 @@ export function montarRodape() {
         </div>
       </div>
       <div class="rodape-fim">
-        <span>© ${new Date().getFullYear()} ${ESCOLA.nome} Surf School. Todos os direitos reservados.</span>
-        <span>Aulas de 1h30 · Máx. 5 alunos por professor</span>
+        <span>© ${new Date().getFullYear()} ${ESCOLA.nome} Surf School. ${t('rodape.direitos')}</span>
+        <span>${t('rodape.resumo')}</span>
       </div>
     </div>`;
 }
@@ -506,18 +516,22 @@ export function montarShellPainel({ usuario, paginaAtual, aoSair, chipCreditos =
   // `curto` é o rótulo da barra inferior do celular, onde cabe uma palavra.
   const itensPorPapel = {
     aluno: [
-      { id: 'inicio', href: 'dashboard.html', icone: 'inicio', texto: 'Início' },
-      { id: 'agendar', href: 'agendar.html', icone: 'agenda', texto: 'Agendar aula', curto: 'Agendar' },
-      { id: 'creditos', href: 'creditos.html', icone: 'creditos', texto: 'Meus créditos', curto: 'Créditos' },
-      { id: 'historico', href: 'historico.html', icone: 'historico', texto: 'Histórico' },
-      { id: 'mensagens', href: 'mensagens.html', icone: 'mensagens', texto: 'Mensagens' },
+      { id: 'inicio', href: 'dashboard.html', icone: 'inicio', texto: t('menu.inicio') },
+      { id: 'agendar', href: 'agendar.html', icone: 'agenda', texto: t('menu.agendar'), curto: t('menu.agendarCurto') },
+      { id: 'creditos', href: 'creditos.html', icone: 'creditos', texto: t('menu.creditos'), curto: t('menu.creditosCurto') },
+      { id: 'historico', href: 'historico.html', icone: 'historico', texto: t('menu.historico') },
+      { id: 'mensagens', href: 'mensagens.html', icone: 'mensagens', texto: t('menu.mensagens') },
       { separador: true },
-      { id: 'planos', href: 'checkout.html', icone: 'planos', texto: 'Planos e preços' },
-      { id: 'perfil', href: 'perfil.html', icone: 'perfil', texto: 'Meu perfil', curto: 'Perfil' },
-      { id: 'tutorial', href: 'dashboard.html?tutorial=1', icone: 'ajuda', texto: 'Como agendar' },
+      { id: 'planos', href: 'checkout.html', icone: 'planos', texto: t('menu.planos') },
+      { id: 'saude', href: 'saude.html', icone: 'saude', texto: t('menu.saude') },
+      { id: 'perfil', href: 'perfil.html', icone: 'perfil', texto: t('menu.perfil'), curto: t('menu.perfilCurto') },
+      { id: 'termos', href: 'termos.html', icone: 'lista', texto: t('menu.termos') },
+      { id: 'tutorial', href: 'dashboard.html?tutorial=1', icone: 'ajuda', texto: t('menu.tutorial') },
     ],
     professor: [
       { id: 'turmas', href: 'professor.html#turmas', icone: 'prancha', texto: 'Minhas turmas', curto: 'Turmas' },
+      { id: 'saldo', href: 'professor.html#saldo', icone: 'moeda', texto: 'Meu saldo', curto: 'Saldo' },
+      { id: 'declaracoes', href: 'professor.html#declaracoes', icone: 'saude', texto: 'Declarações de saúde', curto: 'Saúde' },
       { id: 'disponibilidade', href: 'professor.html#disponibilidade', icone: 'agenda', texto: 'Disponibilidade', curto: 'Horários' },
       { id: 'mensagens', href: 'professor.html#mensagens', icone: 'mensagens', texto: 'Mensagens' },
       { separador: true },
@@ -525,10 +539,12 @@ export function montarShellPainel({ usuario, paginaAtual, aoSair, chipCreditos =
     ],
     admin: [
       { id: 'turmas', href: 'professor.html#turmas', icone: 'prancha', texto: 'Turmas' },
+      { id: 'saldo', href: 'professor.html#saldo', icone: 'moeda', texto: 'Saldo dos professores', curto: 'Saldo' },
+      { id: 'declaracoes', href: 'professor.html#declaracoes', icone: 'saude', texto: 'Declarações de saúde', curto: 'Saúde' },
+      { id: 'admin', href: 'admin.html', icone: 'ajustes', texto: 'Administração', curto: 'Admin' },
       { id: 'disponibilidade', href: 'professor.html#disponibilidade', icone: 'agenda', texto: 'Disponibilidade', curto: 'Horários' },
       { id: 'mensagens', href: 'professor.html#mensagens', icone: 'mensagens', texto: 'Mensagens' },
       { separador: true },
-      { id: 'admin', href: 'admin.html', icone: 'ajustes', texto: 'Administração', curto: 'Admin' },
       { id: 'perfil', href: 'perfil.html', icone: 'perfil', texto: 'Meu perfil', curto: 'Perfil' },
     ],
   };
@@ -556,8 +572,24 @@ export function montarShellPainel({ usuario, paginaAtual, aoSair, chipCreditos =
       </a>`).join('');
   }
 
+  // Seletor de idioma no topo do aluno (estrangeiros usam o painel também).
+  if (usuario.papel === 'aluno' && topo) {
+    qs('.topo-acoes', topo)?.insertAdjacentHTML('afterbegin', seletorIdiomaHTML('topo-idioma painel'));
+    ligarSeletorIdioma(topo, async (idioma) => {
+      // Guarda a preferência no perfil: e-mails e professor passam a saber.
+      try {
+        const { atualizarMeuPerfil } = await import('./auth.js');
+        await atualizarMeuPerfil({ idioma });
+      } catch (err) {
+        console.warn('[ui] não foi possível salvar o idioma no perfil:', err);
+      }
+      location.reload();
+    });
+  }
+
   // Ícones escritos direto no HTML da página (<span data-icone="...">).
   hidratarIcones();
+  aplicarTraducoes();
   montarOndaCabecalho();
 
   if (usuario.papel === 'aluno') atualizarBadgeMensagens(usuario.id);
@@ -567,7 +599,7 @@ export function montarShellPainel({ usuario, paginaAtual, aoSair, chipCreditos =
  * Onda laranja na base do cabeçalho com foto (.painel-cabecalho). Fica em
  * SVG no próprio HTML para acompanhar a largura sem distorcer o traço.
  */
-function montarOndaCabecalho() {
+export function montarOndaCabecalho() {
   qsa('.painel-cabecalho').forEach((cab) => {
     if (qs('.onda-cabecalho', cab)) return;
     cab.insertAdjacentHTML('beforeend', `

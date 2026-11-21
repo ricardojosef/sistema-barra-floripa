@@ -27,45 +27,48 @@
         <p id="saudacao-data">—</p>
       </div>
 
-      <!-- Alerta de saldo zerado -->
+      <!-- Alertas: cadastro, saúde, aulas canceladas por aviso, saldo -->
       <div id="alerta-creditos"></div>
 
       <!-- Estatísticas -->
       <div class="grade grade-3 mb-24">
         <div class="card-stat laranja">
-          <span class="stat-rotulo">Créditos disponíveis</span>
+          <span class="stat-rotulo" data-i18n="dash.statCreditos">Créditos disponíveis</span>
           <span class="stat-valor" id="stat-creditos">—</span>
-          <span class="stat-extra">aulas para agendar</span>
+          <span class="stat-extra" data-i18n="dash.statCreditosExtra">aulas para agendar</span>
         </div>
         <div class="card-stat">
-          <span class="stat-rotulo">Próxima aula</span>
+          <span class="stat-rotulo" data-i18n="dash.statProxima">Próxima aula</span>
           <span class="stat-valor" id="stat-proxima">—</span>
           <span class="stat-extra" id="stat-proxima-detalhe">—</span>
         </div>
         <div class="card-stat">
-          <span class="stat-rotulo">Aulas este mês</span>
+          <span class="stat-rotulo" data-i18n="dash.statMes">Aulas este mês</span>
           <span class="stat-valor" id="stat-mes">—</span>
-          <span class="stat-extra">agendadas e realizadas</span>
+          <span class="stat-extra" data-i18n="dash.statMesExtra">agendadas e realizadas</span>
         </div>
       </div>
+
+      <!-- Grupo de WhatsApp dos alunos (depois da primeira aula marcada) -->
+      <div id="grupo-whatsapp"></div>
 
       <!-- Atalhos -->
       <div class="acoes-rapidas">
         <a href="agendar.html" class="acao-rapida">
           <span class="icone-acao" data-icone="agenda"></span>
-          <span class="titulo">Agendar aula</span>
+          <span class="titulo" data-i18n="menu.agendar">Agendar aula</span>
         </a>
         <a href="checkout.html" class="acao-rapida">
           <span class="icone-acao" data-icone="planos"></span>
-          <span class="titulo">Comprar plano</span>
+          <span class="titulo" data-i18n="dash.comprarPlano">Comprar plano</span>
         </a>
         <a href="creditos.html" class="acao-rapida">
           <span class="icone-acao" data-icone="creditos"></span>
-          <span class="titulo">Meus créditos</span>
+          <span class="titulo" data-i18n="menu.creditos">Meus créditos</span>
         </a>
         <a href="historico.html" class="acao-rapida">
           <span class="icone-acao" data-icone="historico"></span>
-          <span class="titulo">Histórico</span>
+          <span class="titulo" data-i18n="menu.historico">Histórico</span>
         </a>
       </div>
 
@@ -73,25 +76,25 @@
       <div class="painel-colunas">
         <section class="card">
           <div class="card-titulo">
-            <h3 class="com-icone"><span data-icone="agenda"></span>Próximas aulas</h3>
-            <a href="historico.html" class="texto-peq">Ver todas →</a>
+            <h3 class="com-icone"><span data-icone="agenda"></span><span data-i18n="dash.proximas">Próximas aulas</span></h3>
+            <a href="historico.html" class="texto-peq" data-i18n="dash.verTodas">Ver todas →</a>
           </div>
           <div id="lista-proximas" class="rolagem" style="max-height:420px">
             <div class="vazio"><span class="spinner escuro"></span></div>
           </div>
-          <a href="agendar.html" class="btn btn-primario btn-bloco mt-16">
+          <a href="agendar.html" class="btn btn-primario btn-bloco mt-16" data-i18n="dash.agendarNova">
             Agendar nova aula
           </a>
         </section>
 
         <section class="card">
           <div class="card-titulo">
-            <h3 class="com-icone"><span data-icone="creditos"></span>Meus créditos</h3>
-            <a href="checkout.html" class="texto-peq">Comprar mais →</a>
+            <h3 class="com-icone"><span data-icone="creditos"></span><span data-i18n="menu.creditos">Meus créditos</span></h3>
+            <a href="checkout.html" class="texto-peq" data-i18n="dash.comprarMais">Comprar mais →</a>
           </div>
           <div id="lista-creditos"></div>
 
-          <h4 class="mt-24 mb-8 texto-min maiusculas texto-cinza">Pacotes disponíveis</h4>
+          <h4 class="mt-24 mb-8 texto-min maiusculas texto-cinza" data-i18n="dash.pacotes">Pacotes disponíveis</h4>
           <div id="mini-pacotes"></div>
         </section>
       </div>

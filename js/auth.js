@@ -10,6 +10,8 @@
 
 import { CONFIG } from './config.js';
 import { inicializarStore, listar, criar, obter, atualizar, driverAtual } from './store.js';
+import { cpfValido, soDigitos, normalizarDocumento, idadeEm } from './documentos.js';
+import { adotarIdiomaDoUsuario } from './i18n.js';
 
 const CHAVE_SESSAO = 'bf_sessao';
 const DURACAO_SESSAO_MS = 1000 * 60 * 60 * 12; // 12 horas
@@ -106,6 +108,7 @@ export async function carregarUsuario() {
       return null;
     }
     usuarioCache = semSegredos(perfil);
+    adotarIdiomaDoUsuario(usuarioCache);
     return usuarioCache;
   }
 
@@ -121,6 +124,7 @@ export async function carregarUsuario() {
     return null;
   }
   usuarioCache = semSegredos(usuario);
+  adotarIdiomaDoUsuario(usuarioCache);
   return usuarioCache;
 }
 
@@ -186,7 +190,39 @@ export async function entrar(email, senha) {
  * Professores e administradores não se cadastram sozinhos — são criados
  * pelo seed (modo local) ou pelo Console do Firebase.
  */
-export async function cadastrar({ nome, email, telefone, senha }) {
+/**
+ * Valida e normaliza os dados pessoais do aluno (cadastro e "completar
+ * perfil"). Brasileiro informa CPF; estrangeiro, passaporte/documento.
+ */
+export function dadosPessoais({ nacionalidade, nacionalidadeOutra, cpf, documento, nascimento, idioma }) {
+  const pais = String(nacionalidade || '').trim();
+  if (!pais) throw new ErroAuth('nacionalidade', 'Informe sua nacionalidade.');
+  const campos = {
+    nacionalidade: pais === 'OUTRO' ? String(nacionalidadeOutra || '').trim().slice(0, 40) || 'OUTRO' : pais,
+    idioma: ['pt', 'en', 'es'].includes(idioma) ? idioma : 'pt',
+  };
+
+  if (pais === 'BR') {
+    if (!cpfValido(cpf)) throw new ErroAuth('cpf', 'CPF inválido. Confira os números.');
+    campos.cpf = soDigitos(cpf);
+    campos.documento = null;
+  } else {
+    const doc = normalizarDocumento(documento);
+    if (doc.length < 5) throw new ErroAuth('documento', 'Informe o número do passaporte ou documento de identidade.');
+    campos.documento = doc.slice(0, 20);
+    campos.cpf = cpf && cpfValido(cpf) ? soDigitos(cpf) : null;
+  }
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(nascimento || ''))) {
+    throw new ErroAuth('nascimento', 'Informe sua data de nascimento.');
+  }
+  const idade = idadeEm(nascimento);
+  if (idade === null || idade < 5 || idade > 100) throw new ErroAuth('nascimento', 'Confira a data de nascimento.');
+  campos.nascimento = nascimento;
+  return campos;
+}
+
+export async function cadastrar({ nome, email, telefone, senha, ...pessoais }) {
   await inicializarStore();
   const emailNorm = String(email || '').trim().toLowerCase();
   const nomeNorm = String(nome || '').trim();
@@ -194,6 +230,7 @@ export async function cadastrar({ nome, email, telefone, senha }) {
   if (nomeNorm.length < 3) throw new ErroAuth('nome', 'Informe seu nome completo.');
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailNorm)) throw new ErroAuth('email', 'Informe um e-mail válido.');
   if (String(senha || '').length < 6) throw new ErroAuth('senha', 'A senha precisa ter pelo menos 6 caracteres.');
+  const extras = dadosPessoais(pessoais);
 
   if (CONFIG.MODO_DADOS === 'firebase') {
     try {
@@ -203,6 +240,7 @@ export async function cadastrar({ nome, email, telefone, senha }) {
         nome: nomeNorm,
         email: emailNorm,
         telefone: telefone || '',
+        ...extras,
         papel: 'aluno',
         ativo: true,
         googleId: null,
@@ -228,6 +266,7 @@ export async function cadastrar({ nome, email, telefone, senha }) {
     nome: nomeNorm,
     email: emailNorm,
     telefone: telefone || '',
+    ...extras,
     papel: 'aluno',
     ativo: true,
     googleId: null,
@@ -313,11 +352,25 @@ export async function entrarComGoogle(dadosSimulados = null) {
  * `fotoUrl`: imagem já reduzida em data URL JPEG (ver js/pages/perfil.js),
  * ou null para remover. `undefined` mantém a atual.
  */
-export async function atualizarMeuPerfil({ telefone, fotoUrl } = {}) {
+export async function atualizarMeuPerfil({ telefone, fotoUrl, idioma, pessoais } = {}) {
   const usuario = usuarioCache;
   if (!usuario) throw new ErroAuth('sem-sessao', 'Entre novamente para continuar.');
 
   const campos = {};
+
+  // Idioma preferido (aula e site) pode mudar sempre.
+  if (idioma !== undefined && ['pt', 'en', 'es'].includes(idioma)) campos.idioma = idioma;
+
+  // Dados pessoais: completados uma vez (cadastro via Google ou anterior a
+  // esta versão). O CPF, depois de gravado, só a escola altera.
+  if (pessoais) {
+    const extras = dadosPessoais(pessoais);
+    if (usuario.cpf && extras.cpf && extras.cpf !== usuario.cpf) {
+      throw new ErroAuth('cpf', 'O CPF já cadastrado só pode ser alterado pela escola.');
+    }
+    if (usuario.cpf) delete extras.cpf;
+    Object.assign(campos, extras);
+  }
 
   if (telefone !== undefined) {
     const digitos = String(telefone || '').replace(/\D/g, '');

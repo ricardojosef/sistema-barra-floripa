@@ -16,7 +16,7 @@
 import { CONFIG } from './config.js';
 import { listar, obter, criar, atualizar, driverAtual } from './store.js';
 import { usuarioAtual } from './auth.js';
-import { cancelar } from './agenda.js';
+import { cancelar, reatribuirProfessor, professoresDoHorario } from './agenda.js';
 import { hojeISO } from './ui.js';
 
 export class ErroEquipe extends Error {
@@ -232,10 +232,28 @@ export async function removerProfessor(professorId, motivo = 'Professor retirado
   const futuras = await aulasFuturasDoProfessor(professorId);
   const quem = { id: admin.id, nome: admin.nome, papel: admin.papel };
   const falhas = [];
+  let realocadas = 0;
+  let canceladas = 0;
 
+  // Como o aluno não escolhe professor, a aula dele não precisa cair: tenta
+  // passar para outro professor que atende no mesmo horário e tem vaga.
+  // Só cancela (com estorno) quando ninguém pode assumir.
   for (const aula of futuras) {
+    const outros = (await professoresDoHorario(aula.data, aula.horario))
+      .filter((p) => p.atende && p.id !== professorId);
+    let passou = false;
+    for (const outro of outros) {
+      try {
+        await reatribuirProfessor(aula.id, outro.id, quem);
+        passou = true;
+        realocadas += 1;
+        break;
+      } catch { /* sem vaga com este professor: tenta o próximo */ }
+    }
+    if (passou) continue;
     try {
       await cancelar(aula.id, quem, motivo);
+      canceladas += 1;
     } catch (err) {
       falhas.push(aula.id);
       console.error(`[equipe] não foi possível cancelar a aula ${aula.id}:`, err);
@@ -259,5 +277,5 @@ export async function removerProfessor(professorId, motivo = 'Professor retirado
 
   if (usuario) await atualizar('usuarios', usuario.id, { ativo: false });
 
-  return { aulasCanceladas: futuras.length };
+  return { aulasCanceladas: canceladas, aulasRealocadas: realocadas };
 }

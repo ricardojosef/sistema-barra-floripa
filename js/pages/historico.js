@@ -1,27 +1,42 @@
 /**
  * historico.js — lista completa das aulas do aluno, com filtro por status.
+ *
+ * Mostra presença/falta registrada na praia e, para aulas que não podem mais
+ * ser canceladas pelo site (prazo encerrado ou falta), o botão de enviar
+ * justificativa — com o andamento da análise da escola.
  */
 
 import { exigirAuth, sair } from '../auth.js';
-import { historicoDoAluno, cancelar, ErroAgenda } from '../agenda.js';
+import { historicoDoAluno, cancelar, alunoPodeCancelar, ErroAgenda } from '../agenda.js';
 import { saldoCreditos } from '../creditos.js';
-import { carregarContexto, nomeProfessor, nomeLocal } from '../precos.js';
+import { carregarContexto, nomeLocal } from '../precos.js';
+import { justificativasDoAluno } from '../justificativas.js';
+import { abrirJustificativa } from '../justificativa-ui.js';
+import { t } from '../i18n.js';
 import {
-  qs, qsa, el, dataDeISO, hojeISO, faixaHorario, formatarDataExtenso, MESES_CURTO,
+  qs, qsa, el, dataDeISO, faixaHorario, formatarDataExtenso, MESES_CURTO,
   montarShellPainel, toast, confirmar, vazio,
 } from '../ui.js';
 
 let usuario = null;
 let contexto = null;
 let todasAulas = [];
+let justificativasPorAula = new Map();
 let filtroAtual = 'todas';
+
+/** Pode justificar: confirmada fora do prazo de cancelamento, ou falta registrada. */
+function podeJustificar(aula) {
+  if (aula.status === 'cancelado') return false;
+  if (aula.status === 'confirmado' && alunoPodeCancelar(aula, contexto.config)) return false;
+  const j = justificativasPorAula.get(aula.id);
+  return !j || j.status === 'recusada';
+}
 
 function cartaoAula(aula) {
   const data = dataDeISO(aula.data);
-  const professor = nomeProfessor(contexto.mapaProfessores, aula.professorId, aula.professorNome);
   const local = nomeLocal(contexto.mapaLocais, aula.localId);
   const cancelada = aula.status === 'cancelado';
-  const futura = aula.data >= hojeISO();
+  const justificativa = justificativasPorAula.get(aula.id);
 
   const item = el('div', { class: `item-aula ${cancelada ? 'cancelada' : ''}` }, [
     el('div', { class: 'data-bloco' }, [
@@ -29,16 +44,16 @@ function cartaoAula(aula) {
       el('span', { class: 'mes', text: MESES_CURTO[data.getMonth()] }),
     ]),
     el('div', { class: 'info' }, [
-      el('div', {
-        class: 'titulo',
-        text: aula.tipo === 'individual' ? 'Aula particular' : `Aula em grupo — ${professor}`,
-      }),
-      el('div', {
-        class: 'meta',
-        text: `${faixaHorario(aula.horario, aula.duracaoMin)} · ${professor} · ${local}`,
-      }),
+      el('div', { class: 'titulo', text: aula.tipo === 'individual' ? t('aula.particular') : t('aula.grupo') }),
+      el('div', { class: 'meta', text: `${faixaHorario(aula.horario, aula.duracaoMin)} · ${local}` }),
       cancelada && aula.motivoCancelamento
         ? el('div', { class: 'texto-min', style: 'color:var(--vermelho)', text: `Motivo: ${aula.motivoCancelamento}` })
+        : null,
+      justificativa
+        ? el('div', {
+          class: `texto-min ${justificativa.status === 'recusada' ? 'texto-perigo' : justificativa.status === 'aprovada' ? 'texto-sucesso' : 'texto-cinza'}`,
+          text: `${t(`just.status.${justificativa.status}`)}${justificativa.resposta ? ` — ${justificativa.resposta}` : ''}`,
+        })
         : null,
     ]),
   ]);
@@ -46,19 +61,24 @@ function cartaoAula(aula) {
   const acoes = el('div', { class: 'flex-col gap-4 itens-centro' });
 
   const badges = {
-    confirmado: ['badge-sucesso', 'Confirmada'],
-    realizado: ['badge-info', 'Realizada'],
-    cancelado: ['badge-perigo', 'Cancelada'],
+    confirmado: ['badge-sucesso', t('aula.confirmada')],
+    realizado: ['badge-info', t('aula.realizada')],
+    cancelado: ['badge-perigo', t('aula.cancelada')],
   };
   const [classe, texto] = badges[aula.status] || ['badge-neutro', aula.status];
   acoes.append(el('span', { class: `badge ${classe}`, text: texto }));
+  if (aula.presenca === 'presente') acoes.append(el('span', { class: 'badge badge-sucesso', text: t('aula.presente') }));
+  if (aula.presenca === 'ausente' && !cancelada) acoes.append(el('span', { class: 'badge badge-perigo', text: t('aula.falta') }));
 
-  if (aula.status === 'confirmado' && futura) {
+  if (aula.status === 'confirmado' && alunoPodeCancelar(aula, contexto.config)) {
     acoes.append(el('button', {
-      class: 'btn btn-fantasma btn-peq',
-      type: 'button',
-      text: 'Cancelar',
+      class: 'btn btn-fantasma btn-peq', type: 'button', text: t('comum.cancelar'),
       onclick: () => cancelarAula(aula),
+    }));
+  } else if (podeJustificar(aula)) {
+    acoes.append(el('button', {
+      class: 'btn btn-fantasma btn-peq', type: 'button', text: t('just.justificar'),
+      onclick: () => abrirJustificativa(usuario, aula, { aoEnviar: carregar }),
     }));
   }
 
@@ -100,7 +120,7 @@ function renderizar() {
       realizado: 'Nenhuma aula realizada ainda.',
       cancelado: 'Nenhuma aula cancelada.',
     };
-    alvo.append(vazio(mensagens[filtroAtual], 'prancha', { href: 'agendar.html', texto: 'Agendar aula' }));
+    alvo.append(vazio(mensagens[filtroAtual], 'prancha', { href: 'agendar.html', texto: t('menu.agendar') }));
     return;
   }
 
@@ -109,7 +129,14 @@ function renderizar() {
 
 async function carregar() {
   contexto = await carregarContexto();
-  todasAulas = await historicoDoAluno(usuario.id);
+  const [aulas, justificativas] = await Promise.all([
+    historicoDoAluno(usuario.id),
+    justificativasDoAluno(usuario.id).catch(() => []),
+  ]);
+  todasAulas = aulas;
+  // A mais recente de cada aula vale (pode ter reenviado após recusa).
+  justificativasPorAula = new Map();
+  [...justificativas].reverse().forEach((j) => justificativasPorAula.set(j.agendamentoId, j));
 
   const chip = qs('#chip-creditos-valor');
   if (chip) chip.textContent = String(await saldoCreditos(usuario.id));

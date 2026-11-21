@@ -165,8 +165,13 @@ export function lancarCredito(ops, {
   // Metadados do lote: prazo de uso e restrições do pacote de origem.
   nomePacote = null, pacoteId = null, tipoPacote = null,
   apenasFimDeSemana = false, expiraEm = null,
+  // Id determinístico (ex.: `estorno_<agendamentoId>`). Como lançamentos são
+  // imutáveis, um segundo estorno da mesma aula esbarra no id já existente —
+  // no navegador e nas regras do Firestore.
+  id = undefined,
 }) {
   return ops.criar('creditos', {
+    ...(id ? { id } : {}),
     alunoId,
     delta: Number(delta),
     motivo,
@@ -199,6 +204,7 @@ const ROTULOS_MOTIVO = {
   compra: 'Compra de pacote',
   agendamento: 'Aula agendada',
   cancelamento: 'Aula cancelada — crédito devolvido',
+  justificativa: 'Falta justificada — crédito devolvido',
   ajuste: 'Ajuste da escola',
 };
 

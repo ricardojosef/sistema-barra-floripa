@@ -2,22 +2,37 @@
  * dashboard.js — painel do aluno.
  *
  * Mostra saldo de créditos, próximas aulas, créditos por origem e os
- * pacotes à venda. Exibe também os avisos publicados pelo administrador.
+ * pacotes à venda. Além disso:
+ *  - conclui reservas pagas ainda não agendadas (fluxo de reserva);
+ *  - destaca aulas canceladas por aviso da escola, pedindo para reagendar;
+ *  - leva ao grupo de WhatsApp dos alunos depois da primeira aula marcada;
+ *  - lembra de completar o cadastro e de renovar o questionário de saúde;
+ *  - depois do prazo de cancelamento, troca "Cancelar" por "Justificar".
  */
 
 import { exigirAuth, sair } from '../auth.js';
 import { resumoAluno, creditosPorOrigem } from '../creditos.js';
-import { proximasAulasDoAluno, cancelar, ErroAgenda } from '../agenda.js';
-import { carregarContexto, obterPacotes, nomeProfessor, nomeLocal } from '../precos.js';
-import { mostrarAvisosPendentes } from '../avisos.js';
-import { executarTour, passosPainel, tutorialPendente, marcarTutorialConcluido } from '../tutorial.js';
 import {
-  qs, el, formatarBRL, formatarDataExtenso, faixaHorario, MESES_CURTO,
-  dataDeISO, primeiroNome, montarShellPainel, toast, confirmar, paramUrl, vazio, icone,
+  proximasAulasDoAluno, historicoDoAluno, cancelar, alunoPodeCancelar, ErroAgenda,
+} from '../agenda.js';
+import { carregarContexto, obterPacotes, nomeLocal } from '../precos.js';
+import { atualizar } from '../store.js';
+import { mostrarAvisosPendentes } from '../avisos.js';
+import { concluirReservasPendentes, reservasQueFalharam } from '../reserva.js';
+import { ultimaDeclaracao, declaracaoVigente, diasParaVencer } from '../saude.js';
+import { justificativasDoAluno } from '../justificativas.js';
+import { abrirJustificativa } from '../justificativa-ui.js';
+import { perfilCompleto } from '../documentos.js';
+import { executarTour, passosPainel, tutorialPendente, marcarTutorialConcluido } from '../tutorial.js';
+import { t } from '../i18n.js';
+import {
+  qs, el, formatarBRL, formatarDataExtenso, formatarData, faixaHorario, MESES_CURTO, hojeISO,
+  dataDeISO, primeiroNome, montarShellPainel, toast, confirmar, paramUrl, vazio, icone, iconeEl,
 } from '../ui.js';
 
 let usuario = null;
 let contexto = null;
+let justificadas = new Set();   // aulas que já têm justificativa enviada
 
 /* --------------------------------------------------------------------------
    Blocos da tela
@@ -25,11 +40,8 @@ let contexto = null;
 
 function itemAula(aula) {
   const data = dataDeISO(aula.data);
-  const professor = nomeProfessor(contexto.mapaProfessores, aula.professorId, aula.professorNome);
   const local = nomeLocal(contexto.mapaLocais, aula.localId);
-  const titulo = aula.tipo === 'individual'
-    ? 'Aula particular'
-    : `Aula em grupo — ${professor}`;
+  const titulo = aula.tipo === 'individual' ? t('aula.particular') : t('aula.grupo');
 
   const item = el('div', { class: 'item-aula' }, [
     el('div', { class: 'data-bloco' }, [
@@ -38,20 +50,30 @@ function itemAula(aula) {
     ]),
     el('div', { class: 'info' }, [
       el('div', { class: 'titulo', text: titulo }),
-      el('div', {
-        class: 'meta',
-        text: `${faixaHorario(aula.horario, aula.duracaoMin)} · ${professor} · ${local}`,
-      }),
+      el('div', { class: 'meta', text: `${faixaHorario(aula.horario, aula.duracaoMin)} · ${local}` }),
     ]),
   ]);
 
   const acoes = el('div', { class: 'flex-col gap-4 itens-centro' });
-  acoes.append(el('span', { class: 'badge badge-sucesso', text: 'Confirmada' }));
-  acoes.append(el('button', {
-    class: 'btn btn-fantasma btn-peq',
-    text: 'Cancelar',
-    onclick: () => cancelarAula(aula),
-  }));
+  acoes.append(el('span', { class: 'badge badge-sucesso', text: t('aula.confirmada') }));
+
+  if (alunoPodeCancelar(aula, contexto.config)) {
+    acoes.append(el('button', {
+      class: 'btn btn-fantasma btn-peq',
+      text: t('comum.cancelar'),
+      onclick: () => cancelarAula(aula),
+    }));
+  } else if (justificadas.has(aula.id)) {
+    acoes.append(el('span', { class: 'texto-min texto-cinza', text: t('just.emAnalise') }));
+  } else {
+    // Dentro das 12h o site não cancela mais: só a escola, com justificativa.
+    acoes.append(el('button', {
+      class: 'btn btn-fantasma btn-peq',
+      title: t('dash.prazoEncerrado', { horas: contexto.config.horasMinimasCancelamento }),
+      text: t('just.justificar'),
+      onclick: () => abrirJustificativa(usuario, aula, { aoEnviar: carregarTudo }),
+    }));
+  }
   item.append(acoes);
 
   return item;
@@ -86,9 +108,9 @@ async function montarProximas() {
   alvo.innerHTML = '';
   if (!aulas.length) {
     alvo.append(vazio(
-      'Você ainda não tem aulas agendadas.',
+      t('dash.semAulas'),
       'prancha',
-      { href: 'agendar.html', texto: 'Agendar agora' },
+      { href: 'agendar.html', texto: t('dash.agendarAgora') },
     ));
     return aulas;
   }
@@ -103,9 +125,9 @@ async function montarCreditos(saldo) {
 
   if (saldo <= 0) {
     alvo.append(vazio(
-      'Você não tem créditos disponíveis.',
+      t('dash.semCreditos'),
       'creditos',
-      { href: 'checkout.html', texto: 'Comprar pacote' },
+      { href: 'reservar.html', texto: t('dash.comprarPacote') },
     ));
     return;
   }
@@ -121,7 +143,7 @@ async function montarCreditos(saldo) {
           : `Créditos ${origem.tipo === 'individual' ? 'Individuais' : 'Grupo'}`,
       }),
       el('div', { class: 'origem', text: origem.nomePacote }),
-      el('a', { class: 'btn btn-primario btn-peq', href: 'agendar.html', text: 'Usar agora' }),
+      el('a', { class: 'btn btn-primario btn-peq', href: 'agendar.html', text: t('dash.usarAgora') }),
     ]));
   }
 }
@@ -130,7 +152,6 @@ async function montarMiniPacotes() {
   const alvo = qs('#mini-pacotes');
   const pacotes = await obterPacotes();
 
-  // Mostra os mais procurados, com o destacado sempre presente.
   const selecionados = pacotes
     .filter((p) => ['pac-4', 'pac-9', 'pac-mensal-2x'].includes(p.id) || p.destaque)
     .slice(0, 4);
@@ -160,26 +181,109 @@ function montarEstatisticas(resumo, proximaAula) {
   if (proximaAula) {
     const data = dataDeISO(proximaAula.data);
     qs('#stat-proxima').textContent = `${String(data.getDate()).padStart(2, '0')}/${String(data.getMonth() + 1).padStart(2, '0')}`;
-    const professor = nomeProfessor(contexto.mapaProfessores, proximaAula.professorId, proximaAula.professorNome);
-    qs('#stat-proxima-detalhe').textContent = `${proximaAula.horario}h · ${professor}`;
+    qs('#stat-proxima-detalhe').textContent = `${proximaAula.horario}h · ${nomeLocal(contexto.mapaLocais, proximaAula.localId)}`;
   } else {
     qs('#stat-proxima').textContent = '—';
-    qs('#stat-proxima-detalhe').textContent = 'Nenhuma aula agendada';
+    qs('#stat-proxima-detalhe').textContent = t('dash.nenhumaAula');
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Alertas do topo
+   -------------------------------------------------------------------------- */
+
+function alerta(tipo, nomeIcone, conteudo, acao = null) {
+  const node = el('div', { class: `alerta alerta-${tipo}` }, [
+    iconeEl(nomeIcone),
+    el('span', { class: 'cresce' }, conteudo),
+  ]);
+  if (acao) node.append(acao);
+  return node;
+}
+
+async function montarAlertas(resumo, historico) {
+  const area = qs('#alerta-creditos');
+  area.innerHTML = '';
+  const hoje = hojeISO();
+
+  // 1. Cadastro incompleto (entrou com Google ou se cadastrou antes do CPF).
+  if (!perfilCompleto(usuario)) {
+    area.append(alerta('aviso', 'documento', [t('dash.completarPerfil')],
+      el('a', { href: 'perfil.html?completar=1&voltar=dashboard.html', class: 'negrito', text: `${t('dash.completar')} →` })));
   }
 
-  // Aviso quando não há créditos nem aulas marcadas.
-  const alerta = qs('#alerta-creditos');
-  alerta.innerHTML = '';
-  if (resumo.saldo === 0 && resumo.totalAgendadas === 0) {
-    alerta.innerHTML = `
-      <div class="alerta alerta-aviso">
-        ${icone('creditos')}
-        <span class="cresce">
-          Você está sem créditos. Escolha um pacote para voltar a agendar.
-        </span>
-        <a href="checkout.html" class="negrito">Ver planos →</a>
-      </div>`;
+  // 2. Aulas canceladas pela escola por aviso (tempestade): pedir para reagendar.
+  const porAviso = historico.filter((a) => a.status === 'cancelado' && a.canceladoPorAviso && a.data >= hoje && !a.reagendarVisto);
+  if (porAviso.length) {
+    const quais = porAviso.map((a) => `${formatarData(a.data)} ${a.horario}`).join(', ');
+    area.append(alerta('perigo', 'alerta', [
+      el('strong', { text: t('dash.canceladaAviso') }), el('br'),
+      t('dash.canceladaAvisoTexto', { quais }),
+    ], el('div', { class: 'flex gap-8 quebra' }, [
+      el('a', { href: 'agendar.html', class: 'btn btn-primario btn-peq', text: t('dash.reagendar') }),
+      el('button', {
+        type: 'button', class: 'btn btn-claro btn-peq', text: t('comum.entendi'),
+        onclick: async (ev) => {
+          ev.currentTarget.closest('.alerta')?.remove();
+          // O aluno não altera agendamentos além do cancelamento: guarda no navegador.
+          porAviso.forEach((a) => { try { localStorage.setItem(`bf_visto_${a.id}`, '1'); } catch { /* ok */ } });
+        },
+      }),
+    ])));
   }
+
+  // 3. Reserva paga cuja vaga acabou antes de agendar.
+  const falhas = await reservasQueFalharam(usuario.id);
+  for (const compra of falhas) {
+    area.append(alerta('aviso', 'agenda', [
+      t('dash.reservaFalhou', { quando: `${formatarData(compra.reserva.data)} ${compra.reserva.horario}` }),
+    ], el('div', { class: 'flex gap-8 quebra' }, [
+      el('a', { href: 'agendar.html', class: 'btn btn-primario btn-peq', text: t('dash.escolherOutro') }),
+      el('button', {
+        type: 'button', class: 'btn btn-claro btn-peq', text: t('comum.entendi'),
+        onclick: async (ev) => {
+          ev.currentTarget.closest('.alerta')?.remove();
+          try { await atualizar('compras', compra.id, { reservaStatus: 'dispensada' }); } catch { /* ok */ }
+        },
+      }),
+    ])));
+  }
+
+  // 4. Questionário de saúde vencido ou perto de vencer.
+  const decl = await ultimaDeclaracao(usuario.id);
+  const dias = diasParaVencer(decl);
+  if (!declaracaoVigente(decl)) {
+    area.append(alerta('aviso', 'saude', [decl ? t('dash.saudeVencida') : t('dash.saudePendente')],
+      el('a', { href: 'saude.html', class: 'negrito', text: `${t('dash.responder')} →` })));
+  } else if (dias !== null && dias <= 15) {
+    area.append(alerta('info', 'saude', [t('dash.saudeVencendo', { dias })],
+      el('a', { href: 'saude.html', class: 'negrito', text: `${t('dash.renovar')} →` })));
+  }
+
+  // 5. Sem créditos nem aulas.
+  if (resumo.saldo === 0 && resumo.totalAgendadas === 0) {
+    area.append(alerta('aviso', 'creditos', [t('dash.semCreditosAlerta')],
+      el('a', { href: 'reservar.html', class: 'negrito', text: `${t('dash.verPlanos')} →` })));
+  }
+}
+
+/** Botão do grupo de WhatsApp: aparece depois que o aluno tem aula marcada. */
+function montarGrupoWhatsapp(historico) {
+  const alvo = qs('#grupo-whatsapp');
+  alvo.innerHTML = '';
+  const link = contexto.config.grupoWhatsapp;
+  const temAula = historico.some((a) => a.status === 'confirmado' || a.status === 'realizado');
+  if (!link || !temAula) return;
+  alvo.append(el('a', {
+    class: 'cartao-whatsapp', href: link, target: '_blank', rel: 'noopener',
+  }, [
+    el('span', { class: 'icone-acao' }, [iconeEl('whatsapp')]),
+    el('span', { class: 'cresce' }, [
+      el('strong', { text: t('dash.grupoTitulo') }), el('br'),
+      el('span', { class: 'texto-peq', text: t('dash.grupoTexto') }),
+    ]),
+    el('span', { class: 'btn btn-claro btn-peq', text: t('dash.grupoEntrar') }),
+  ]));
 }
 
 /* --------------------------------------------------------------------------
@@ -188,11 +292,21 @@ function montarEstatisticas(resumo, proximaAula) {
 
 async function carregarTudo() {
   contexto = await carregarContexto();
-  const resumo = await resumoAluno(usuario.id);
-  const aulas = await montarProximas();
+  const [resumo, historico, justificativas] = await Promise.all([
+    resumoAluno(usuario.id),
+    historicoDoAluno(usuario.id),
+    justificativasDoAluno(usuario.id).catch(() => []),
+  ]);
+  justificadas = new Set(justificativas.filter((j) => j.status === 'pendente').map((j) => j.agendamentoId));
+  // "Entendi" no aviso de reagendamento fica guardado neste navegador.
+  historico.forEach((a) => {
+    try { if (localStorage.getItem(`bf_visto_${a.id}`)) a.reagendarVisto = true; } catch { /* ok */ }
+  });
 
+  const aulas = await montarProximas();
   montarEstatisticas(resumo, aulas[0] || null);
-  await Promise.all([montarCreditos(resumo.saldo), montarMiniPacotes()]);
+  montarGrupoWhatsapp(historico);
+  await Promise.all([montarCreditos(resumo.saldo), montarMiniPacotes(), montarAlertas(resumo, historico)]);
 }
 
 async function iniciar() {
@@ -213,6 +327,14 @@ async function iniciar() {
   );
   qs('#saudacao-data').textContent = `${dataFormatada.charAt(0).toUpperCase()}${dataFormatada.slice(1)} · Florianópolis`;
 
+  // Reserva paga que ainda não virou aula (o aluno fechou a aba no pagamento).
+  try {
+    const resultados = await concluirReservasPendentes(usuario);
+    if (resultados.some((r) => r.status === 'agendada')) toast(t('dash.reservaAgendada'), 'sucesso', 5000);
+  } catch (err) {
+    console.warn('[dashboard] não foi possível concluir reservas pendentes:', err);
+  }
+
   try {
     await carregarTudo();
   } catch (err) {
@@ -220,24 +342,20 @@ async function iniciar() {
     toast('Não foi possível carregar seus dados. Recarregue a página.', 'erro');
   }
 
-  // Mensagens vindas de outras telas
   if (paramUrl('compra') === 'ok') {
     toast('Pagamento confirmado! Seus créditos já estão disponíveis.', 'sucesso', 5000);
     history.replaceState(null, '', 'dashboard.html');
   }
   if (paramUrl('agendado') === 'ok') {
-    toast('Aula agendada. Até a praia!', 'sucesso', 4000);
+    toast(t('dash.agendadoOk'), 'sucesso', 5000);
     history.replaceState(null, '', 'dashboard.html');
   }
 
-  // Tutorial no primeiro acesso (ou quando o aluno pede para rever).
-  // Vem antes dos avisos para os dois não disputarem a tela.
   const pedidoNoMenu = paramUrl('tutorial') === '1';
   if (pedidoNoMenu || tutorialPendente(usuario)) {
     if (pedidoNoMenu) history.replaceState(null, '', 'dashboard.html');
 
     const resultado = await executarTour(passosPainel(usuario), { rotuloEtapa: 'Seu painel' });
-    // Pular também conta como visto: o aluno pode rever pelo menu.
     await marcarTutorialConcluido(usuario);
 
     if (resultado === 'agendar') {
@@ -246,7 +364,6 @@ async function iniciar() {
     }
   }
 
-  // Avisos do administrador, depois que a tela já está montada.
   try {
     await mostrarAvisosPendentes(usuario.id);
   } catch (err) {

@@ -50,6 +50,12 @@ const CAMINHOS = {
   fechar: '<path d="M6 6l12 12M18 6 6 18"/>',
   seta: '<path d="M5 12h14M13 6l6 6-6 6"/>',
   mais: '<path d="M12 5v14M5 12h14"/>',
+  saude: '<path d="M12 20.5s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7.6a4.3 4.3 0 0 1 7.5 2.7c0 5.6-7.5 10.2-7.5 10.2Z"/><path d="M8 12.5h2.2l1.2-2.2 1.6 4 1.2-1.8H16"/>',
+  whatsapp: '<path d="M20.5 12a8.5 8.5 0 0 1-12.4 7.55L3.5 20.5l1-4.4A8.5 8.5 0 1 1 20.5 12Z"/><path d="M9 8.5c0 3.5 2.9 6.5 6.5 6.5l1-1.6-2-1-1 .8a4.6 4.6 0 0 1-2.7-2.7l.8-1-1-2Z"/>',
+  cupom: '<path d="M3.5 12V5.5a2 2 0 0 1 2-2H12l8.5 8.5-8.5 8.5Z"/><circle cx="8" cy="8" r="1.4"/>',
+  documento: '<rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="11" r="2"/><path d="M5.5 16a3 3 0 0 1 6 0M14 10h4M14 13.5h4"/>',
+  anexo: '<path d="m20 11.5-8.2 8.2a5 5 0 0 1-7-7l8.6-8.6a3.3 3.3 0 0 1 4.7 4.7l-8.6 8.6a1.7 1.7 0 0 1-2.4-2.4l7.9-7.9"/>',
+  download: '<path d="M12 3.5v11M7 10l5 5 5-5"/><path d="M4 19.5h16"/>',
 };
 
 const ATRIBUTOS = 'viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"';

@@ -23,7 +23,6 @@ function cartaoMensagem(m) {
   const naoLida = !m.lidaEm;
   const turma = m.turma?.data
     ? `Sobre a aula de ${formatarData(m.turma.data)} às ${m.turma.horario}`
-      + `${m.turma.professorId ? ` · Prof. ${contexto.mapaProfessores.get(m.turma.professorId)?.nome || ''}` : ''}`
     : '';
 
   return el('article', {

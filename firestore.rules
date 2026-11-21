@@ -2,12 +2,16 @@ rules_version = '2';
 
 // Regras de segurança do Firestore — Barra Floripa Surf School
 //
-// Cole este arquivo em: Console do Firebase > Firestore Database > Regras.
+// Publique com:  firebase deploy --only firestore:rules
+// (ou cole em: Console do Firebase > Firestore Database > Regras)
 //
 // Princípio: o papel do usuário (aluno/professor/admin) é lido SEMPRE do
 // documento `usuarios/{uid}` no servidor, nunca de algo que o navegador
 // envie. Assim, mesmo que alguém altere o JavaScript da página, não
 // consegue se promover a administrador nem ler dados de outros alunos.
+//
+// O servidor (Cloud Functions, Admin SDK) ignora estas regras: é ele que
+// confirma pagamentos e lança créditos de compra em produção.
 
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -38,98 +42,159 @@ service cloud.firestore {
       return autenticado() && request.auth.uid == alunoId;
     }
 
-    // No próprio perfil, o usuário só muda telefone e foto (tela "Meu
-    // perfil") e a marca de tutorial visto. Nome, e-mail, papel e ativo
-    // ficam travados — só o administrador altera.
+    function configApp() {
+      return get(/databases/$(database)/documents/config/app).data;
+    }
+
+    // Pagamento simulado (modo demonstração): o navegador confirma a compra.
+    // Em produção fica DESLIGADO — só o servidor marca compra como paga e
+    // lança crédito de compra. Para testar o modo demo com o Firebase, crie
+    // o campo `pagamentoSimulado: true` no documento config/app.
+    function pagamentoSimulado() {
+      return exists(/databases/$(database)/documents/config/app)
+        && configApp().get('pagamentoSimulado', false) == true;
+    }
+
+    // No próprio perfil, o usuário muda telefone, foto, idioma, a marca de
+    // tutorial visto e completa os dados pessoais. Nome, e-mail, papel e
+    // ativo ficam travados. O CPF, depois de gravado, só o admin altera.
     function soCamposDoPerfil() {
       let mudou = request.resource.data.diff(resource.data).affectedKeys();
-      return mudou.hasOnly(['telefone', 'fotoUrl', 'tutorialConcluido', 'atualizadoEm'])
+      return mudou.hasOnly(['telefone', 'fotoUrl', 'tutorialConcluido', 'atualizadoEm',
+                            'idioma', 'nacionalidade', 'cpf', 'documento', 'nascimento'])
+          && (!mudou.hasAny(['cpf'])
+              || resource.data.get('cpf', null) == null
+              || resource.data.get('cpf', '') == '')
           && (!('fotoUrl' in request.resource.data)
               || request.resource.data.fotoUrl == null
               || (request.resource.data.fotoUrl is string
                   && request.resource.data.fotoUrl.size() < 300000))
           && (!('telefone' in request.resource.data)
               || (request.resource.data.telefone is string
-                  && request.resource.data.telefone.size() <= 20));
+                  && request.resource.data.telefone.size() <= 25));
     }
 
     // ---------- usuarios ----------
     match /usuarios/{usuarioId} {
-      // Cada um lê o próprio perfil; a equipe lê todos (para montar turmas).
+      // Cada um lê o próprio perfil; a equipe lê todos (turmas, baixa por CPF).
       allow read: if ehDono(usuarioId) || ehEquipe();
 
       // No cadastro o usuário cria o próprio documento, sempre como 'aluno'.
-      // O administrador também cria perfis — é assim que entra um professor
-      // novo (a conta nasce em js/equipe.js). Ele não pode criar outro admin.
+      // O administrador também cria perfis (professor novo, em js/equipe.js).
       allow create: if (ehDono(usuarioId)
                         && request.resource.data.papel == 'aluno'
                         && request.resource.data.ativo == true)
                     || (ehAdmin()
                         && request.resource.data.papel in ['aluno', 'professor']);
 
-      // Cada um edita telefone e foto do próprio perfil; o resto, só o admin.
       allow update: if (ehDono(usuarioId) && soCamposDoPerfil()) || ehAdmin();
 
       allow delete: if ehAdmin();
     }
 
-    // ---------- professores ----------
+    // ---------- catálogo e configuração (públicos: o fluxo de reserva
+    //            funciona antes do login) ----------
     match /professores/{professorId} {
-      allow read: if true;            // a landing mostra a equipe
-      allow write: if ehAdmin();      // só o administrador renomeia/desativa
-    }
-
-    // ---------- pacotes (catálogo de preços) ----------
-    match /pacotes/{pacoteId} {
-      allow read: if true;            // preços são públicos
+      allow read: if true;
       allow write: if ehAdmin();
     }
 
-    // ---------- locais ----------
+    match /pacotes/{pacoteId} {
+      allow read: if true;
+      allow write: if ehAdmin();
+    }
+
     match /locais/{localId} {
       allow read: if true;
       allow write: if ehAdmin();
     }
 
-    // ---------- config ----------
     match /config/{documento} {
-      allow read: if true;            // horários e capacidade são públicos
+      allow read: if true;            // horários, capacidade, datas sem aula
       allow write: if ehAdmin();
+    }
+
+    // ---------- cupons ----------
+    // Qualquer visitante consulta UM cupom pelo código (get), mas ninguém
+    // além do admin lista a coleção — os códigos não ficam expostos.
+    match /cupons/{codigo} {
+      allow get: if true;
+      allow list: if ehAdmin();
+      allow create, delete: if ehAdmin();
+      // Demonstração: o navegador conta o uso (+1). Em produção, o servidor.
+      allow update: if ehAdmin()
+                    || (autenticado() && pagamentoSimulado()
+                        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['usos', 'atualizadoEm'])
+                        && request.resource.data.usos == resource.data.get('usos', 0) + 1);
     }
 
     // ---------- compras ----------
     match /compras/{compraId} {
       allow read: if ehDono(resource.data.alunoId) || ehEquipe();
 
-      // O aluno registra a própria compra, sempre como 'pendente'.
+      // O aluno registra a própria compra, sempre como 'pendente'. Valor,
+      // cupom e créditos são recalculados pelo servidor antes de cobrar.
       allow create: if ehDono(request.resource.data.alunoId)
                     && request.resource.data.status == 'pendente';
 
-      // ATENÇÃO (produção): marcar como 'pago' deveria ser feito APENAS pelo
-      // backend que recebe o webhook do gateway, usando o Admin SDK (que
-      // ignora estas regras). Enquanto o projeto roda em modo demonstração,
-      // a linha abaixo permite ao próprio aluno confirmar — troque por
-      // `allow update: if false;` assim que ligar o pagamento real.
-      allow update: if ehDono(resource.data.alunoId) || ehAdmin();
+      // O aluno pode: desistir da compra pendente; atualizar o andamento da
+      // reserva (aula agendada depois do pagamento). Marcar como paga, só o
+      // servidor — ou o navegador no modo demonstração.
+      allow update: if ehAdmin()
+                    || (ehDono(resource.data.alunoId)
+                        && (request.resource.data.diff(resource.data).affectedKeys()
+                              .hasOnly(['reservaStatus', 'reservaAgendamentoId', 'reservaErro', 'atualizadoEm'])
+                            || (resource.data.status == 'pendente'
+                                && request.resource.data.status == 'cancelado'
+                                && request.resource.data.diff(resource.data).affectedKeys()
+                                     .hasOnly(['status', 'atualizadoEm']))
+                            || pagamentoSimulado()));
 
       allow delete: if ehAdmin();
     }
 
     // ---------- creditos (extrato) ----------
+    //
+    // Lançamentos são imutáveis. O aluno só cria:
+    //  - débito de 1 crédito ao agendar uma aula própria e confirmada;
+    //  - estorno de 1 crédito com id `estorno_<aula>`, quando a própria aula
+    //    acaba de ser cancelada. O id fixo impede um segundo estorno.
+    // Crédito de compra: servidor (produção) ou demonstração.
+    // Ajuste manual: só o administrador.
     match /creditos/{lancamentoId} {
       allow read: if ehDono(resource.data.alunoId) || ehEquipe();
 
-      // Mesma observação das compras: em produção, emitir crédito é papel do
-      // backend. O aluno pode lançar apenas débito (-1 ao agendar) e o
-      // estorno vem de um cancelamento validado.
-      // Ajuste manual (aba Alunos do painel) é exclusivo do administrador.
       allow create: if ehAdmin()
-                    || (request.resource.data.motivo != 'ajuste'
-                        && (ehDono(request.resource.data.alunoId) || ehEquipe()));
+                    || (ehEquipe() && request.resource.data.motivo != 'ajuste')
+                    || (ehDono(request.resource.data.alunoId) && (
+                          debitoDeAgendamento()
+                          || estornoDeCancelamento(lancamentoId)
+                          || (pagamentoSimulado() && request.resource.data.motivo == 'compra')));
 
-      // Lançamento é imutável: corrigir se faz com um novo lançamento de
-      // ajuste, preservando a trilha de auditoria.
       allow update, delete: if false;
+    }
+
+    function aulaDepois(agendamentoId) {
+      return getAfter(/databases/$(database)/documents/agendamentos/$(agendamentoId)).data;
+    }
+
+    function debitoDeAgendamento() {
+      let novo = request.resource.data;
+      return novo.motivo == 'agendamento'
+        && novo.delta == -1
+        && novo.agendamentoId is string
+        && aulaDepois(novo.agendamentoId).alunoId == request.auth.uid
+        && aulaDepois(novo.agendamentoId).status == 'confirmado';
+    }
+
+    function estornoDeCancelamento(lancamentoId) {
+      let novo = request.resource.data;
+      return novo.motivo == 'cancelamento'
+        && novo.delta == 1
+        && novo.agendamentoId is string
+        && lancamentoId == 'estorno_' + novo.agendamentoId
+        && aulaDepois(novo.agendamentoId).alunoId == request.auth.uid
+        && aulaDepois(novo.agendamentoId).status == 'cancelado';
     }
 
     // ---------- agendamentos ----------
@@ -137,13 +202,16 @@ service cloud.firestore {
       // O aluno vê as próprias aulas; a equipe vê todas.
       allow read: if ehDono(resource.data.alunoId) || ehEquipe();
 
-      allow create: if ehDono(request.resource.data.alunoId)
+      allow create: if (ehDono(request.resource.data.alunoId) || ehEquipe())
                     && request.resource.data.status == 'confirmado'
                     && request.resource.data.duracaoMin is number;
 
-      // Aluno cancela a própria aula; a equipe cancela qualquer uma.
+      // Aluno cancela a própria aula; a equipe cancela, registra presença e
+      // (o admin) troca o professor.
       allow update: if (ehDono(resource.data.alunoId)
-                        && request.resource.data.status == 'cancelado')
+                        && resource.data.status == 'confirmado'
+                        && request.resource.data.status == 'cancelado'
+                        && request.resource.data.professorId == resource.data.professorId)
                     || ehEquipe();
 
       allow delete: if ehAdmin();
@@ -152,15 +220,10 @@ service cloud.firestore {
     // ---------- vagas (lotação pública das turmas) ----------
     //
     // Só números: { data, professorId, horario, ocupados, individual }.
-    // Qualquer usuário logado lê — é o que o calendário do aluno mostra —,
-    // sem expor quem são os outros alunos (isso fica em `agendamentos`).
-    //
-    // Um aluno só altera a contagem em +1 junto com a criação de uma aula
-    // própria, ou em −1 junto com o cancelamento de uma aula própria, e
-    // nunca acima da capacidade. A conferência usa getAfter(): olha o
-    // agendamento como ele fica no fim da mesma transação.
+    // Leitura pública: o calendário do fluxo de reserva aparece antes do
+    // login, sem expor quem são os alunos (isso fica em `agendamentos`).
     match /vagas/{vagaId} {
-      allow read: if autenticado();
+      allow read: if true;
 
       allow create: if ehEquipe() || (autenticado() && vagaAlteradaPeloAluno(vagaId, 0));
       allow update: if ehEquipe()
@@ -170,7 +233,7 @@ service cloud.firestore {
 
     function capacidadeGrupo() {
       return exists(/databases/$(database)/documents/config/app)
-        ? get(/databases/$(database)/documents/config/app).data.capacidadeGrupo
+        ? configApp().get('capacidadeGrupo', 5)
         : 5;
     }
 
@@ -180,7 +243,6 @@ service cloud.firestore {
       let delta = novo.ocupados - ocupadosAntes;
       return novo.ultimoAgendamento is string
         && aula.alunoId == request.auth.uid
-        // A vaga alterada tem de ser exatamente a turma daquela aula.
         && vagaId == aula.data + '_' + aula.professorId + '_' + aula.horario.replace(':', '')
         && ((delta == 1 && aula.status == 'confirmado')
             || (delta == -1 && aula.status == 'cancelado'))
@@ -190,27 +252,53 @@ service cloud.firestore {
 
     // ---------- disponibilidade dos professores ----------
     match /disponibilidade/{professorId} {
-      // Pública para quem está logado: o calendário do aluno depende dela.
-      allow read: if autenticado();
-      // O próprio professor edita a dele; o administrador edita a de todos.
+      allow read: if true;            // o calendário público depende dela
       allow write: if ehAdmin()
                    || (ehEquipe()
                        && get(/databases/$(database)/documents/professores/$(professorId)).data.usuarioId
                           == request.auth.uid);
     }
 
+    // ---------- declarações de saúde (PAR-Q + termo) ----------
+    // O aluno cria a própria (assinada) e lê as suas; a equipe lê todas
+    // (hall de declarações). Ninguém altera um documento assinado.
+    match /declaracoes/{declaracaoId} {
+      allow read: if ehDono(resource.data.alunoId) || ehEquipe();
+      allow create: if ehDono(request.resource.data.alunoId)
+                    && request.resource.data.aceiteTermo == true
+                    && request.resource.data.assinatura is string
+                    && request.resource.data.assinatura.size() < 150000;
+      allow update: if false;
+      allow delete: if ehAdmin();
+    }
+
+    // ---------- justificativas de falta ----------
+    match /justificativas/{justificativaId} {
+      allow read: if ehDono(resource.data.alunoId) || ehAdmin();
+      allow create: if ehDono(request.resource.data.alunoId)
+                    && request.resource.data.status == 'pendente'
+                    && getAfter(/databases/$(database)/documents/agendamentos/$(request.resource.data.agendamentoId))
+                         .data.alunoId == request.auth.uid;
+      allow update, delete: if ehAdmin();
+    }
+
+    // ---------- repasses (pagamentos da escola aos professores) ----------
+    // Cada professor lê só os pagamentos dele (campo professorUsuarioId).
+    match /repasses/{repasseId} {
+      allow read: if ehAdmin()
+                  || (autenticado() && resource.data.professorUsuarioId == request.auth.uid);
+      allow write: if ehAdmin();
+    }
+
     // ---------- mensagens da equipe para os alunos ----------
-    // Um documento por aluno destinatário (ver js/mensagens.js).
     match /mensagens/{mensagemId} {
       allow read: if autenticado()
                   && (resource.data.destinatarioId == request.auth.uid
                       || resource.data.remetenteId == request.auth.uid
                       || ehAdmin());
 
-      // Só a equipe envia, e sempre em nome de quem está logado.
       allow create: if ehEquipe() && request.resource.data.remetenteId == request.auth.uid;
 
-      // O aluno só pode marcar a própria mensagem como lida.
       allow update: if (ehDono(resource.data.destinatarioId)
                         && request.resource.data.diff(resource.data).affectedKeys()
                              .hasOnly(['lidaEm', 'atualizadoEm']))
@@ -226,12 +314,16 @@ service cloud.firestore {
       allow write: if ehAdmin();
     }
 
-    // ---------- avisosLidos ----------
     match /avisosLidos/{leituraId} {
       allow read: if autenticado();
-      // O id é `<alunoId>_<avisoId>`: só o próprio aluno registra a leitura.
       allow create: if ehDono(request.resource.data.alunoId);
       allow update, delete: if ehAdmin();
+    }
+
+    // ---------- registros do servidor (e-mails, notificações) ----------
+    match /emails/{id} {
+      allow read: if ehAdmin();
+      allow write: if false;
     }
 
     // Qualquer coleção não prevista acima fica bloqueada.

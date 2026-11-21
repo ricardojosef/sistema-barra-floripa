@@ -8,7 +8,7 @@
  * landing, o checkout, o agendamento e os painéis.
  */
 
-import { DEFAULTS, PRECO_AULA_AVULSA } from './config.js';
+import { DEFAULTS, PRECO_AULA_AVULSA, ESCOLA } from './config.js';
 import { listar, obter } from './store.js';
 
 /* --------------------------------------------------------------------------
@@ -27,8 +27,18 @@ export async function obterConfig() {
     capacidadeGrupo: salvo?.capacidadeGrupo ?? DEFAULTS.capacidadeGrupo,
     horasMinimasCancelamento: salvo?.horasMinimasCancelamento ?? DEFAULTS.horasMinimasCancelamento,
     localPadraoId: salvo?.localPadraoId || DEFAULTS.locais[0]?.id || null,
+    validadeDeclaracaoMeses: salvo?.validadeDeclaracaoMeses ?? DEFAULTS.validadeDeclaracaoMeses,
+    remuneracao: { ...DEFAULTS.remuneracao, ...(salvo?.remuneracao || {}) },
+    /** Datas sem aula (tempestade, feriado...): [{ data, motivo, avisoId }]. */
+    diasSemAula: Array.isArray(salvo?.diasSemAula) ? salvo.diasSemAula : [],
+    grupoWhatsapp: salvo?.grupoWhatsapp ?? ESCOLA.grupoWhatsapp ?? '',
     atualizadoEm: salvo?.atualizadoEm || null,
   };
+}
+
+/** A data está bloqueada por um aviso de "não haverá aulas"? Devolve o bloqueio ou null. */
+export function bloqueioDoDia(config, data) {
+  return (config?.diasSemAula || []).find((d) => d.data === data) || null;
 }
 
 /* --------------------------------------------------------------------------

@@ -116,7 +116,6 @@ const linhasAula = (aula) => [
   ['Data', dataExtenso(aula.data)],
   ['Horário', faixa(aula)],
   ['Tipo', tipoAula(aula)],
-  ['Professor', aula.professorNome],
   ['Local', aula.localNome],
 ];
 
@@ -130,7 +129,7 @@ function boasVindas({ aluno }) {
     html: moldura({
       titulo: `Que bom ter você com a gente, ${nome}!`,
       blocos: [
-        p('Sua conta na Barra Floripa está criada. Pelo site você compra seus créditos, escolhe dia, horário e professor, e acompanha suas aulas.'),
+        p('Sua conta na Barra Floripa está criada. Pelo site você compra seus créditos, escolhe dia e horário das aulas e acompanha tudo pelo seu painel.'),
         p('<strong>Como marcar a primeira aula:</strong>'),
         `<ol style="margin:0 0 12px;padding-left:20px">
           <li>Escolha um plano em <em>Comprar Plano</em> (a aula avulsa é ótima para começar);</li>
@@ -187,7 +186,7 @@ function agendamentoConfirmado({ aluno, aula, horasCancelamento }) {
   const url = `${SITE_URL()}/dashboard.html`;
   const nome = primeiroNome(aluno.nome);
   const linhas = linhasAula(aula);
-  const prazo = `Precisa desmarcar? Pelo site, até ${horasCancelamento}h antes da aula, e o crédito volta na hora. Depois disso, fale com a escola pelo WhatsApp ${ESCOLA.whatsapp}.`;
+  const prazo = `Precisa desmarcar? Pelo site, até ${horasCancelamento}h antes da aula, e o crédito volta na hora. Depois disso o site não cancela mais: falta sem justificativa aprovada faz perder o crédito (envie a justificativa pelo painel). Leve seu CPF ou passaporte — a presença é conferida na praia.`;
 
   return {
     assunto: `Aula confirmada: ${dataExtenso(aula.data)}, ${aula.horario}`,
@@ -210,12 +209,12 @@ function aulaCanceladaAluno({ aluno, aula }) {
   const peloAluno = aula.canceladoPorPapel === 'aluno';
   const linhas = [
     ...linhasAula(aula),
-    ['Cancelada por', peloAluno ? 'Você' : (aula.canceladoPorNome || 'Escola')],
+    ['Cancelada por', peloAluno ? 'Você' : 'Barra Floripa'],
     ['Motivo', aula.motivoCancelamento],
   ];
   const abertura = peloAluno
     ? 'O cancelamento da sua aula foi registrado.'
-    : `${aula.canceladoPorNome || 'A escola'} precisou cancelar a sua aula.`;
+    : 'A escola precisou cancelar a sua aula.';
 
   return {
     assunto: `Aula cancelada: ${dataExtenso(aula.data)}, ${aula.horario}`,
@@ -304,7 +303,53 @@ function professorCancelamento({ professor, aula, totalNaTurma }) {
   };
 }
 
+function justificativaRecebida({ admin, justificativa }) {
+  const url = `${SITE_URL()}/admin.html#justificativas`;
+  const linhas = [
+    ['Aluno', justificativa.alunoNome],
+    ['Aula', `${dataExtenso(justificativa.aula.data)}, ${justificativa.aula.horario}`],
+    ['Anexo', justificativa.anexo ? (justificativa.anexo.tipo === 'application/pdf' ? 'PDF' : 'Imagem') : 'Sem anexo'],
+  ];
+  return {
+    assunto: `Justificativa de falta: ${justificativa.alunoNome}`,
+    html: moldura({
+      titulo: 'Nova justificativa para analisar',
+      blocos: [
+        p(`Olá, ${escapar(primeiroNome(admin.nome))}! Um aluno enviou uma justificativa:`),
+        tabela(linhas),
+        `<div style="border-left:4px solid ${LARANJA};background:#fff3e9;padding:12px 16px;margin:0 0 16px">${escapar(justificativa.texto).replace(/\n/g, '<br>')}</div>`,
+      ],
+      botao: { texto: 'Analisar no painel', url },
+    }),
+    texto: `Nova justificativa de ${justificativa.alunoNome}:\n\n${tabelaTexto(linhas)}\n\n${justificativa.texto}\n\nAnalisar: ${url}`,
+  };
+}
+
+function professorReatribuido({ professor, aula, entrou }) {
+  const url = `${SITE_URL()}/professor.html`;
+  const linhas = [
+    ['Aluno', aula.alunoNome],
+    ['Data', dataExtenso(aula.data)],
+    ['Horário', faixa(aula)],
+    ['Tipo', tipoAula(aula)],
+    ['Local', aula.localNome],
+  ];
+  return {
+    assunto: entrou
+      ? `Aluno passado para você: ${aula.alunoNome} — ${dataExtenso(aula.data)}, ${aula.horario}`
+      : `Aluno saiu da sua turma: ${aula.alunoNome} — ${dataExtenso(aula.data)}, ${aula.horario}`,
+    html: moldura({
+      titulo: entrou ? 'A escola passou um aluno para a sua turma' : 'A escola passou um aluno para outro professor',
+      blocos: [p(`Olá, ${escapar(primeiroNome(professor.nome))}!`), tabela(linhas)],
+      botao: { texto: 'Ver minhas turmas', url },
+    }),
+    texto: `Olá, ${primeiroNome(professor.nome)}! ${entrou ? 'Aluno passado para a sua turma' : 'Aluno saiu da sua turma'}:\n\n${tabelaTexto(linhas)}\n\n${url}`,
+  };
+}
+
 module.exports = {
+  justificativaRecebida,
+  professorReatribuido,
   boasVindas,
   creditosAdicionados,
   agendamentoConfirmado,
