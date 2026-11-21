@@ -1128,6 +1128,8 @@ Object.assign(en, { 'comum.dataInvalida': 'Invalid date. Use the format {formato
 Object.assign(es, { 'comum.dataInvalida': 'Fecha inválida. Usa el formato {formato}.' });
 
 Object.assign(pt, {
+  'reserva.plano.qtdUnitario': '{n} aulas de {valor} cada',
+  'reserva.plano.qtdDesc': 'Sem pacote: pague só as aulas que marcou.',
   'whats.mensagem': 'Olá! Vim pelo site e tenho uma dúvida sobre as aulas de surf.',
   'whats.flutuante': 'Dúvidas? Chame no WhatsApp',
   'whats.flutuanteAria': 'Tirar dúvidas pelo WhatsApp da escola',
@@ -1177,6 +1179,8 @@ Object.assign(pt, {
 });
 
 Object.assign(en, {
+  'reserva.plano.qtdUnitario': '{n} lessons at {valor} each',
+  'reserva.plano.qtdDesc': 'No package: pay only for the lessons you picked.',
   'whats.mensagem': 'Hi! I found you on the website and have a question about surf lessons.',
   'whats.flutuante': 'Questions? Chat on WhatsApp',
   'whats.flutuanteAria': "Ask questions on the school's WhatsApp",
@@ -1226,6 +1230,8 @@ Object.assign(en, {
 });
 
 Object.assign(es, {
+  'reserva.plano.qtdUnitario': '{n} clases de {valor} cada una',
+  'reserva.plano.qtdDesc': 'Sin paquete: paga solo las clases que marcaste.',
   'whats.mensagem': '¡Hola! Vengo del sitio web y tengo una duda sobre las clases de surf.',
   'whats.flutuante': '¿Dudas? Escríbenos por WhatsApp',
   'whats.flutuanteAria': 'Consultar por el WhatsApp de la escuela',

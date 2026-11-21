@@ -20,6 +20,7 @@ import {
 } from '../auth.js';
 import {
   carregarContexto, obterPacotesAgrupados, precoUnitario, sufixoPeriodo, economiaDoPacote, textoValidade,
+  pacoteComQuantidade, aceitaQuantidade, MAX_QUANTIDADE,
 } from '../precos.js';
 import { saldoCreditos } from '../creditos.js';
 import { declaracaoValida, baixarPdfDeclaracao } from '../saude.js';
@@ -48,7 +49,11 @@ let rascunho = lerRascunho();
 let etapaAtual = 'aula';
 let seletor = null;
 
-const pacoteEscolhido = () => catalogo?.todos.find((p) => p.id === rascunho.pacoteId) || null;
+/** O plano escolhido, já multiplicado pela quantidade (ex.: 2× aula avulsa). */
+function pacoteEscolhido() {
+  const base = catalogo?.todos.find((p) => p.id === rascunho.pacoteId);
+  return base ? pacoteComQuantidade(base, rascunho.quantidade || 1) : null;
+}
 const tipoDaAula = () => (rascunho.tipo === 'individual' ? 'individual' : 'grupo');
 const aulasEscolhidas = () => rascunho.aulas || [];
 const ehAluno = () => usuario?.papel === 'aluno';
@@ -207,8 +212,11 @@ function planosDoTipo(tipo) {
 /** Quantas aulas dá para marcar de uma vez: o maior pacote do tipo (ou o plano já escolhido pelo link). */
 function limiteDeAulas() {
   const pacote = pacoteEscolhido();
-  if (pacote && rascunho.pacoteFixo) return Number(pacote.creditos) || 1;
-  return Math.max(1, ...planosDoTipo(tipoDaAula()).map((p) => Number(p.creditos) || 1));
+  if (pacote && rascunho.pacoteFixo && !aceitaQuantidade(catalogo.todos.find((p) => p.id === pacote.id))) {
+    return Number(pacote.creditos) || 1;
+  }
+  // Aula avulsa/particular pode ser comprada em quantidade.
+  return Math.max(1, ...planosDoTipo(tipoDaAula()).map((p) => (aceitaQuantidade(p) ? MAX_QUANTIDADE : Number(p.creditos) || 1)));
 }
 
 const chaveDaAula = (a) => `${a.data}|${a.horario}|${a.localId || ''}`;
@@ -389,10 +397,27 @@ function motivoIncompativel(p, aulas) {
 }
 
 /** O plano mais barato que cobre as aulas (empate: o que dá mais créditos). */
-function melhorPlano(aulas) {
+/**
+ * Opções de compra para as aulas marcadas: os planos do catálogo e, quando
+ * há mais de uma aula, a aula avulsa (ou particular) multiplicada — para
+ * quem não quer pacote nem mensalidade.
+ */
+function opcoesParaAulas(aulas) {
+  return planosDoTipo(tipoDaAula()).map((p) => (
+    aceitaQuantidade(p) && aulas.length > 1 ? pacoteComQuantidade(p, aulas.length) : p
+  ));
+}
+
+/**
+ * O plano recomendado: o pacote mais barato que cobre as aulas (empate: o que
+ * dá mais créditos). As avulsas multiplicadas aparecem como alternativa e só
+ * são recomendadas quando nenhum pacote serve.
+ */
+function melhorPlano(aulas, opcoes = opcoesParaAulas(aulas)) {
   if (!aulas.length) return null;
-  const servem = planosDoTipo(tipoDaAula()).filter((p) => !motivoIncompativel(p, aulas));
-  servem.sort((a, b) => (Number(a.preco) - Number(b.preco)) || (Number(b.creditos) - Number(a.creditos)));
+  const servem = opcoes.filter((p) => !motivoIncompativel(p, aulas));
+  servem.sort((a, b) => ((a.quantidade > 1) - (b.quantidade > 1))
+    || (Number(a.preco) - Number(b.preco)) || (Number(b.creditos) - Number(a.creditos)));
   return servem[0] || null;
 }
 
@@ -403,13 +428,14 @@ function cardPlano(p, { recomendado = false, motivo = null, aulas = [] } = {}) {
   });
   if (recomendado) card.append(el('span', { class: 'selo-popular', text: t('reserva.plano.recomendado') }));
   else if (!aulas.length && p.destaque) card.append(el('span', { class: 'selo-popular', text: t('reserva.plano.popular') }));
-  card.append(el('div', { class: 'plano-nome', text: p.nome }), el('div', { class: 'plano-desc', text: p.descricao || '' }));
+  card.append(el('div', { class: 'plano-nome', text: p.nome }), el('div', { class: 'plano-desc', text: p.quantidade > 1 ? t('reserva.plano.qtdDesc') : (p.descricao || '') }));
   const preco = el('div', { class: 'plano-preco' });
   preco.innerHTML = `${escapar(formatarBRL(p.preco))}${sufixoPeriodo(p) ? `<span class="periodo">${sufixoPeriodo(p)}</span>` : ''}`;
   card.append(preco);
   card.append(el('div', {
     class: 'plano-unitario',
-    text: p.creditos > 1 ? t('reserva.plano.porAula', { valor: formatarBRL(precoUnitario(p)) })
+    text: p.quantidade > 1 ? t('reserva.plano.qtdUnitario', { n: p.quantidade, valor: formatarBRL(p.precoUnitarioBase) })
+      : p.creditos > 1 ? t('reserva.plano.porAula', { valor: formatarBRL(precoUnitario(p)) })
       : (p.tipo === 'individual' ? t('reserva.plano.particular') : t('reserva.plano.avulsa')),
   }));
   const economia = economiaDoPacote(p);
@@ -446,7 +472,9 @@ function cardPlano(p, { recomendado = false, motivo = null, aulas = [] } = {}) {
 }
 
 function escolherPlano(p) {
-  rascunho = salvarRascunho({ pacoteId: p.id, pacoteFixo: false, tipo: p.tipo === 'individual' ? 'individual' : 'grupo' });
+  rascunho = salvarRascunho({
+    pacoteId: p.id, quantidade: p.quantidade || 1, pacoteFixo: false, tipo: p.tipo === 'individual' ? 'individual' : 'grupo',
+  });
   irPara('dados');
 }
 
@@ -492,8 +520,8 @@ async function etapaPlano(alvo) {
     return;
   }
 
-  const planos = planosDoTipo(tipoDaAula());
-  const melhor = melhorPlano(aulas);
+  const planos = opcoesParaAulas(aulas);
+  const melhor = melhorPlano(aulas, planos);
   const servem = planos.filter((p) => !motivoIncompativel(p, aulas));
   const naoServem = planos.filter((p) => motivoIncompativel(p, aulas));
   // O recomendado vem primeiro; os demais na ordem do catálogo.
@@ -826,6 +854,7 @@ async function iniciar() {
   if (doLink && pacoteUrl !== rascunho.pacoteId) {
     rascunho = salvarRascunho({
       pacoteId: doLink.id,
+      quantidade: 1,
       pacoteFixo: true,
       tipo: doLink.tipo === 'individual' ? 'individual' : 'grupo',
       aulas: [],

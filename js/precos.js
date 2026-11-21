@@ -85,11 +85,40 @@ export const sufixoPeriodo = (pacote) => (pacote?.tipo === 'mensal' ? '/mês' : 
  * Quanto o aluno economiza em relação a comprar aulas avulsas.
  * Retorna null quando não há desconto (aula avulsa ou particular).
  */
+/** Quantas aulas avulsas/particulares dá para comprar de uma vez. */
+export const MAX_QUANTIDADE = 12;
+
+/** Só planos de 1 crédito (aula avulsa, particular) podem ser comprados em quantidade. */
+export const aceitaQuantidade = (pacote) => Number(pacote?.creditos) === 1;
+
+/**
+ * O plano multiplicado pela quantidade: '2× Aula em Grupo Avulsa', preço e
+ * créditos dobrados. O servidor refaz a mesma conta antes de cobrar.
+ */
+export function pacoteComQuantidade(pacote, quantidade = 1) {
+  const q = aceitaQuantidade(pacote) ? Math.min(MAX_QUANTIDADE, Math.max(1, Math.trunc(Number(quantidade)) || 1)) : 1;
+  if (q === 1) return { ...pacote, quantidade: 1 };
+  return {
+    ...pacote,
+    quantidade: q,
+    nomeBase: pacote.nome,
+    nome: `${q}× ${pacote.nome}`,
+    preco: Number(pacote.preco) * q,
+    precoUnitarioBase: Number(pacote.preco),
+    creditos: q,
+  };
+}
+
+/** Limite de créditos de um plano (o admin não salva acima disso). */
+export const MAX_CREDITOS_PACOTE = 60;
+
 export function economiaDoPacote(pacote, precoAvulsa = PRECO_AULA_AVULSA) {
   if (!pacote || pacote.tipo === 'avulsa' || pacote.tipo === 'individual') return null;
 
   const creditos = Number(pacote.creditos) || 0;
-  if (creditos < 2) return null;
+  // Acima de MAX_CREDITOS_PACOTE o cadastro está errado (ex.: o preço digitado
+  // no campo de créditos): melhor não mostrar economia nenhuma.
+  if (creditos < 2 || creditos > MAX_CREDITOS_PACOTE) return null;
 
   const valorSemDesconto = creditos * precoAvulsa;
   const economia = valorSemDesconto - (Number(pacote.preco) || 0);

@@ -595,6 +595,17 @@ export function montarRodape() {
  * `paginaAtual` marca o item ativo: 'inicio' | 'agendar' | 'creditos' |
  * 'historico' | 'planos' | 'turmas' | 'admin'.
  */
+/** Guarda o idioma escolhido no perfil (e-mails e professor passam a saber) e redesenha. */
+async function salvarIdiomaDoAluno(idioma) {
+  try {
+    const { atualizarMeuPerfil } = await import('./auth.js');
+    await atualizarMeuPerfil({ idioma });
+  } catch (err) {
+    console.warn('[ui] não foi possível salvar o idioma no perfil:', err);
+  }
+  location.reload();
+}
+
 export function montarShellPainel({ usuario, paginaAtual, aoSair, chipCreditos = false }) {
   const topo = qs('#painel-topo');
   if (topo) {
@@ -605,7 +616,7 @@ export function montarShellPainel({ usuario, paginaAtual, aoSair, chipCreditos =
         <div class="topo-acoes">
           ${chipCreditos ? `
             <a href="creditos.html" class="chip-creditos" id="chip-creditos" title="Seus créditos disponíveis">
-              ${icone('creditos')}<span id="chip-creditos-valor">—</span> créditos
+              ${icone('creditos')}<span id="chip-creditos-valor">—</span><span class="chip-rotulo"> créditos</span>
             </a>` : ''}
           <button class="usuario-chip" id="btn-usuario" aria-label="Menu do usuário">
             <span class="nome">${escapar(primeiroNome(usuario.nome))}</span>
@@ -616,7 +627,7 @@ export function montarShellPainel({ usuario, paginaAtual, aoSair, chipCreditos =
 
     qs('#btn-usuario', topo)?.addEventListener('click', () => {
       const papelTexto = { aluno: 'Aluno', professor: 'Professor', admin: 'Administrador' }[usuario.papel];
-      abrirModal({
+      const modal = abrirModal({
         titulo: 'Minha conta',
         corpo: `
           <div class="flex itens-centro gap-12 mb-16">
@@ -626,7 +637,8 @@ export function montarShellPainel({ usuario, paginaAtual, aoSair, chipCreditos =
               <div class="texto-peq texto-cinza">${escapar(usuario.email)}</div>
               <span class="badge badge-laranja mt-8">${papelTexto}</span>
             </div>
-          </div>`,
+          </div>
+          ${usuario.papel === 'aluno' ? `<div class="idioma-modal"><span class="texto-peq texto-cinza">Idioma / Language</span>${seletorIdiomaHTML('')}</div>` : ''}`,
         botoes: [
           { texto: 'Meu perfil', classe: 'btn-claro', onClick: () => { location.href = 'perfil.html'; } },
           // No celular a barra inferior não comporta o atalho do tutorial;
@@ -641,6 +653,8 @@ export function montarShellPainel({ usuario, paginaAtual, aoSair, chipCreditos =
           { texto: 'Sair', classe: 'btn-perigo', onClick: () => aoSair?.() },
         ],
       });
+      // No celular o seletor de idioma do topo fica escondido: ele mora aqui.
+      if (usuario.papel === 'aluno') ligarSeletorIdioma(modal.corpo, salvarIdiomaDoAluno);
     });
   }
 
@@ -706,16 +720,7 @@ export function montarShellPainel({ usuario, paginaAtual, aoSair, chipCreditos =
   // Seletor de idioma no topo do aluno (estrangeiros usam o painel também).
   if (usuario.papel === 'aluno' && topo) {
     qs('.topo-acoes', topo)?.insertAdjacentHTML('afterbegin', seletorIdiomaHTML('topo-idioma painel'));
-    ligarSeletorIdioma(topo, async (idioma) => {
-      // Guarda a preferência no perfil: e-mails e professor passam a saber.
-      try {
-        const { atualizarMeuPerfil } = await import('./auth.js');
-        await atualizarMeuPerfil({ idioma });
-      } catch (err) {
-        console.warn('[ui] não foi possível salvar o idioma no perfil:', err);
-      }
-      location.reload();
-    });
+    ligarSeletorIdioma(topo, salvarIdiomaDoAluno);
   }
 
   // Ícones escritos direto no HTML da página (<span data-icone="...">).

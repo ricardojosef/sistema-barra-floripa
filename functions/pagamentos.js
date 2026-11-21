@@ -97,6 +97,9 @@ async function uidDoAluno(req) {
  * catálogo. Quem cria a compra é o navegador, então valor e créditos dela
  * só passam a ser confiáveis depois daqui.
  */
+const MAX_CREDITOS_PACOTE = 60;
+const MAX_QUANTIDADE = 12;
+
 async function prepararCompra(req) {
   const uid = await uidDoAluno(req);
   const compraId = String(req.body?.compraId || '');
@@ -111,8 +114,15 @@ async function prepararCompra(req) {
   const pacoteSnap = await db.collection('pacotes').doc(pacoteId).get();
   const pacote = pacoteSnap.exists ? pacoteSnap.data() : PACOTES_PADRAO[pacoteId];
   if (!pacote || pacote.ativo === false) throw new ErroHttp(400, 'Este plano não está mais disponível.');
+  if (!(Number(pacote.creditos) >= 1 && Number(pacote.creditos) <= MAX_CREDITOS_PACOTE)) {
+    throw new ErroHttp(400, 'Este plano está com o cadastro inválido. Avise a escola.');
+  }
 
-  const original = Number(pacote.preco);
+  // Aula avulsa/particular pode ser comprada em quantidade (ex.: 2 avulsas).
+  const quantidade = Number(pacote.creditos) === 1
+    ? Math.min(MAX_QUANTIDADE, Math.max(1, Math.trunc(Number(snap.get('quantidade')) || 1)))
+    : 1;
+  const original = Number(pacote.preco) * quantidade;
   let desconto = 0;
   let valor = original;
   const cupomCodigo = snap.get('cupomCodigo') || null;
@@ -123,11 +133,12 @@ async function prepararCompra(req) {
 
   const usuario = (await db.collection('usuarios').doc(uid).get()).data() || {};
   const confiavel = {
-    nomePacote: pacote.nome,
+    nomePacote: quantidade > 1 ? `${quantidade}× ${pacote.nome}` : pacote.nome,
+    quantidade,
     valorOriginal: original,
     desconto,
     valor,
-    creditos: Number(pacote.creditos),
+    creditos: Number(pacote.creditos) * quantidade,
     validadeDias: pacote.validadeDias ?? null,
     apenasFimDeSemana: pacote.apenasFimDeSemana === true,
     tipoPacote: pacote.tipo === 'individual' ? 'individual' : 'grupo',

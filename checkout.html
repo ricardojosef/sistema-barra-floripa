@@ -60,8 +60,28 @@
         </div>
 
         <div class="checkout-grade" id="grade-pagamento">
-          <!-- Métodos -->
-          <div>
+          <!-- 1. Resumo do pedido e cupom: antes de escolher como pagar -->
+          <aside class="checkout-resumo">
+            <div class="card">
+              <div class="card-titulo"><h3 data-i18n="reserva.resumo.titulo">Resumo do pedido</h3></div>
+              <div id="resumo-conteudo"></div>
+
+              <!-- Cupom de desconto -->
+              <form class="cupom-area mt-16" id="form-cupom" novalidate>
+                <label for="cupom-codigo" class="texto-peq negrito com-icone"><span data-icone="cupom"></span><span data-i18n="checkout.cupom">Cupom de desconto</span></label>
+                <div class="cupom-linha">
+                  <input type="text" id="cupom-codigo" autocomplete="off" maxlength="30" data-i18n-placeholder="checkout.cupomDica" placeholder="Digite o código">
+                  <button class="btn btn-secundario btn-peq" type="submit" id="btn-cupom" data-i18n="checkout.aplicar">Aplicar</button>
+                </div>
+                <div id="cupom-status" class="texto-min mt-8"></div>
+              </form>
+
+              <div class="alerta alerta-info mt-16 texto-min" id="aviso-modo"></div>
+            </div>
+          </aside>
+
+          <!-- 2. Aceite e forma de pagamento -->
+          <div class="checkout-pagar">
             <div class="card mb-16">
               <label class="checkbox-linha" id="linha-termos">
                 <input type="checkbox" id="aceite-termos">
@@ -184,28 +204,9 @@
                 </div>
               </div>
             </div>
+            <div class="card mt-16" id="politica-resumo"></div>
           </div>
 
-          <!-- Resumo -->
-          <aside class="checkout-resumo">
-            <div class="card">
-              <div class="card-titulo"><h3 data-i18n="reserva.resumo.titulo">Resumo do pedido</h3></div>
-              <div id="resumo-conteudo"></div>
-
-              <!-- Cupom de desconto -->
-              <form class="cupom-area mt-16" id="form-cupom" novalidate>
-                <label for="cupom-codigo" class="texto-peq negrito com-icone"><span data-icone="cupom"></span><span data-i18n="checkout.cupom">Cupom de desconto</span></label>
-                <div class="cupom-linha">
-                  <input type="text" id="cupom-codigo" autocomplete="off" maxlength="30" data-i18n-placeholder="checkout.cupomDica" placeholder="Digite o código">
-                  <button class="btn btn-secundario btn-peq" type="submit" id="btn-cupom" data-i18n="checkout.aplicar">Aplicar</button>
-                </div>
-                <div id="cupom-status" class="texto-min mt-8"></div>
-              </form>
-
-              <div class="alerta alerta-info mt-16 texto-min" id="aviso-modo"></div>
-            </div>
-            <div class="card mt-16" id="politica-resumo"></div>
-          </aside>
         </div>
       </section>
 

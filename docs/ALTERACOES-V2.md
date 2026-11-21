@@ -155,3 +155,20 @@ WhatsApp. Siga o passo 7 de [PAGAMENTOS.md](PAGAMENTOS.md#7-teste-com-dinheiro-r
 22. **Fotos das aulas (/links):** abre uma galeria na própria página com as
     fotos do site. Para um álbum externo (Google Fotos), preencha
     `ESCOLA.fotosUrl` em `js/config.js`.
+
+## Ajustes v2.2
+
+| Pedido | O que mudou |
+|---|---|
+| Rolagem lateral | Painel do aluno no celular: o seletor de idioma do topo some abaixo de 560 px (fica no modal "Minha conta"), o chip mostra só o número de créditos e a barra inferior encolhe os rótulos. Rede de segurança `overflow-x: clip` em `html, body` (não corta conteúdo dentro da tela nem quebra o cabeçalho fixo) |
+| Resumo e cupom antes do pagamento | `checkout.html`: resumo + cupom à esquerda (no celular, no topo); aceite e formas de pagamento depois |
+| "Economize R$ 193.700" | Era cadastro: o Pacote 12 Aulas com **1300 créditos** (o preço digitado no campo de créditos). Admin agora recusa mais de 60 créditos, o site não mostra economia nesse caso e o servidor não cobra plano com cadastro inválido |
+| Desmarcar horário | Clicar de novo desmarca também na tela "Agendar aula". O "mouse em cima" ficou diferente do "escolhido" (que ganhou um ✓) |
+| Aula avulsa ×N | Com 2+ aulas marcadas aparece "N× Aula em Grupo Avulsa" (ou particular). Compra com `quantidade`; o servidor recalcula preço e créditos |
+| Página de links | Sombra colorida em cada botão, fundo um pouco mais escuro, logo preenchendo o círculo |
+
+23. **Recomendado com várias aulas:** continua sendo o pacote mais barato que
+    cobre as aulas; "N× avulsa" aparece ao lado como alternativa ("Sem pacote")
+    e só é recomendada se nenhum pacote servir. *Alternativa:* recomendar
+    sempre o menor total (aí 2× avulsa, R$ 300, ganharia do Pacote 4, R$ 480).
+24. **Aula particular** agora pode ser comprada em quantidade (até 12), como a avulsa.

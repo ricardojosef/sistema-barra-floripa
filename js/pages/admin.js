@@ -9,7 +9,7 @@
 
 import { exigirAuth, sair } from '../auth.js';
 import { listar, criar, atualizar, remover, obter, reiniciarDados } from '../store.js';
-import { obterPacotes, obterLocais, obterConfig } from '../precos.js';
+import { obterPacotes, obterLocais, obterConfig, MAX_CREDITOS_PACOTE } from '../precos.js';
 import {
   listarEquipe, adicionarProfessor, removerProfessor, aulasFuturasDoProfessor, ErroEquipe,
 } from '../equipe.js';
@@ -467,7 +467,7 @@ async function montarPrecos() {
       el('div', { class: 'campo' }, [
         el('label', { text: 'Créditos' }),
         el('input', {
-          type: 'number', min: '1',
+          type: 'number', min: '1', max: String(MAX_CREDITOS_PACOTE), step: '1',
           value: String(pacote.creditos), dataset: { campo: 'creditos' },
         }),
       ]),
@@ -494,8 +494,15 @@ async function salvarPrecos(btn) {
       const preco = Number(qs('[data-campo="preco"]', linha).value);
       const creditos = Number(qs('[data-campo="creditos"]', linha).value);
 
-      if (!nome || !Number.isFinite(preco) || preco < 0 || !Number.isFinite(creditos) || creditos < 1) {
+      if (!nome || !Number.isFinite(preco) || preco < 0 || !Number.isInteger(creditos) || creditos < 1) {
         toast(`Confira os dados do plano "${nome || id}". Preço e créditos precisam ser válidos.`, 'erro', 5000);
+        restaurar();
+        return;
+      }
+      // Erro comum: o preço digitado também no campo de créditos (ex.: 1300 créditos).
+      if (creditos > MAX_CREDITOS_PACOTE) {
+        qs('[data-campo="creditos"]', linha).closest('.campo')?.classList.add('erro');
+        toast(`O plano "${nome}" está com ${creditos} créditos. O máximo é ${MAX_CREDITOS_PACOTE} — confira se o preço não foi digitado no campo de créditos.`, 'erro', 8000);
         restaurar();
         return;
       }

@@ -28,8 +28,9 @@
       --verde-whats: #25d366;
       --verde-whats-escuro: #1ebe5b;
       --raio: 18px;
-      --sombra: 0 6px 18px rgba(17, 17, 17, 0.12);
-      --sombra-forte: 0 12px 28px rgba(17, 17, 17, 0.18);
+      --sombra: 0 10px 22px -6px rgba(17, 17, 17, 0.35), 0 2px 6px rgba(17, 17, 17, 0.12);
+      --sombra-forte: 0 16px 32px -8px rgba(17, 17, 17, 0.42), 0 3px 8px rgba(17, 17, 17, 0.14);
+      --fundo: #efe6da;
     }
     * { box-sizing: border-box; margin: 0; }
     html { -webkit-text-size-adjust: 100%; }
@@ -37,7 +38,7 @@
       min-height: 100vh;
       font-family: 'Poppins', system-ui, -apple-system, sans-serif;
       color: var(--preto);
-      background: var(--creme);
+      background: var(--fundo);
       -webkit-font-smoothing: antialiased;
     }
     a { color: inherit; }
@@ -66,14 +67,27 @@
       background: linear-gradient(180deg, rgba(17, 17, 17, 0.25), rgba(17, 17, 17, 0.75));
     }
     .capa > *:not(.capa-foto):not(.onda):not(.idiomas) { position: relative; z-index: 1; }
+    /* O arquivo da logo tem margem e sombra: o disco laranja ocupa ~81% da
+       imagem, um pouco acima do centro. Ampliamos e centralizamos o disco
+       para ele preencher o círculo inteiro. */
     .logo {
-      width: 104px;
-      height: 104px;
+      display: block;
+      position: relative;
+      width: 112px;
+      height: 112px;
+      margin: 0 auto;
       border-radius: 50%;
-      background: var(--branco);
-      padding: 10px;
-      object-fit: contain;
-      box-shadow: 0 0 0 4px var(--laranja), var(--sombra-forte);
+      overflow: hidden;
+      background: #f26a1b;
+      box-shadow: 0 0 0 4px var(--branco), 0 0 0 7px var(--laranja), 0 14px 30px rgba(0, 0, 0, 0.45);
+    }
+    .logo img {
+      position: absolute;
+      width: 142px;
+      height: 142px;
+      max-width: none;
+      left: -15.6px;
+      top: -9.7px;
     }
     .capa h1 {
       margin-top: 16px;
@@ -106,7 +120,7 @@
       height: 46px;
       z-index: 2;
     }
-    .onda .frente { fill: var(--creme); }
+    .onda .frente { fill: var(--fundo); }
     .onda .fundo { fill: var(--laranja); opacity: 0.9; }
 
     /* ---------- Idioma ---------- */
@@ -308,6 +322,21 @@
       .link, .galeria-grade img { transition: none; }
       .galeria.aberta { animation: none; }
     }
+
+    /* Sombra colorida de cada botão: separa bem do fundo */
+    .link-agendar { box-shadow: 0 14px 28px -8px rgba(224, 95, 16, 0.65), 0 3px 8px rgba(17, 17, 17, 0.16); }
+    .link-whats { box-shadow: 0 14px 28px -8px rgba(18, 140, 66, 0.6), 0 3px 8px rgba(17, 17, 17, 0.16); }
+    .link-fotos { box-shadow: 0 14px 28px -8px rgba(0, 0, 0, 0.6), 0 3px 8px rgba(17, 17, 17, 0.2); }
+    .link-mapa { box-shadow: 0 14px 28px -10px rgba(17, 17, 17, 0.4), 0 2px 6px rgba(17, 17, 17, 0.12); border-color: #e2d6c6; }
+    .link-agendar:hover { box-shadow: 0 18px 34px -8px rgba(224, 95, 16, 0.75), 0 4px 10px rgba(17, 17, 17, 0.18); }
+    .link-whats:hover { box-shadow: 0 18px 34px -8px rgba(18, 140, 66, 0.7), 0 4px 10px rgba(17, 17, 17, 0.18); }
+    .link-fotos:hover { box-shadow: 0 18px 34px -8px rgba(0, 0, 0, 0.7), 0 4px 10px rgba(17, 17, 17, 0.22); }
+    .link-mapa:hover { box-shadow: 0 18px 34px -10px rgba(17, 17, 17, 0.5), 0 3px 8px rgba(17, 17, 17, 0.14); }
+    .link-titulo, .link-sub { text-shadow: none; }
+    .link-agendar .link-titulo, .link-whats .link-titulo { text-shadow: 0 1px 2px rgba(0, 0, 0, 0.18); }
+    .link-whats { background: #1fb855; }
+    .link-whats:hover { background: #1aa64b; }
+    .link-agendar .link-sub { opacity: 0.95; }
   </style>
 </head>
 <body>
@@ -319,7 +348,7 @@
       <button type="button" data-idioma="en">EN</button>
       <button type="button" data-idioma="es">ES</button>
     </div>
-    <img class="logo" src="/logomenor-barrafloripa.webp" alt="Barra Floripa Surf School" width="104" height="104">
+    <span class="logo"><img src="/logomenor-barrafloripa.webp" alt="Barra Floripa Surf School" width="142" height="142"></span>
     <h1>Barra Floripa <span>Surf School</span></h1>
     <p data-t="subtitulo">Aulas de surf na Barra da Lagoa · Florianópolis</p>
     <span class="selo-desde" data-t="desde">Desde 1989</span>

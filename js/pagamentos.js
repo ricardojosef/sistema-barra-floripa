@@ -13,7 +13,7 @@
 
 import { CONFIG } from './config.js';
 import { criar, transacao, driverAtual } from './store.js';
-import { obterPacote } from './precos.js';
+import { obterPacote, pacoteComQuantidade } from './precos.js';
 import { lancarCredito } from './creditos.js';
 import { calcularDesconto, registrarUsoCupom } from './cupons.js';
 import { esperar, icone } from './ui.js';
@@ -58,9 +58,11 @@ export const nomeMetodo = (id) => [...METODOS_DEMO, ...METODOS_REAIS].find((m) =
  * Cria a compra com status 'pendente'. Nenhum crédito é emitido aqui.
  * `cupom`: documento do cupom já validado (cupons.js) ou null.
  * `reservas`: aulas escolhidas no fluxo de reserva ([{ data, horario, localId, tipo }]).
+ * `quantidade`: para aula avulsa/particular (ex.: 2 aulas avulsas).
  */
-export async function criarCompra({ alunoId, pacoteId, metodo, cupom = null, reservas = [] }) {
-  const pacote = await obterPacote(pacoteId);
+export async function criarCompra({ alunoId, pacoteId, metodo, cupom = null, reservas = [], quantidade = 1 }) {
+  const base = await obterPacote(pacoteId);
+  const pacote = base ? pacoteComQuantidade(base, quantidade) : null;
   if (!pacote) throw new ErroPagamento('PACOTE_INVALIDO', 'Plano não encontrado.');
   if (pacote.ativo === false) throw new ErroPagamento('PACOTE_INATIVO', 'Este plano não está mais disponível.');
 
@@ -71,6 +73,7 @@ export async function criarCompra({ alunoId, pacoteId, metodo, cupom = null, res
     alunoId,
     pacoteId: pacote.id,
     nomePacote: pacote.nome,
+    quantidade: pacote.quantidade,
     valorOriginal: preco,
     desconto,
     cupomCodigo: cupom?.codigo || null,

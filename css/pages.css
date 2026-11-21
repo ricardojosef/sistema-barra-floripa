@@ -2099,3 +2099,80 @@ svg.icone { width: 1.2em; height: 1.2em; flex: none; vertical-align: -0.22em; }
 }
 .btn-whatsapp-rodape:hover { background: #1ebe5b; transform: translateY(-1px); }
 .btn-whatsapp-rodape .logo-whatsapp { width: 22px; height: 22px; }
+
+/* ==========================================================================
+   v2.2 — sem rolagem lateral
+   ========================================================================== */
+
+/* Rede de segurança: `clip` corta só o que vaza para os lados, sem criar
+   barra de rolagem e sem quebrar o cabeçalho fixo (sticky). O conteúdo das
+   páginas foi ajustado para caber; isto só pega sobras (ex.: animações). */
+html, body { max-width: 100%; }
+@supports (overflow: clip) {
+  html, body { overflow-x: clip; }
+}
+
+/* Topo do painel no celular: marca + créditos + avatar cabem em 320px. */
+.painel-topo-inner > * { min-width: 0; }
+.painel-topo-inner .marca { flex-shrink: 1; overflow: hidden; }
+.topo-acoes { flex-shrink: 0; }
+@media (max-width: 559px) {
+  .painel-topo .topo-idioma.painel { display: none; }
+  .chip-creditos { padding: 6px 10px; gap: 5px; }
+  .chip-creditos .chip-rotulo { display: none; }
+}
+@media (max-width: 359px) {
+  .painel-topo .marca-texto { display: none; }
+}
+
+/* Idioma dentro do modal "Minha conta" */
+.idioma-modal { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding-top: 12px; border-top: 1px solid var(--cinza-200); }
+
+/* Barra inferior: os 5 itens sempre cabem; rótulo longo é cortado com "…" */
+.nav-inferior { max-width: 100vw; }
+.nav-inferior a { min-width: 0; }
+.nav-inferior a > span:not(.badge-menu) {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Checkout: resumo e cupom primeiro (à esquerda no computador, no topo no celular) */
+@media (min-width: 1000px) {
+  .checkout-grade { grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); }
+}
+.checkout-grade > * { min-width: 0; }
+
+/* Horários: "mouse em cima" é só uma dica (borda clara); "escolhido" tem
+   fundo laranja e um ✓. Assim desmarcar fica visível na hora, e no celular
+   o toque não deixa o horário parecendo escolhido. */
+.slot { position: relative; }
+.slot:not(.lotado):not(.selecionado):hover {
+  border-color: var(--laranja-borda);
+  background: var(--branco);
+}
+@media (hover: none) {
+  .slot:not(.lotado):not(.selecionado):hover { border-color: var(--cinza-200); }
+}
+.slot.selecionado {
+  border-color: var(--laranja);
+  background: var(--laranja-suave);
+  padding-left: 42px;
+}
+.slot.selecionado::before {
+  content: '✓';
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--laranja);
+  color: var(--branco);
+  font-size: 0.75rem;
+  font-weight: 700;
+}

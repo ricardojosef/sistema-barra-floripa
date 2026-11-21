@@ -17,7 +17,7 @@ import { exigirAuth, sair } from '../auth.js';
 import { observar, obter } from '../store.js';
 import {
   obterPacote, obterPacotesAgrupados, precoUnitario, sufixoPeriodo,
-  economiaDoPacote, textoValidade, carregarContexto, nomeLocal,
+  economiaDoPacote, textoValidade, carregarContexto, nomeLocal, pacoteComQuantidade,
 } from '../precos.js';
 import { saldoCreditos } from '../creditos.js';
 import {
@@ -288,6 +288,7 @@ async function garantirCompra(metodo) {
       metodo,
       cupom: cupomAplicado?.cupom || null,
       reservas,
+      quantidade: pacote.quantidade || 1,
     });
   }
   return compra;
@@ -592,12 +593,20 @@ async function iniciar() {
     return;
   }
 
-  // Fluxo de reserva: a aula escolhida acompanha a compra.
+  // Aula avulsa/particular em quantidade (?qtd=2, ou a escolhida no fluxo de reserva).
+  let quantidade = Number(paramUrl('qtd')) || 1;
+
+  // Fluxo de reserva: as aulas escolhidas acompanham a compra.
   if (paramUrl('reserva') === '1') {
     const rascunho = lerRascunho();
-    if (rascunho.pacoteId === pacote.id) reservas = reservasDoRascunho(rascunho).slice(0, Number(pacote.creditos) || 1);
+    if (rascunho.pacoteId === pacote.id) {
+      quantidade = Number(rascunho.quantidade) || quantidade;
+      pacote = pacoteComQuantidade(pacote, quantidade);
+      reservas = reservasDoRascunho(rascunho).slice(0, Number(pacote.creditos) || 1);
+    }
     montarPassosReserva();
   }
+  if (!pacote.quantidade) pacote = pacoteComQuantidade(pacote, quantidade);
 
   qs('#etapa-planos').classList.add('oculto');
   qs('#etapa-pagamento').classList.remove('oculto');

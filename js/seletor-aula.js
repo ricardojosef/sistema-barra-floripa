@@ -199,8 +199,11 @@ export function criarSeletorAula(opcoes) {
             atualizarMarcas();
             return;
           }
-          slotSelecionado = { ...slot, tipo: tipo() };
-          lista.querySelectorAll('.slot').forEach((s) => s.classList.toggle('selecionado', s === botao));
+          // Clicar de novo no horário escolhido desfaz a escolha.
+          const jaEra = slotSelecionado?.chave === slot.chave && slotSelecionado?.data === slot.data;
+          slotSelecionado = jaEra ? null : { ...slot, tipo: tipo() };
+          lista.querySelectorAll('.slot').forEach((s) => s.classList.toggle('selecionado', !jaEra && s === botao));
+          botao.setAttribute('aria-pressed', String(!jaEra));
           aoSelecionar(slotSelecionado);
         });
       }
