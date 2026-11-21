@@ -15,8 +15,9 @@ demonstração.
 5. [Ligando o Firebase (login real e banco de dados)](#5-ligando-o-firebase)
 6. [Ligando os pagamentos reais](#6-ligando-os-pagamentos-reais)
 7. [Ligando os e-mails automáticos](#7-ligando-os-e-mails-automáticos)
-8. [Publicando o site](#8-publicando-o-site)
-9. [Perguntas frequentes](#9-perguntas-frequentes)
+8. [Alternativa sem o plano Blaze](#8-alternativa-sem-o-plano-blaze)
+9. [Publicando o site](#9-publicando-o-site)
+10. [Perguntas frequentes](#10-perguntas-frequentes)
 
 ---
 
@@ -790,7 +791,7 @@ dela está pronto na Parte 3.
 Separe **umas 3 horas** e confira se tem tudo:
 
 - [ ] **Firebase já funcionando** (seção 5 inteira concluída).
-- [ ] **Site publicado na internet** com endereço `https://` (seção 8). O
+- [ ] **Site publicado na internet** com endereço `https://` (seção 9). O
       Mercado Pago precisa de um endereço público para devolver o aluno ao
       site, e `localhost` não serve.
 - [ ] **Node.js instalado** no computador (você já usa para rodar o site).
@@ -801,7 +802,8 @@ Separe **umas 3 horas** e confira se tem tudo:
 - [ ] **Um cartão de crédito para o Firebase.** As Cloud Functions só
       funcionam no plano **Blaze** (pago conforme o uso). No volume de uma
       escola de surf o uso fica dentro da cota gratuita e a conta tende a dar
-      R$ 0, mas o Google exige um cartão cadastrado.
+      R$ 0, mas o Google exige um cartão cadastrado. Sem cartão, veja a
+      [alternativa da seção 8](#8-alternativa-sem-o-plano-blaze).
 
 O roteiro tem seis partes, nesta ordem:
 
@@ -1223,7 +1225,7 @@ SITE_URL=https://barrafloripasurfschool.com.br
 PAYPAL_API=https://api-m.sandbox.paypal.com
 ```
 
-- `SITE_URL`: o endereço do site publicado (seção 8), **sem barra no
+- `SITE_URL`: o endereço do site publicado (seção 9), **sem barra no
   final**.
 - `PAYPAL_API`: endereço de **teste** do PayPal. Na Parte 6 ele muda.
 
@@ -1507,7 +1509,7 @@ allow create: if ehAdmin()
 > também precisa passar pelo servidor, ou a regra precisa conferir o
 > agendamento cancelado. Vale fazer depois que os pagamentos estiverem no ar.
 
-Publique o site de novo (seção 8) com essas alterações.
+Publique o site de novo (seção 9) com essas alterações.
 
 ### 6.8 Parte 5 — Testar com dinheiro de mentira
 
@@ -1730,7 +1732,8 @@ EMAIL_REMETENTE="Barra Floripa Surf School <contato@barrafloripasurfschool.com.b
 
 **1. Plano Blaze.** As Cloud Functions exigem o plano Blaze, o mesmo dos
 pagamentos. Se ainda não ligou, siga o passo **3.1 da seção 6.6**. No
-volume de uma escola, o uso fica dentro da cota gratuita.
+volume de uma escola, o uso fica dentro da cota gratuita. Sem Blaze, veja a
+[seção 8](#8-alternativa-sem-o-plano-blaze).
 
 **2. Ferramentas.** No terminal, **na pasta do projeto**:
 ```bash
@@ -1828,7 +1831,251 @@ pode remover a função: responda **sim**.
 
 ---
 
-## 8. Publicando o site
+## 8. Alternativa sem o plano Blaze
+
+As seções 6 e 7 usam as **Cloud Functions** do Firebase, que só funcionam no
+plano **Blaze**. Esta seção mostra outro caminho, em que o Firebase continua
+no plano gratuito (**Spark**) e o servidor roda em outro lugar, também de
+graça.
+
+> ⚠️ **O código desta alternativa ainda não está no projeto.** Esta seção
+> descreve como ela funciona e o que precisa ser feito. O código pronto hoje
+> (pasta `functions/`) é o das seções 6 e 7. Antes de seguir o passo a passo
+> do 8.5, alguém que programa precisa escrever o servidor descrito no 8.4.
+
+### 8.1 Antes: o Blaze cobra quanto?
+
+Vale saber antes de decidir. **Blaze não quer dizer pagar.** Ele é o plano
+"pague só o que passar da cota gratuita", e a cota é a mesma do Spark, mais a
+das Cloud Functions (milhões de execuções por mês). Para uma escola, que
+gera algumas dezenas de pagamentos e e-mails por dia, a conta tende a dar
+**R$ 0**. No máximo aparecem alguns centavos pelo armazenamento das imagens
+do servidor.
+
+O que o Blaze tem de chato de verdade:
+
+- exige **cartão de crédito** cadastrado no Google;
+- **não tem teto de gasto.** O alerta de orçamento (passo 3.1) só manda
+  e-mail, não bloqueia nada. Um erro de programação que entre em loop
+  poderia gerar cobrança.
+
+Se isso é aceitável para a escola, o caminho das seções 6 e 7 é o **mais
+simples e o mais robusto**. Se a escola não quer cartão nenhum cadastrado,
+siga esta seção.
+
+### 8.2 A alternativa: Cloudflare Workers + API do Brevo
+
+O servidor sai do Firebase e vai para o **Cloudflare Workers**. O plano
+gratuito dele permite uso comercial, não pede cartão e dá cerca de 100 mil
+requisições por dia, muito mais do que a escola usa. O resto se ajusta em
+volta:
+
+| Peça | Com Blaze (seções 6 e 7) | Sem Blaze (esta seção) |
+|---|---|---|
+| Plano do Firebase | Blaze | **Spark** (gratuito, sem cartão) |
+| Onde o servidor roda | Cloud Functions | **Cloudflare Worker** (plano Free) |
+| Como o servidor acessa o banco | Automático, por estar no mesmo projeto | Com uma **conta de serviço** do Firebase (um arquivo de chave) |
+| Como o e-mail sai | SMTP do Brevo ou Gmail | **API do Brevo**, pela internet (no Worker, uma API é bem mais simples e confiável que SMTP) |
+| Quando o e-mail é disparado | Na hora, quando algo é gravado no Firestore | Por uma **tarefa agendada** que roda a cada 5 minutos |
+| Onde ficam as chaves secretas | Secret Manager do Google | Cofre de segredos do Cloudflare |
+
+**O que não muda:**
+
+- Mercado Pago e PayPal: as Partes 1 e 2 (6.4 e 6.5) são iguais.
+- Os ajustes no site (6.7) são iguais. Só o `backendUrl` aponta para o
+  endereço do Worker, e não para o das Cloud Functions.
+- Os testes (6.8 e 7.5) e a virada para produção (6.9) seguem o mesmo
+  roteiro, trocando os comandos `firebase` pelos do `wrangler` (8.5).
+- O Brevo: conta, domínio e remetente (passos 1 a 3 do 7.3) são iguais.
+- Os textos dos e-mails: o Worker aproveita o `functions/modelos-email.js`.
+- Quem recebe cada e-mail (tabela da seção 7) e as regras de crédito.
+
+As cotas gratuitas mudam de tempos em tempos. Confira as atuais nas páginas
+de preço do Cloudflare Workers, do Brevo (cerca de 300 e-mails por dia) e do
+Firebase (cerca de 50 mil leituras por dia no Firestore).
+
+### 8.3 Diferenças que a escola vai notar
+
+| Diferença | Na prática |
+|---|---|
+| **Os e-mails demoram até 5 minutos** | O Worker não "vê" o Firestore mudar. A cada 5 minutos ele procura o que é novo e envia. Para confirmação de aula isso não faz diferença. |
+| **Depende do relógio do aparelho do aluno** | O Worker acha o que é novo pelos horários `criadoEm` e `canceladoEm`, que o navegador grava. Ele sempre olha 30 minutos para trás, então um relógio até meia hora errado não atrapalha. Se o relógio estiver muito errado, aquele e-mail pode não sair. O agendamento continua valendo, só o e-mail se perde. |
+| **Dois fornecedores** | Firebase (site, login, banco) e Cloudflare (servidor). São duas contas para manter e dois lugares para olhar os logs. |
+| **Uma chave mestra a guardar** | A conta de serviço (8.5, Parte A) dá acesso total ao banco e passa por cima das regras de segurança. Ela é tão secreta quanto o Access Token do Mercado Pago. |
+| **Limites por execução** | No plano Free, cada execução do Worker pode fazer cerca de 50 chamadas a outros serviços. Se juntar muita coisa em 5 minutos (por exemplo, retirar um professor com 30 alunos marcados), o Worker envia uma parte e deixa o resto para a rodada seguinte. |
+
+O consumo do Firestore fica pequeno: cerca de 288 rodadas por dia, com
+algumas leituras cada, mais os pagamentos. Isso dá alguns milhares de
+leituras por dia, bem abaixo da cota gratuita.
+
+### 8.4 Como o servidor funciona (para quem programa)
+
+Um único Worker (pasta sugerida: `cloudflare/`, com `worker.js` e
+`wrangler.toml`) faz as duas coisas.
+
+**Pagamentos: tratador `fetch`.** Ele responde às mesmas quatro rotas do
+`functions/pagamentos.js` (6.6), com o mesmo contrato, para o site não
+perceber a troca:
+
+| Rota | No Cloud Functions | No Worker |
+|---|---|---|
+| Conferir o login do aluno | `admin.auth().verifyIdToken()` | Valida o *ID token* com a biblioteca `jose`, usando as chaves públicas do Google (`securetoken@system.gserviceaccount.com`), emissor `https://securetoken.google.com/barra-floripa` e público `barra-floripa` |
+| Ler e gravar `compras`, `pacotes`, `creditos` | `firebase-admin` | **API REST do Firestore**, com um token OAuth gerado a partir da conta de serviço (um JWT assinado com `crypto.subtle`, sem biblioteca) |
+| Creditar sem dobrar | `runTransaction` | `beginTransaction` + `commit` da API REST: lê a compra, confere `status` e valor pago, e no mesmo `commit` marca a compra como paga e cria o lançamento em `creditos` |
+| Assinatura do webhook do Mercado Pago | `crypto.createHmac` | HMAC-SHA256 com `crypto.subtle` |
+| Mercado Pago e PayPal | `fetch` | `fetch` (o mesmo código) |
+| CORS | `cors: true` | Responde ao `OPTIONS` e devolve `Access-Control-Allow-Origin` com o `SITE_URL` |
+
+**E-mails: tratador `scheduled`, a cada 5 minutos.** Ele substitui os
+gatilhos do `functions/emails.js`:
+
+1. Lê o marcador `sistema/emails`, com o horário da última rodada.
+2. Para cada caso, faz uma consulta (`runQuery`) a partir do marcador
+   **menos 30 minutos**:
+   - `usuarios` por `criadoEm`, só `papel == 'aluno'`: boas-vindas;
+   - `creditos` por `criadoEm`, só `delta > 0` com `motivo` `compra` ou
+     `ajuste`: créditos;
+   - `agendamentos` por `criadoEm`: confirmação ao aluno e ao professor;
+   - `agendamentos` por `canceladoEm`: cancelamento (o professor só recebe
+     se `canceladoPorPapel == 'aluno'`, como hoje);
+   - `mensagens` por `criadoEm`: recado.
+   Para não exigir índices compostos, cada consulta filtra só pela data. O
+   resto é filtrado no código.
+3. Para cada item, cria `emails/{colecao}-{id}-{tipo}` com a precondição
+   `currentDocument.exists = false`. Se o documento já existe, aquele e-mail
+   já saiu e é pulado. É a mesma proteção contra repetição de hoje, e é ela
+   que deixa a janela de 30 minutos repetir itens sem duplicar e-mail.
+4. Monta o e-mail com `modelos-email.js` (o `wrangler` empacota o arquivo
+   CommonJS sem mudanças) e envia por `POST https://api.brevo.com/v3/smtp/email`,
+   com o cabeçalho `api-key`.
+5. Atualiza o `status` do registro (`enviado` ou `erro`) e, no fim, grava o
+   novo marcador. Se uma rodada esbarrar no limite de chamadas, ela para,
+   **não** avança o marcador além do último item processado, e a próxima
+   rodada continua dali.
+
+As regras do `firestore.rules` não precisam mudar. A conta de serviço passa
+por cima delas, como o `firebase-admin` faz hoje, e as coleções `emails` e
+`sistema` continuam fechadas para o navegador.
+
+### 8.5 Passo a passo
+
+**Parte A — Chave da conta de serviço do Firebase**
+1. [console.firebase.google.com](https://console.firebase.google.com) →
+   projeto `barra-floripa` → engrenagem ⚙️ → **Configurações do projeto** →
+   aba **Contas de serviço**.
+2. **Gerar nova chave privada** → **Gerar chave**. O navegador baixa um
+   arquivo `.json`.
+3. Guarde esse arquivo **fora da pasta do projeto**, por exemplo em
+   Documentos. Se ele cair no GitHub, qualquer pessoa pode apagar ou alterar
+   o banco inteiro. Você vai colar o conteúdo dele no passo C.5 e depois
+   pode apagá-lo.
+
+**Parte B — Chave de API do Brevo**
+1. Faça os passos **1, 2 e 3 do 7.3** (conta, domínio e remetente).
+2. Em vez da chave SMTP do passo 4: menu → **SMTP & API** → aba **API
+   Keys** → **Generate a new API key** → nome `Worker` → copie a chave (ela
+   só aparece uma vez).
+
+**Parte C — Cloudflare**
+1. Crie uma conta gratuita em [dash.cloudflare.com](https://dash.cloudflare.com/sign-up).
+   Não precisa de cartão nem de mover o domínio para o Cloudflare.
+2. No painel, **Workers & Pages**, escolha um subdomínio (por exemplo
+   `barrafloripa`). Ele forma o endereço do servidor.
+3. No terminal, **na pasta do projeto**:
+   ```bash
+   npm install -g wrangler
+   wrangler login
+   cd cloudflare
+   npm install
+   ```
+4. Confira o `cloudflare/wrangler.toml`. Ele guarda a configuração que não
+   é secreta, no lugar do `functions/.env`:
+   ```toml
+   name = "barra-floripa-api"
+   main = "worker.js"
+
+   [vars]
+   FIREBASE_PROJECT_ID = "barra-floripa"
+   SITE_URL = "https://barrafloripasurfschool.com.br"
+   PAYPAL_API = "https://api-m.sandbox.paypal.com"
+   EMAIL_REMETENTE = "contato@barrafloripasurfschool.com.br"
+   EMAIL_NOME = "Barra Floripa Surf School"
+
+   [triggers]
+   crons = ["*/5 * * * *"]   # e-mails: roda a cada 5 minutos
+   ```
+5. Guarde os segredos. Rode um comando por vez e cole o valor quando ele
+   pedir:
+   ```bash
+   wrangler secret put FIREBASE_SERVICE_ACCOUNT   # o conteúdo INTEIRO do .json da Parte A
+   wrangler secret put BREVO_API_KEY              # chave da Parte B
+   wrangler secret put MP_ACCESS_TOKEN            # Access Token de teste do Mercado Pago
+   wrangler secret put PAYPAL_CLIENT_ID           # Client ID do Sandbox
+   wrangler secret put PAYPAL_SECRET              # Secret do Sandbox
+   wrangler secret put MP_WEBHOOK_SECRET          # por enquanto: provisorio
+   ```
+   Para colar o `.json` sem erro, abra o arquivo no Bloco de Notas, **Ctrl+A**,
+   **Ctrl+C** e cole no terminal.
+6. Publique:
+   ```bash
+   wrangler deploy
+   ```
+   No final aparece o endereço, algo como
+   `https://barra-floripa-api.barrafloripa.workers.dev`.
+
+**Parte D — Ligar o site e o Mercado Pago ao Worker**
+
+Use o endereço do Worker em todo lugar onde as seções 6 e 7 usam o das
+Cloud Functions:
+
+| Para quê | Endereço |
+|---|---|
+| `backendUrl` no `config.js` (6.7) | `https://barra-floripa-api.barrafloripa.workers.dev` |
+| Webhook do Mercado Pago (passo 3.7) | `https://barra-floripa-api.barrafloripa.workers.dev/mercadopago/webhook` |
+
+No passo 3.7, troque o comando do segredo por:
+```bash
+wrangler secret put MP_WEBHOOK_SECRET   # cole a assinatura secreta
+```
+O `secret put` já publica sozinho, não precisa de outro deploy.
+
+**Parte E — Testar**
+
+Siga os roteiros **6.8** (pagamentos) e **7.5** (e-mails), lembrando que
+os e-mails podem levar **até 5 minutos**. Onde aqueles roteiros mandam
+olhar **Functions → Logs**, olhe:
+- no painel do Cloudflare: **Workers & Pages → barra-floripa-api → Logs**; ou
+- ao vivo, no terminal: `wrangler tail`.
+
+A coleção `emails` no Firestore continua mostrando cada envio com o
+`status` e o erro, se houver.
+
+**Parte F — Produção**
+
+Igual ao **6.9**, com estas trocas:
+- os comandos `firebase functions:secrets:set ...` viram
+  `wrangler secret put ...`;
+- `PAYPAL_API` muda no `wrangler.toml`, não no `functions/.env`;
+- `firebase deploy --only functions` vira `wrangler deploy`.
+
+> **Não use os dois servidores ao mesmo tempo.** Se a escola ligar o Blaze
+> depois e publicar a pasta `functions/`, desligue o Worker (painel do
+> Cloudflare → o Worker → **Settings → Delete**), senão cada e-mail sai em
+> dobro e os dois disputam o webhook.
+
+### 8.6 Outros caminhos gratuitos (e por que não são os recomendados)
+
+| Caminho | Por que não |
+|---|---|
+| **Extensão "Trigger Email" do Firebase** | É uma Cloud Function por baixo, então também exige o Blaze. |
+| **Netlify Functions** (agendadas) | Roda Node.js, então daria para aproveitar quase todo o código de `functions/` (firebase-admin e nodemailer). Funciona do mesmo jeito que o Worker, com tarefa agendada. Mas o plano gratuito e os limites mudaram recentemente: confira se ele permite uso comercial e funções agendadas antes de escolher. |
+| **Vercel Functions** | O plano gratuito (Hobby) é só para uso não comercial. |
+| **EmailJS** (e-mail enviado pelo navegador) | A chave fica no site, então qualquer pessoa pode disparar e-mails em nome da escola. Também não protege os pagamentos. |
+| **Sem servidor: link de pagamento + crédito manual** | O aluno paga por um link do Mercado Pago e a escola lança os créditos à mão em **Administração → Alunos** (3.8.2). Não tem custo e não precisa de código no servidor, mas o aluno espera alguém conferir o pagamento. Também exige trocar a tela de checkout, porque a atual, no modo `mock`, credita sozinha. Serve como solução provisória, não para o dia a dia. |
+
+---
+
+## 9. Publicando o site
 
 ### Firebase Hosting (recomendado, integra com o resto)
 
@@ -1854,7 +2101,7 @@ branch `main`.
 
 ---
 
-## 9. Perguntas frequentes
+## 10. Perguntas frequentes
 
 **Os dados sumiram quando troquei de navegador.**
 Esperado no modo `'local'` — os dados ficam no navegador. Para compartilhar

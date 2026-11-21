@@ -132,6 +132,7 @@ escolhe o driver. Por isso migrar para produção não exige reescrever telas.
 - Firebase: criar projeto, ativar login, cadastrar a equipe, regras de segurança
 - Pagamentos: PIX, Mercado Pago, PayPal e cartão em produção
 - E-mails automáticos para alunos e professores
+- Alternativa gratuita, sem o plano Blaze (Cloudflare Workers)
 - Publicação e perguntas frequentes
 
 ---
